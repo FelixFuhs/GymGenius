@@ -988,56 +988,22 @@ def trigger_training_pipeline_route():
 
     logger.info(f"Received request to trigger training pipeline. Task: {task_name}, Force run: {force_run}")
 
-    conn = None
-    users_processed_count = 0
-    processed_user_ids = []
-
     try:
-        conn = get_db_connection()
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT id, email FROM users;") # Fetch id and email for logging
-            all_users = cur.fetchall()
-
-        users_processed_count = len(all_users)
-
-        # Conceptual Asynchronous Behavior:
-        # In a production scenario, the following loop would be offloaded to a
-        # background task queue (e.g., Celery, RQ, or cloud functions)
-        # to avoid blocking the HTTP request for a long time.
-        logger.info("--- Starting Simulated Nightly Training Tasks ---")
-        for user in all_users:
-            user_id = str(user['id'])
-            user_email = user['email'] # For more informative logging
-            # Simulate per-user training tasks
-            logger.info(f"Simulating training tasks for user_id: {user_id} (Email: {user_email})...")
-            # Example: Fetch some data for the user to simulate work
-            # with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as user_task_cur:
-            #    user_task_cur.execute("SELECT goal_slider FROM users WHERE id = %s;", (user_id,))
-            #    user_specific_data = user_task_cur.fetchone()
-            #    logger.info(f"  User {user_id} goal_slider: {user_specific_data.get('goal_slider') if user_specific_data else 'N/A'}")
-            processed_user_ids.append(user_id)
-        logger.info("--- Finished Simulated Nightly Training Tasks ---")
-
+        from . import tasks  # Imported here to avoid circular dependency on startup
+        job = tasks.queue.enqueue(tasks.nightly_user_model_update,
+                                  task_name=task_name,
+                                  force_run=force_run)
+        logger.info(f"Enqueued training pipeline job {job.id}")
         return jsonify({
-            "message": "Training pipeline triggered successfully (simulated).",
-            "users_processed_count": users_processed_count,
-            # "processed_user_ids": processed_user_ids, # Optional: for more detailed response
-            "task_details": {
-                "task_name": task_name,
-                "force_run": force_run,
-                "simulated_action": "Logged per-user training triggers."
-            }
+            "message": "Training pipeline enqueued",
+            "job_id": job.id,
+            "task_name": task_name,
+            "force_run": force_run,
         }), 200
 
-    except psycopg2.Error as e:
-        logger.error(f"Database error during training pipeline trigger: {e}")
-        return jsonify(error="Database operation failed during pipeline trigger"), 500
     except Exception as e:
-        logger.error(f"Unexpected error during training pipeline trigger: {e}", exc_info=True)
-        return jsonify(error="An unexpected error occurred during pipeline trigger"), 500
-    finally:
-        if conn:
-            conn.close()
+        logger.error(f"Failed to enqueue training pipeline: {e}", exc_info=True)
+        return jsonify(error="Failed to enqueue training pipeline"), 500
 
 
 if __name__ == '__main__':

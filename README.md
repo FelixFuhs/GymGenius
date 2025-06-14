@@ -50,6 +50,12 @@ open http://localhost:3000
 
 > **Prerequisites**: Docker ≥ 24, Python 3.11, Make, GNU Bash (macOS/Linux) or WSL 2 (Windows).
 
+To process background training jobs separately, run the worker:
+
+```bash
+python -m engine.worker
+```
+
 ### Project Structure
 
 | Path                   | Purpose                                      |

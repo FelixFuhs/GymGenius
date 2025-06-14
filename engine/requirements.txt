@@ -3,3 +3,6 @@ Flask==2.0.1
 # Update as necessary.
 bcrypt
 PyJWT
+
+rq
+redis
