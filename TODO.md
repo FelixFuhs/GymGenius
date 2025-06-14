@@ -4,12 +4,12 @@ This file lists the next logical tasks to be done in the GymGenius project.
 
 ## Phase 1 - Alpha (internal dog-food)
 
-- **P1-INF-002**: `@infra` Docker-compose dev stack + Makefile
-- **P1-FE-003**: `@web` Minimal PWA: login → workout list → log set
-- **P1-DS-004**: `@engine` Extended-Epley 1RM endpoint (`/v1/predict`)
-- **P1-FE-005**: `@web` RIR + weight input form with plate rounding
-- **P1-INF-006**: `@infra` GitHub Actions CI (lint, test, docker build)
-- **P1-PM-007**: `@product` 10-user internal test cohort recruited
+- [x] **P1-INF-002**: `@infra` Docker-compose dev stack + Makefile
+- [x] **P1-FE-003**: `@web` Minimal PWA: login → workout list → log set
+- [x] **P1-DS-004**: `@engine` Extended-Epley 1RM endpoint (`/v1/predict`)
+- [x] **P1-FE-005**: `@web` RIR + weight input form with plate rounding
+- [x] **P1-INF-006**: `@infra` GitHub Actions CI (lint, test, docker build)
+- [x] **P1-PM-007**: `@product` 10-user internal test cohort recruited
 
 ## Phase 2 - Private Beta (≤ 100 users)
 
