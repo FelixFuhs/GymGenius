@@ -14,7 +14,7 @@
 | **P1-DS-004** | `@engine` | Implement `estimate_1rm` (Extended Epley) & `calculate_training_params` as foundation for progression. | - [x] |
 | **P1-FE-005** | `@web` | RIR + weight input form with plate rounding | - [x] |
 | **P1-INF-006** | `@infra` | GitHub Actions CI (lint, test, docker build) | - [x] |
-| **P1-PM-007** | `@product` | 10-user internal test cohort recruited | - [ ] |
+| **P1-PM-007** | `@product` | 10-user internal test cohort recruited | - [x] |
 | **P1-BE-008** | `@api-team` | Implement Authentication backend (signup/login/JWT management). | - [x] |
 | **P1-BE-009** | `@api-team` | Implement User Profile Management APIs (CRUD for user settings, goals, equipment). | - [x] |
 | **P1-BE-010** | `@api-team` | Implement Basic CRUD APIs for Exercises (create, read, update, delete - admin initially). | - [x] |
