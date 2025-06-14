@@ -1,11 +1,12 @@
 version: '3.8'
 services:
   web:
-    build: ./webapp # Assuming webapp will be in ./webapp
+    build:
+      context: ./webapp
     ports:
-      - "8000:8000"
+      - "8000:80"
     volumes:
-      - ./webapp:/app
+      - ./webapp:/usr/share/nginx/html
     depends_on:
       - db
       - engine
@@ -20,7 +21,8 @@ services:
     ports:
       - "5432:5432"
   engine:
-    build: ./engine # Assuming engine will be in ./engine
+    build:
+      context: ./engine
     ports:
       - "5000:5000"
     volumes:
