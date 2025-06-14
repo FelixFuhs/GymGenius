@@ -30,7 +30,7 @@
 | **P2-DS-001** | `@engine` | Implement core adaptive algorithm components: RIR-bias learning, fatigue tracking model (user-specific), initial weight recommendation logic. | - [ ] |
 | **P2-FE-002** | `@web` | “Why this weight?” tooltip (explainable AI) | - [ ] |
 | **P2-BE-003** | `@api-team` | Webhook → nightly model-training pipeline | - [ ] |
-| **P2-INF-004** | `@infra` | Staging environment (AWS ECS + RDS) | - [ ] |
+| **P2-INF-004** | `@infra` | Local staging environment via Docker Compose; AWS deployment deferred to Phase 4 (see P4-INF-011) | - [ ] |
 | **P2-PM-005** | `@product` | Beta feedback survey + KPI dashboard | - [ ] |
 | **P2-DS-006** | `@engine` | Implement trend detection for exercise performance. | - [ ] |
 | **P2-DS-007** | `@engine` | Implement basic plateau detection (based on trend). | - [ ] |
@@ -71,6 +71,8 @@ Exit criteria: **1 k monthly active lifters**, churn < 5 % / month.
 | **P4-PM-008** | `@product` | Implement detailed analytics tracking (e.g., Mixpanel) for user behavior. | - [ ] |
 | **P4-DOC-009** | `@product` | Create user and technical documentation. | - [ ] |
 | **P4-PM-010** | `@product` | Coordinate beta testing with a larger cohort of real users. | - [ ] |
+| **P4-INF-011** | `@infra` | Deploy to AWS ECS + RDS for production rollout | - [ ] |
+| **P4-INF-012** | `@infra` | CI/CD pipeline to push images to ECR and update ECS services | - [ ] |
 
 ## Phase 5 — Advanced Features (Post-Launch) 📅 [Date TBD]
 | ID | Owner | Description | Done |

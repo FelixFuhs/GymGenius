@@ -1,5 +1,7 @@
 # Staging Environment Setup on AWS ECS + RDS
 
+> **Note**: The project runs entirely on local Docker Compose during Phases 1-3. This guide applies only when transitioning to cloud hosting in Phase 4 and beyond.
+
 This document outlines the conceptual steps and considerations for deploying the GymGenius application to a staging environment using AWS Elastic Container Service (ECS) and AWS Relational Database Service (RDS) for PostgreSQL.
 
 ## Overview
