@@ -14,32 +14,24 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Set up Python (for engine linting if needed)
+      - name: Set up Python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.9' # Choose version relevant to your engine
+          python-version: '3.9'
 
-      # Add webapp linting steps here (e.g., ESLint, Prettier)
-      # Example:
-      # - name: Setup Node.js for webapp linting
-      #   uses: actions/setup-node@v3
-      #   with:
-      #     node-version: '18' # Or your webapp's Node version
-      # - name: Install webapp dependencies and lint
-      #   run: |
-      #     cd webapp
-      #     npm install # or yarn install
-      #     npm run lint # or yarn lint
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      # Add engine linting steps here (e.g., Flake8, Pylint)
-      # Example:
-      - name: Install engine dependencies and lint
+      - name: Lint webapp
+        run: node --check webapp/js/*.js
+
+      - name: Lint engine
         run: |
-          cd engine
-          pip install -r requirements.txt
-          pip install flake8
-          flake8 .
-          cd ..
+          pip install -r engine/requirements.txt
+          pip install ruff
+          ruff engine tests webapp/tests
 
   test:
     name: Run Tests
@@ -68,6 +60,11 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
       # Add webapp testing steps here (e.g., Jest, Cypress)
       # Example:
       # - name: Setup Node.js for webapp tests
@@ -82,20 +79,13 @@ jobs:
 
       # Add engine testing steps here (e.g., pytest, unittest)
       # Example:
-      - name: Install engine dependencies and test
-        env: # Pass environment variables to tests if needed
+      - name: Install dependencies and run tests
+        env:
            DATABASE_URL: postgresql://gymgenius:secret@localhost:5432/gymgenius_test
         run: |
-          cd engine
-          pip install -r requirements.txt
-          pip install pytest psycopg2-binary # Ensure psycopg2 is available for tests
-          # Create a dummy test file if none exist to make pytest pass
-          if [ ! -d "tests" ]; then mkdir tests; fi
-          if [ ! -f "tests/test_placeholder.py" ]; then echo "def test_always_passes():
-    assert True" > tests/test_placeholder.py; fi
-          # Run pytest. DATABASE_URL is already set in the job's env.
-          pytest tests
-          cd ..
+          pip install -r engine/requirements.txt
+          pip install pytest psycopg2-binary
+          pytest webapp/tests tests
 
   build-docker:
     name: Build Docker Images
