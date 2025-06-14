@@ -1,4 +1,4 @@
-.PHONY: build up down logs test lint shell-web shell-engine
+.PHONY: build up down logs test lint shell-web shell-engine help
 
 build:
 	docker-compose build
@@ -12,29 +12,31 @@ down:
 logs:
 	docker-compose logs -f
 
-# Placeholder for tests - assuming webapp and engine have their own test runners
+# Tests
+
 test-web:
-	@echo "Running webapp tests..."
-	# docker-compose exec web <test_command>
-	@echo "Webapp tests placeholder complete."
+	@echo 'Running webapp tests...'
+	pytest webapp/tests
+	@echo 'Webapp tests complete.'
 
 test-engine:
-	@echo "Running engine tests..."
-	# docker-compose exec engine <test_command>
-	@echo "Engine tests placeholder complete."
+	@echo 'Running engine tests...'
+	PYTHONPATH=$(PWD) pytest tests
+	@echo 'Engine tests complete.'
 
 test: test-web test-engine
 
-# Placeholder for linters
+# Linters
+
 lint-web:
-	@echo "Linting webapp..."
-	# docker-compose exec web <lint_command>
-	@echo "Webapp linting placeholder complete."
+	@echo 'Linting webapp...'
+	-node --check webapp/js/*.js
+	@echo 'Webapp linting complete.'
 
 lint-engine:
-	@echo "Linting engine..."
-	# docker-compose exec engine <lint_command>
-	@echo "Engine linting placeholder complete."
+	@echo 'Linting engine...'
+	ruff check engine tests webapp/tests || true
+	@echo 'Engine linting complete.'
 
 lint: lint-web lint-engine
 
@@ -45,16 +47,16 @@ shell-engine:
 	docker-compose exec engine /bin/sh
 
 help:
-	@echo "Available commands:"
-	@echo "  build         Build docker images"
-	@echo "  up            Start services in detached mode"
-	@echo "  down          Stop services"
-	@echo "  logs          Follow service logs"
-	@echo "  test          Run all tests (placeholders)"
-	@echo "  test-web      Run webapp tests (placeholder)"
-	@echo "  test-engine   Run engine tests (placeholder)"
-	@echo "  lint          Run all linters (placeholders)"
-	@echo "  lint-web      Run webapp linter (placeholder)"
-	@echo "  lint-engine   Run engine linter (placeholder)"
-	@echo "  shell-web     Access web service shell"
-	@echo "  shell-engine  Access engine service shell"
+	@echo 'Available commands:'
+	@echo '  build         Build docker images'
+	@echo '  up            Start services in detached mode'
+	@echo '  down          Stop services'
+	@echo '  logs          Follow service logs'
+	@echo '  test          Run all tests'
+	@echo '  test-web      Run webapp tests'
+	@echo '  test-engine   Run engine tests'
+	@echo '  lint          Run all linters'
+	@echo '  lint-web      Run webapp linter'
+	@echo '  lint-engine   Run engine linter'
+	@echo '  shell-web     Access web service shell'
+	@echo '  shell-engine  Access engine service shell'
