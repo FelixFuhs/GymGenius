@@ -173,11 +173,13 @@ def register_user():
 
     except psycopg2.Error as e:
         logger.error(f"Database error during registration: {e}")
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="Database operation failed during registration"), 500
     except Exception as e:
         logger.error(f"Unexpected error during registration: {e}", exc_info=True)
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="An unexpected error occurred during registration"), 500
     finally:
         if conn:
@@ -298,7 +300,7 @@ def update_user_profile(user_id):
             if value is not None and not isinstance(value, field_type):
                 if field == 'birth_date': # Allow None for birth_date
                     pass
-                elif field_type == float and isinstance(value, int): # Allow int for float fields
+                elif field_type is float and isinstance(value, int):  # Allow int for float fields
                     value = float(value)
                 else:
                     return jsonify(error=f"Invalid type for field '{field}'. Expected {field_type.__name__}."), 400
@@ -348,11 +350,13 @@ def update_user_profile(user_id):
 
     except psycopg2.Error as e:
         logger.error(f"Database error updating profile for user {user_id}: {e}")
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="Database operation failed during profile update"), 500
     except Exception as e:
         logger.error(f"Unexpected error updating profile for user {user_id}: {e}", exc_info=True)
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="An unexpected error occurred during profile update"), 500
     finally:
         if conn:
@@ -368,9 +372,12 @@ def list_exercises():
     except ValueError:
         return jsonify(error="Invalid 'page' or 'per_page' parameter. Must be integers."), 400
 
-    if page < 1: page = 1
-    if per_page < 1: per_page = 1
-    if per_page > 100: per_page = 100 # Max per_page limit
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 1
+    if per_page > 100:
+        per_page = 100  # Max per_page limit
     offset = (page - 1) * per_page
 
     conn = None
@@ -490,11 +497,13 @@ def create_workout(user_id):
 
     except psycopg2.Error as e:
         logger.error(f"Database error creating workout for user {user_id}: {e}")
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="Database operation failed creating workout"), 500
     except Exception as e:
         logger.error(f"Unexpected error creating workout for user {user_id}: {e}", exc_info=True)
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="An unexpected error occurred creating workout"), 500
     finally:
         if conn:
@@ -513,9 +522,12 @@ def get_workouts_for_user(user_id):
     except ValueError:
         return jsonify(error="Invalid 'page' or 'per_page' parameter. Must be integers."), 400
 
-    if page < 1: page = 1
-    if per_page < 1: per_page = 1
-    if per_page > 50: per_page = 50
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 1
+    if per_page > 50:
+        per_page = 50
     offset = (page - 1) * per_page
 
     conn = None
@@ -632,7 +644,8 @@ def log_set_to_workout(workout_id):
                 actual_rir = int(data['actual_rir'])
                 # Optional fields
                 rest_before_seconds = data.get('rest_before_seconds')
-                if rest_before_seconds is not None: rest_before_seconds = int(rest_before_seconds)
+                if rest_before_seconds is not None:
+                    rest_before_seconds = int(rest_before_seconds)
                 completed_at_str = data.get('completed_at')
                 set_notes = data.get('notes')
             except (ValueError, TypeError) as ve:
@@ -667,11 +680,13 @@ def log_set_to_workout(workout_id):
 
     except psycopg2.Error as e:
         logger.error(f"Database error logging set to workout {workout_id}: {e}")
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="Database operation failed logging set"), 500
     except Exception as e:
         logger.error(f"Unexpected error logging set to workout {workout_id}: {e}", exc_info=True)
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="An unexpected error occurred logging set"), 500
     finally:
         if conn:
@@ -753,11 +768,13 @@ def rir_bias_update_route(user_id):
 
     except psycopg2.Error as e:
         logger.error(f"Database error in update_rir_bias: {e}")
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="Database operation failed"), 500
     except Exception as e:
         logger.error(f"Unexpected error in update_rir_bias: {e}", exc_info=True)
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
@@ -961,11 +978,13 @@ def recommend_set_parameters_route(user_id, exercise_id):
 
     except psycopg2.Error as e:
         logger.error(f"Database error in recommend_set_parameters: {e}")
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="Database operation failed"), 500
     except Exception as e:
         logger.error(f"Unexpected error in recommend_set_parameters: {e}", exc_info=True)
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
