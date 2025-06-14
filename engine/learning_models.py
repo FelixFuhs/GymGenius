@@ -305,5 +305,3 @@ if __name__ == '__main__':
         calculate_training_params(1.1)
     except ValueError as e:
         print(f"\nCaught expected error for out-of-bounds input: {e}")
-
-```

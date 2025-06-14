@@ -24,7 +24,7 @@ function getAuthHeaders() {
     const token = getToken();
     if (token) {
         return {
-            'Authorization': \`Bearer \${token}\`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json' // Common for POST/PUT
         };
     }
@@ -66,14 +66,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const pathRoot = path.split('?')[0];
 
         if (protectedRoutes.includes(pathRoot) && !getToken()) {
-            console.log(\`Access to protected route \${pathRoot} denied. Redirecting to #login.\`);
+            console.log(`Access to protected route ${pathRoot} denied. Redirecting to #login.`);
             window.location.hash = '#login'; // Redirect to login if trying to access protected route without token
             path = '#login'; // Update path to ensure login page is rendered
         }
 
         // If already logged in and trying to access #login or #signup, redirect to a default authenticated page (e.g., #workouts)
         if ((pathRoot === '#login' || pathRoot === '#signup') && getToken()) {
-            console.log(\`Already logged in. Redirecting from \${pathRoot} to #workouts.\`);
+            console.log(`Already logged in. Redirecting from ${pathRoot} to #workouts.`);
             window.location.hash = '#workouts';
             path = '#workouts';
         }
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function LoginPage() {
     const page = document.createElement('div');
     page.className = 'page active';
-    page.innerHTML = \`
+    page.innerHTML = `
         <h2>Login</h2>
         <div id="login-error" class="error-message" style="display:none;"></div>
         <form id="login-form">
@@ -112,7 +112,7 @@ function LoginPage() {
             <button type="submit">Login</button>
         </form>
         <p>Don't have an account? <a href="#signup">Sign Up</a></p>
-    \`;
+    `;
 
     const errorDiv = page.querySelector('#login-error');
     page.querySelector('#login-form').addEventListener('submit', (e) => {
@@ -123,7 +123,7 @@ function LoginPage() {
         const email = e.target.email.value;
         const password = e.target.password.value;
 
-        fetch(\`\${API_BASE_URL}/v1/auth/login\`, {
+        fetch(`${API_BASE_URL}/v1/auth/login`, {
             method: 'POST',
             headers: getAuthHeaders(), // Includes 'Content-Type': 'application/json'
             body: JSON.stringify({ email, password })
@@ -160,7 +160,7 @@ function LoginPage() {
 function SignupPage() {
     const page = document.createElement('div');
     page.className = 'page active';
-    page.innerHTML = \`
+    page.innerHTML = `
         <h2>Sign Up</h2>
         <div id="signup-message" class="message" style="display:none;"></div>
         <div id="signup-error" class="error-message" style="display:none;"></div>
@@ -180,7 +180,7 @@ function SignupPage() {
             <button type="submit">Sign Up</button>
         </form>
         <p>Already have an account? <a href="#login">Login</a></p>
-    \`;
+    `;
 
     const errorDiv = page.querySelector('#signup-error');
     const messageDiv = page.querySelector('#signup-message');
@@ -200,7 +200,7 @@ function SignupPage() {
             return;
         }
 
-        fetch(\`\${API_BASE_URL}/v1/auth/register\`, {
+        fetch(`${API_BASE_URL}/v1/auth/register`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ email, password })
@@ -232,12 +232,12 @@ function WorkoutListPage() {
     const page = document.createElement('div');
     page.className = 'page active';
     page.id = 'workout-list';
-    page.innerHTML = \`
+    page.innerHTML = `
         <h2>My Workouts</h2>
         <div id="workout-list-container">Loading workouts...</div>
         <div id="workout-list-error" class="error-message" style="display:none;"></div>
         <button onclick="window.location.hash='#exercises'">Start New Workout (Browse Exercises)</button>
-    \`;
+    `;
 
     const container = page.querySelector('#workout-list-container');
     const errorDiv = page.querySelector('#workout-list-error');
@@ -250,7 +250,7 @@ function WorkoutListPage() {
     }
 
     // Fetch user's workouts (P1-BE-011)
-    fetch(\`\${API_BASE_URL}/v1/users/\${currentUserId}/workouts?page=1&per_page=10\`, { // Example pagination
+    fetch(`${API_BASE_URL}/v1/users/${currentUserId}/workouts?page=1&per_page=10`, { // Example pagination
         method: 'GET',
         headers: getAuthHeaders()
     })
@@ -260,11 +260,11 @@ function WorkoutListPage() {
             if (body.data && body.data.length > 0) {
                 let ul = '<ul>';
                 body.data.forEach(workout => {
-                    ul += \`<li>
-                        <strong>Workout started: \${new Date(workout.started_at).toLocaleString()}</strong>
-                        (ID: \${workout.id.substring(0,8)})
-                        <button onclick="resumeWorkout('\${workout.id}')">View/Resume</button>
-                    </li>\`;
+                    ul += `<li>
+                        <strong>Workout started: ${new Date(workout.started_at).toLocaleString()}</strong>
+                        (ID: ${workout.id.substring(0,8)})
+                        <button onclick="resumeWorkout('${workout.id}')">View/Resume</button>
+                    </li>`;
                 });
                 ul += '</ul>';
                 container.innerHTML = ul;
@@ -291,16 +291,16 @@ function WorkoutListPage() {
 function ExerciseListPage() {
     const page = document.createElement('div');
     page.className = 'page active';
-    page.innerHTML = \`
+    page.innerHTML = `
         <h2>Browse Exercises</h2>
         <div id="exercise-list-container">Loading exercises...</div>
         <div id="exercise-list-error" class="error-message" style="display:none;"></div>
-    \`;
+    `;
 
     const container = page.querySelector('#exercise-list-container');
     const errorDiv = page.querySelector('#exercise-list-error');
 
-    fetch(\`\${API_BASE_URL}/v1/exercises?page=1&per_page=50\`, { // Fetch more exercises
+    fetch(`${API_BASE_URL}/v1/exercises?page=1&per_page=50`, { // Fetch more exercises
         method: 'GET',
         headers: getAuthHeaders() // Requires auth
     })
@@ -310,10 +310,10 @@ function ExerciseListPage() {
             if (body.data && body.data.length > 0) {
                 let listHTML = '<ul>';
                 body.data.forEach(ex => {
-                    listHTML += \`<li>
-                        <strong>\${ex.name}</strong> (\${ex.category} / \${ex.equipment || 'N/A'})
-                        <button onclick="navigateToLogSet('\${ex.id}', '\${ex.name}')">Log this Exercise</button>
-                    </li>\`;
+                    listHTML += `<li>
+                        <strong>${ex.name}</strong> (${ex.category} / ${ex.equipment || 'N/A'})
+                        <button onclick="navigateToLogSet('${ex.id}', '${ex.name}')">Log this Exercise</button>
+                    </li>`;
                 });
                 listHTML += '</ul>';
                 container.innerHTML = listHTML;
@@ -356,8 +356,8 @@ function LogSetPage() {
         return page;
     }
 
-    page.innerHTML = \`
-        <h2>Log Set for \${exerciseName}</h2>
+    page.innerHTML = `
+        <h2>Log Set for ${exerciseName}</h2>
         <div id="logset-message" class="message" style="display:none;"></div>
         <div id="logset-error" class="error-message" style="display:none;"></div>
 
@@ -399,17 +399,17 @@ function LogSetPage() {
 
     // Fetch AI Recommendation
     // Ensure engine/app.py is running and accessible
-    const apiUrl = \`\${API_BASE_URL}/v1/user/\${currentUserId}/exercise/\${exerciseId}/recommend-set-parameters\`;
-    console.log(\`Fetching recommendation from: \${apiUrl}\`);
+    const apiUrl = `${API_BASE_URL}/v1/user/${currentUserId}/exercise/${exerciseId}/recommend-set-parameters`;
+    console.log(`Fetching recommendation from: ${apiUrl}`);
 
     if (currentUserId && exerciseId) { // Only fetch if both IDs are available
         fetch(apiUrl, { headers: getAuthHeaders() }) // Add Auth headers
           .then(response => {
             if (!response.ok) {
               return response.json().then(errData => {
-                throw new Error(errData.error || \`HTTP error! Status: \${response.status}\`);
+                throw new Error(errData.error || `HTTP error! Status: ${response.status}`);
               }).catch(() => {
-                throw new Error(\`HTTP error! Status: \${response.status} \${response.statusText}\`);
+                throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
               });
             }
             return response.json();
@@ -417,7 +417,7 @@ function LogSetPage() {
           .then(data => {
             if (data.recommended_weight_kg !== undefined) {
               recWeightEl.textContent = data.recommended_weight_kg;
-              recRepsEl.textContent = \`\${data.target_reps_low} - \${data.target_reps_high}\`;
+              recRepsEl.textContent = `${data.target_reps_low} - ${data.target_reps_high}`;
               recRirEl.textContent = data.target_rir;
               tooltipTriggerEl.title = data.explanation;
               recErrorEl.textContent = '';
@@ -432,7 +432,7 @@ function LogSetPage() {
           })
           .catch(error => {
             console.error('Error fetching AI recommendation:', error);
-            recErrorEl.textContent = \`AI Rec Error: \${error.message}\`;
+            recErrorEl.textContent = `AI Rec Error: ${error.message}`;
             // Keep N/A or clear recommendation fields
           });
     } else {
@@ -451,7 +451,7 @@ function LogSetPage() {
         if (!currentWorkoutId) {
             try {
                 console.log("No active workout ID, creating a new one for user:", currentUserId);
-                const workoutResponse = await fetch(\`\${API_BASE_URL}/v1/users/\${currentUserId}/workouts\`, {
+                const workoutResponse = await fetch(`${API_BASE_URL}/v1/users/${currentUserId}/workouts`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ notes: 'New workout session started via exercise logging.' })
@@ -464,7 +464,7 @@ function LogSetPage() {
                 console.log('New workout session created:', currentWorkoutId);
             } catch (err) {
                 console.error('Error creating workout session:', err);
-                formErrorDiv.textContent = \`Error starting workout: \${err.message}\`;
+                formErrorDiv.textContent = `Error starting workout: ${err.message}`;
                 formErrorDiv.style.display = 'block';
                 return;
             }
@@ -480,7 +480,7 @@ function LogSetPage() {
             // completed_at: new Date().toISOString() // Backend defaults to NOW()
         };
 
-        fetch(\`\${API_BASE_URL}/v1/workouts/\${currentWorkoutId}/sets\`, {
+        fetch(`${API_BASE_URL}/v1/workouts/${currentWorkoutId}/sets`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(setData)
@@ -513,22 +513,22 @@ function LogSetPage() {
 function updateFooterNav() {
     const footerNav = document.querySelector('footer nav');
     if (getToken()) {
-        footerNav.innerHTML = \`
+        footerNav.innerHTML = `
             <a href="#exercises">Exercises</a>
             <a href="#workouts">My Workouts</a>
             <a href="#rir-weight-input">RIR/Weight Calc</a>
             <a href="#" id="logout-link">Logout</a>
-        \`;
+        `;
         footerNav.querySelector('#logout-link').addEventListener('click', (e) => {
             e.preventDefault();
             removeToken();
             window.location.hash = '#login'; // Triggers navigation and clears page
         });
     } else {
-        footerNav.innerHTML = \`
+        footerNav.innerHTML = `
             <a href="#login">Login</a>
             <a href="#signup">Sign Up</a>
-        \`;
+        `;
     }
 }
 
@@ -542,7 +542,7 @@ function NotFoundPage() {
 
 // Helper to navigate to LogSetPage with params
 function navigateToLogSet(exerciseId, exerciseName) {
-    window.location.hash = \`#logset?exerciseId=\${exerciseId}&exerciseName=\${encodeURIComponent(exerciseName)}\`;
+    window.location.hash = `#logset?exerciseId=${exerciseId}&exerciseName=${encodeURIComponent(exerciseName)}`;
 }
 
 // Placeholder for resuming a workout - could navigate to a workout detail page or pre-fill log set
@@ -551,7 +551,7 @@ function resumeWorkout(workoutId) {
     // For P1, maybe just go to exercise list to add more sets to this workout.
     // Or a dedicated workout detail page would be ideal.
     window.location.hash = '#exercises';
-    alert(\`Resuming workout \${workoutId.substring(0,8)}. Go to Exercises to add more sets.\`);
+    alert(`Resuming workout ${workoutId.substring(0,8)}. Go to Exercises to add more sets.`);
 }
 
 
@@ -634,18 +634,18 @@ function RirWeightInputPage() {
         } else if (finalRoundedWeight === barWeight) {
             breakdown = "Use barbell only (20kg).";
         } else if (roundedWeightOnBar < smallestIncrement && roundedWeightOnBar > 0) {
-            breakdown = \`Use barbell (20kg). Cannot make \${finalRoundedWeight.toFixed(2)}kg with available plates.\`;
+            breakdown = `Use barbell (20kg). Cannot make ${finalRoundedWeight.toFixed(2)}kg with available plates.`;
         }
         else {
             for (const plate of platesAvailable) {
                 if (remainingWeightPerSide >= plate) {
                     const numPlates = Math.floor(remainingWeightPerSide / plate);
-                    breakdown += \`\${numPlates}x\${plate}kg, \`;
+                    breakdown += `${numPlates}x${plate}kg, `;
                     remainingWeightPerSide -= numPlates * plate;
                 }
             }
             if (remainingWeightPerSide > 0.01) {
-                breakdown += \` (+\${remainingWeightPerSide.toFixed(2)}kg not loadable per side)\`;
+                breakdown += ` (+${remainingWeightPerSide.toFixed(2)}kg not loadable per side)`;
             }
             if (breakdown === 'Plates per side: ') { // Should not happen if logic is correct for roundedWeightOnBar > 0
                  breakdown = "Use barbell only (20kg).";
@@ -663,9 +663,8 @@ function RirWeightInputPage() {
         const targetRir = e.target['target-rir'].value;
         const finalWeight = roundedWeightInput.value || calculatedWeightInput.value;
 
-        console.log(\`Using Weight for \${exercise}: \${finalWeight}kg, Target Reps: \${targetReps}, Target RIR: \${targetRir}\`);
-        alert(\`Selected: \${finalWeight}kg for \${exercise}.\`);
+        console.log(`Using Weight for ${exercise}: ${finalWeight}kg, Target Reps: ${targetReps}, Target RIR: ${targetRir}`);
+        alert(`Selected: ${finalWeight}kg for ${exercise}.`);
     });
     return page;
 }
-```
