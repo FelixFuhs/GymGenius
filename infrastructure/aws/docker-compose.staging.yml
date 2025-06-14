@@ -1,0 +1,52 @@
+# infrastructure/aws/docker-compose.staging.yml
+# Conceptual Docker Compose for Staging on AWS ECS
+# This file illustrates service definitions. In a real ECS setup,
+# these would translate to Task Definitions and Service configurations.
+
+version: '3.8'
+
+services:
+  engine:
+    image: YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/gymgenius-engine:latest # Replace with your ECR image URI
+    ports:
+      - "80:5000" # Assuming engine runs on port 5000 and is mapped to port 80 on the load balancer
+    environment:
+      - DATABASE_URL=postgresql://USER:PASSWORD@YOUR_RDS_ENDPOINT:5432/gymgenius_staging # Replace with RDS details
+      - FLASK_ENV=production
+      # Add other necessary environment variables (e.g., API keys, secrets)
+      # Consider using AWS Secrets Manager for sensitive data
+    logging:
+      driver: "awslogs" # Configure to send logs to CloudWatch
+      options:
+        awslogs-group: "/ecs/gymgenius-engine-staging"
+        awslogs-region: "YOUR_REGION" # Replace with your AWS region
+        awslogs-stream-prefix: "ecs"
+    # In ECS, resource limits (CPU, memory) would be part of the Task Definition
+    # Health checks, scaling policies, and deployment strategies also defined in ECS service config
+
+  webapp:
+    image: YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/gymgenius-webapp:latest # Replace with your ECR image URI
+    ports:
+      - "80:80" # Assuming webapp serves on port 80 (e.g., Nginx serving static files)
+    environment:
+      - API_BASE_URL=https://api.staging.yourdomain.com # URL for the engine service
+      # Add other necessary environment variables
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/gymgenius-webapp-staging"
+        awslogs-region: "YOUR_REGION" # Replace with your AWS region
+        awslogs-stream-prefix: "ecs"
+    # Similar to the engine, ECS Task Definition would handle resource limits, etc.
+
+# Note: The PostgreSQL database is expected to be an AWS RDS instance in staging.
+# The 'db' service from the local docker-compose.yml is intentionally omitted.
+# Connection details for RDS should be securely provided to the 'engine' service.
+
+# volumes:
+  # Volumes for persistent data would typically be managed by RDS for the database.
+  # If other services need persistent storage, consider EFS or S3.
+
+# networks:
+  # Networking in ECS is handled by VPC subnets and security groups.
+  # Services would typically reside in a private subnet with a load balancer in a public subnet.

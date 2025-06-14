@@ -16,8 +16,8 @@ This file lists the next logical tasks to be done in the GymGenius project.
 - [x] **P2-DS-001**: `@engine` RIR-bias learning + fatigue decay model
 - [x] **P2-FE-002**: `@web` “Why this weight?” tooltip (explainable AI)
 - [x] **P2-BE-003**: `@api-team` Webhook → nightly model-training pipeline
-- **P2-INF-004**: `@infra` Staging environment (AWS ECS + RDS)
-- **P2-PM-005**: `@product` Beta feedback survey + KPI dashboard
+- [x] **P2-INF-004**: `@infra` Staging environment (AWS ECS + RDS) - (_Documentation for setup and conceptual `docker-compose.staging.yml` created in `infrastructure/aws/`_)
+- [x] **P2-PM-005**: `@product` Beta feedback survey + KPI dashboard - (_Draft survey questions and KPI dashboard outline created in `PRODUCT_FEEDBACK.md`_)
 
 ## Phase 3 - Public v1
 
