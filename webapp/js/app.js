@@ -3,21 +3,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const routes = {
         '#login': LoginPage,
         '#workouts': WorkoutListPage,
-        '#logset': LogSetPage, // Example: /#logset?exerciseId=1
-        '#rir-weight-input': RirWeightInputPage // New page
+        '#logset': LogSetPage,
+        '#rir-weight-input': RirWeightInputPage
     };
 
     function navigate() {
         const path = window.location.hash || '#login';
         const pageFunction = routes[path.split('?')[0]] || NotFoundPage;
-        appRoot.innerHTML = ''; // Clear previous content
+        appRoot.innerHTML = '';
         appRoot.appendChild(pageFunction());
     }
 
     window.addEventListener('hashchange', navigate);
-    navigate(); // Initial navigation
+    navigate();
 
-    // Register service worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
             .then(registration => console.log('Service Worker registered successfully:', registration))
@@ -43,11 +42,9 @@ function LoginPage() {
         </form>
         <p>Don't have an account? <a href="#signup">Sign Up</a></p>
     `;
-    // Add event listeners for form submission, etc.
     page.querySelector('#login-form').addEventListener('submit', (e) => {
         e.preventDefault();
         console.log('Login submitted');
-        // Mock login:
         window.location.hash = '#workouts';
     });
     return page;
@@ -62,13 +59,12 @@ function WorkoutListPage() {
         <ul>
             <li>
                 <strong>Workout A: Full Body</strong> - Last done: 2024-07-28
-                <button onclick="logWorkoutSet('Workout A')">Log Set</button>
+                <button onclick="logWorkoutSet('Workout A', 'a1b2c3d4-e5f6-7890-1234-567890abcdef0')">Log Set</button>
             </li>
             <li>
                 <strong>Workout B: Upper Body</strong> - Last done: 2024-07-26
-                <button onclick="logWorkoutSet('Workout B')">Log Set</button>
+                <button onclick="logWorkoutSet('Workout B', 'b1c2d3e4-f5g6-7890-1234-567890abcdef1')">Log Set</button>
             </li>
-            <!-- More workouts -->
         </ul>
         <button onclick="window.location.hash='#new-workout'">Create New Workout</button>
     `;
@@ -78,12 +74,29 @@ function WorkoutListPage() {
 function LogSetPage() {
     const page = document.createElement('div');
     page.className = 'page active';
-    // Basic example, in reality, you'd fetch exercise details based on params
+
     const params = new URLSearchParams(window.location.hash.split('?')[1]);
     const exerciseName = params.get('exerciseName') || 'Selected Exercise';
+    // For a real app, exerciseId would be reliably passed, e.g. from the workout list.
+    // Using a hardcoded one for now if not in params, or a specific one for testing.
+    const exerciseIdFromParam = params.get('exerciseId');
+    const exerciseId = exerciseIdFromParam || 'a1b2c3d4-e5f6-7890-1234-567890abcdef0'; // Default test UUID for "Barbell Bench Press" or similar.
+    const userId = '123e4567-e89b-12d3-a456-426614174000'; // Hardcoded test User UUID
 
     page.innerHTML = `
         <h2>Log Set for ${exerciseName}</h2>
+
+        <div id="ai-recommendation" style="border: 1px solid #eee; padding: 10px; margin-bottom: 15px; background-color: #f9f9f9;">
+            <h4>AI Recommendation:</h4>
+            <p>
+                Weight: <strong id="rec-weight" style="font-size: 1.1em;">Loading...</strong> kg
+                <span id="rec-tooltip-trigger" title="Loading explanation..." style="cursor: help; border-bottom: 1px dotted #000;">&#9432;</span>
+            </p>
+            <p>Reps: <strong id="rec-reps" style="font-size: 1.1em;">Loading...</strong></p>
+            <p>RIR: <strong id="rec-rir" style="font-size: 1.1em;">Loading...</strong></p>
+            <small id="rec-error" style="color: red;"></small>
+        </div>
+
         <form id="log-set-form">
             <div>
                 <label for="weight">Weight (kg):</label>
@@ -101,15 +114,70 @@ function LogSetPage() {
         </form>
         <button onclick="window.location.hash='#workouts'">Back to Workouts</button>
     `;
-     page.querySelector('#log-set-form').addEventListener('submit', (e) => {
+
+    const recWeightEl = page.querySelector('#rec-weight');
+    const recRepsEl = page.querySelector('#rec-reps');
+    const recRirEl = page.querySelector('#rec-rir');
+    const tooltipTriggerEl = page.querySelector('#rec-tooltip-trigger');
+    const recErrorEl = page.querySelector('#rec-error');
+    const aiRecommendationDiv = page.querySelector('#ai-recommendation');
+
+    // Fetch AI Recommendation
+    // Ensure engine/app.py is running and accessible at http://localhost:5000 (or configured host)
+    const apiUrl = \`/v1/user/\${userId}/exercise/\${exerciseId}/recommend-set-parameters\`;
+    console.log(\`Fetching recommendation from: \${apiUrl}\`);
+
+    fetch(apiUrl)
+      .then(response => {
+        if (!response.ok) {
+          // Try to parse error JSON if available, otherwise use statusText
+          return response.json().then(errData => {
+            throw new Error(errData.error || \`HTTP error! Status: \${response.status}\`);
+          }).catch(() => { // Fallback if error response is not JSON
+            throw new Error(\`HTTP error! Status: \${response.status} \${response.statusText}\`);
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.recommended_weight_kg !== undefined) {
+          recWeightEl.textContent = data.recommended_weight_kg;
+          recRepsEl.textContent = \`\${data.target_reps_low} - \${data.target_reps_high}\`;
+          recRirEl.textContent = data.target_rir;
+          tooltipTriggerEl.title = data.explanation; // Set title attribute for browser tooltip
+          recErrorEl.textContent = ''; // Clear previous errors
+
+          // Populate form fields with recommended values as placeholders/starting points
+          page.querySelector('#weight').value = data.recommended_weight_kg;
+          page.querySelector('#reps').value = data.target_reps_high; // Default to high end of rep range
+          page.querySelector('#rir').value = data.target_rir;
+
+        } else {
+          const errorMsg = data.error || 'Could not parse AI recommendation data.';
+          console.error('Error in recommendation data:', data);
+          recErrorEl.textContent = errorMsg;
+          recWeightEl.textContent = 'N/A';
+          recRepsEl.textContent = 'N/A';
+          recRirEl.textContent = 'N/A';
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching AI recommendation:', error);
+        recErrorEl.textContent = \`Error: \${error.message}\`;
+        recWeightEl.textContent = 'N/A';
+        recRepsEl.textContent = 'N/A';
+        recRirEl.textContent = 'N/A';
+        tooltipTriggerEl.title = 'Could not load explanation.';
+      });
+
+    page.querySelector('#log-set-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const weight = e.target.weight.value;
         const reps = e.target.reps.value;
         const rir = e.target.rir.value;
-        console.log(\`Set Logged for ${exerciseName}: Weight: \${weight}, Reps: \${reps}, RIR: \${rir}\`);
-        // Here you would typically send this data to a backend
+        console.log(\`Set Logged for \${exerciseName} (ID: \${exerciseId}): Weight: \${weight}, Reps: \${reps}, RIR: \${rir}\`);
         alert('Set logged!');
-        window.location.hash = '#workouts'; // Navigate back
+        window.location.hash = '#workouts';
     });
     return page;
 }
@@ -121,18 +189,12 @@ function NotFoundPage() {
     return page;
 }
 
-// Dummy functions for buttons in workout list for now
-function logWorkoutSet(workoutName) {
+function logWorkoutSet(workoutName, exerciseId) { // Modified to accept exerciseId
     // For now, just navigate to a generic log set page
     // In a real app, you'd pass exercise IDs or details
-    window.location.hash = \`#logset?exerciseName=\${encodeURIComponent(workoutName + ' - Main Lift')}\`;
+    window.location.hash = \`#logset?exerciseName=\${encodeURIComponent(workoutName + ' - Main Lift')}&exerciseId=\${exerciseId}\`;
 }
 
-// Placeholder for images directory and icons (referenced in manifest.json)
-// Create webapp/images directory
-// Add dummy icon-192x192.png and icon-512x512.png if possible, or just create empty files.
-// If creating actual image files is not possible, the manifest references might cause console errors
-// but the PWA structure will be in place.
 
 function RirWeightInputPage() {
     const page = document.createElement('div');
@@ -181,37 +243,26 @@ function RirWeightInputPage() {
             plateBreakdownP.textContent = '';
             return;
         }
-        // Simple rounding to nearest 2.5kg for example
-        // Assumes a 20kg barbell. Smallest plate increment 2.5kg (1.25kg per side)
         const barWeight = 20;
-        const smallestIncrement = 2.5; // Total smallest increment (e.g. two 1.25kg plates)
+        const smallestIncrement = 2.5;
 
         let weightOnBar = targetWeight - barWeight;
-        if (weightOnBar < 0) weightOnBar = 0; // Cannot have less than bar weight
+        if (weightOnBar < 0) weightOnBar = 0;
 
         let roundedWeightOnBar = Math.round(weightOnBar / smallestIncrement) * smallestIncrement;
         let finalRoundedWeight = barWeight + roundedWeightOnBar;
 
-        // Ensure final weight is not less than bar weight if target is very low
         if (targetWeight < barWeight && targetWeight > 0) {
-             // If target is less than bar, but positive, what should it round to?
-             // Option 1: Round to bar weight if below bar + smallest increment
-             // Option 2: Or allow rounding to just bar if target is low enough
-             // For now, if target is < bar, but > 0, round to bar + smallest possible addition or just bar
-             if (targetWeight < barWeight + smallestIncrement && targetWeight > barWeight/2) { // Heuristic
+             if (targetWeight < barWeight + smallestIncrement && targetWeight > barWeight/2) {
                 finalRoundedWeight = barWeight;
                 roundedWeightOnBar = 0;
-             } else if (targetWeight <= barWeight/2) { // Arbitrary threshold for "too light"
-                finalRoundedWeight = 0; // Or some minimum practical weight
-                roundedWeightOnBar = -barWeight; // To show no plates
+             } else if (targetWeight <= barWeight/2) {
+                finalRoundedWeight = 0;
+                roundedWeightOnBar = -barWeight;
              }
         }
-
-
         roundedWeightInput.value = finalRoundedWeight.toFixed(2);
 
-        // Basic plate breakdown (example for KG plates)
-        // Plates: 25, 20, 15, 10, 5, 2.5, 1.25 (per side)
         const platesAvailable = [25, 20, 15, 10, 5, 2.5, 1.25];
         let weightPerSide = roundedWeightOnBar / 2;
         let breakdown = 'Plates per side: ';
@@ -224,27 +275,26 @@ function RirWeightInputPage() {
         } else if (finalRoundedWeight === barWeight) {
             breakdown = "Use barbell only (20kg).";
         } else if (roundedWeightOnBar < smallestIncrement && roundedWeightOnBar > 0) {
-            breakdown = `Use barbell (20kg). Cannot make ${finalRoundedWeight.toFixed(2)}kg with available plates.`;
+            breakdown = \`Use barbell (20kg). Cannot make \${finalRoundedWeight.toFixed(2)}kg with available plates.\`;
         }
         else {
             for (const plate of platesAvailable) {
                 if (remainingWeightPerSide >= plate) {
                     const numPlates = Math.floor(remainingWeightPerSide / plate);
-                    breakdown += `${numPlates}x${plate}kg, `;
+                    breakdown += \`\${numPlates}x\${plate}kg, \`;
                     remainingWeightPerSide -= numPlates * plate;
                 }
             }
-            if (remainingWeightPerSide > 0.01) { // Check for small remainder due to precision
-                breakdown += ` (+${remainingWeightPerSide.toFixed(2)}kg not loadable per side)`;
+            if (remainingWeightPerSide > 0.01) {
+                breakdown += \` (+\${remainingWeightPerSide.toFixed(2)}kg not loadable per side)\`;
             }
-            if (breakdown === 'Plates per side: ') {
+            if (breakdown === 'Plates per side: ') { // Should not happen if logic is correct for roundedWeightOnBar > 0
                  breakdown = "Use barbell only (20kg).";
             } else {
-                breakdown = breakdown.slice(0, -2); // Remove trailing comma and space
+                breakdown = breakdown.slice(0, -2);
             }
         }
         plateBreakdownP.textContent = breakdown;
-
     });
 
     form.addEventListener('submit', (e) => {
@@ -252,21 +302,11 @@ function RirWeightInputPage() {
         const exercise = e.target['exercise-name'].value;
         const targetReps = e.target['target-reps'].value;
         const targetRir = e.target['target-rir'].value;
-        const finalWeight = roundedWeightInput.value || calculatedWeightInput.value; // Use rounded if available
+        const finalWeight = roundedWeightInput.value || calculatedWeightInput.value;
 
-        console.log(`Using Weight for ${exercise}: ${finalWeight}kg, Target Reps: ${targetReps}, Target RIR: ${targetRir}`);
-        alert(`Selected: ${finalWeight}kg for ${exercise}.`);
-        // Potentially navigate or use this data
-        // window.location.hash = '#logset?exerciseName=...&weight=...';
+        console.log(\`Using Weight for \${exercise}: \${finalWeight}kg, Target Reps: \${targetReps}, Target RIR: \${targetRir}\`);
+        alert(\`Selected: \${finalWeight}kg for \${exercise}.\`);
     });
-
     return page;
 }
-
-// Make sure the initial navigation considers the new route if someone directly lands on it
-// (though current setup defaults to #login, which is fine)
-
-// Add a link to this new page in the footer nav for testing, if desired
-// (This part is optional for the task, but good for testing)
-// Modify the `index.html` or the footer in `app.js` if you want a direct link.
-// For now, can be accessed by manually changing hash to #rir-weight-input
+```

@@ -1,19 +1,17 @@
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import Json
+import os
+import sys
 
-# Placeholder for database connection details
-DB_NAME = "projectvision"
-DB_USER = "user"
-DB_PASSWORD = "password"
-DB_HOST = "localhost"
-DB_PORT = "5432"
+# Database connection details from environment variables
+DB_NAME = os.getenv("POSTGRES_DB", "gymgenius")
+DB_USER = os.getenv("POSTGRES_USER", "user")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
 # Exercise data to be seeded
-# Note: This data assumes the 'exercises' table has been updated to include:
-# category VARCHAR(100), equipment VARCHAR(100), difficulty VARCHAR(50),
-# primary_muscles JSONB, secondary_muscles JSONB, fatigue_rating VARCHAR(50),
-# technique_notes TEXT, common_mistakes TEXT[], video_url VARCHAR(255), is_public BOOLEAN
 EXERCISES_DATA = [
     {
         "name": "Barbell Bench Press",
@@ -46,7 +44,7 @@ EXERCISES_DATA = [
         "category": "hinge",
         "equipment": "barbell",
         "difficulty": "advanced",
-        "primary_muscles": {"hamstrings": 1.0, "glutes": 1.0, "lower_back": 0.8, "traps": 0.7},
+        "primary_muscles": {"hamstrings": 1.0, "glutes": 1.0, "lower_back": 0.8, "traps": 0.7}, # Multiple at 1.0
         "secondary_muscles": {"quadriceps": 0.5, "forearms": 0.6, "lats": 0.4},
         "fatigue_rating": "high",
         "technique_notes": "Stand with mid-foot under the barbell. Hinge at the hips with a flat back, grip the bar. Lift by extending hips and knees.",
@@ -95,8 +93,8 @@ EXERCISES_DATA = [
     },
     {
         "name": "Lunges",
-        "category": "squat", # Could also be unilateral or other categories depending on system
-        "equipment": "bodyweight", # Can be done with dumbbells/barbell too
+        "category": "squat",
+        "equipment": "bodyweight",
         "difficulty": "beginner",
         "primary_muscles": {"quadriceps": 0.9, "glutes": 0.8},
         "secondary_muscles": {"hamstrings": 0.5, "calves": 0.2, "adductors": 0.3},
@@ -135,7 +133,7 @@ EXERCISES_DATA = [
     {
         "name": "Calf Raises",
         "category": "isolation",
-        "equipment": "bodyweight", # Can be machine/dumbbell
+        "equipment": "bodyweight",
         "difficulty": "beginner",
         "primary_muscles": {"gastrocnemius": 1.0, "soleus": 0.8},
         "secondary_muscles": {},
@@ -160,12 +158,31 @@ EXERCISES_DATA = [
     }
 ]
 
+def get_main_target_muscle(primary_muscles_dict):
+    """
+    Determines the main target muscle group from the primary_muscles dictionary.
+    Chooses the muscle with the highest involvement. If multiple are equally high,
+    it picks the first one encountered.
+    """
+    if not primary_muscles_dict:
+        return None
+
+    # Find the muscle with the maximum value
+    # Sort by value descending, then by key alphabetically for tie-breaking (optional but good for consistency)
+    # For this simple case, max value is enough, first encountered with max value.
+    main_muscle = None
+    max_value = -1.0
+    for muscle, value in primary_muscles_dict.items():
+        if isinstance(value, (float, int)) and value > max_value:
+            max_value = value
+            main_muscle = muscle
+    return main_muscle
+
 def seed_exercises():
     """Connects to the PostgreSQL database and seeds the exercises table."""
     conn = None
     inserted_count = 0
     try:
-        # Connect to the database
         conn = psycopg2.connect(
             dbname=DB_NAME,
             user=DB_USER,
@@ -173,68 +190,94 @@ def seed_exercises():
             host=DB_HOST,
             port=DB_PORT
         )
-        print(f"Successfully connected to database '{DB_NAME}' as user '{DB_USER}' for seeding.")
+        print(f"Successfully connected to database '{DB_NAME}' on host '{DB_HOST}' for seeding.")
+
+        # Prepare data by adding main_target_muscle_group
+        for exercise_data in EXERCISES_DATA:
+            primary_muscles = exercise_data.get("primary_muscles", {})
+            exercise_data["main_target_muscle_group"] = get_main_target_muscle(primary_muscles)
 
         with conn.cursor() as cur:
-            # Insert data into the exercises table
-            # This query assumes the table 'exercises' has the specified columns
             insert_query = sql.SQL("""
                 INSERT INTO exercises (
                     name, category, equipment, difficulty, primary_muscles,
-                    secondary_muscles, fatigue_rating, technique_notes,
-                    common_mistakes, video_url, is_public
+                    secondary_muscles, main_target_muscle_group,
+                    fatigue_rating, technique_notes,
+                    common_mistakes, video_url, is_public, created_at
                 ) VALUES (
                     %(name)s, %(category)s, %(equipment)s, %(difficulty)s, %(primary_muscles)s,
-                    %(secondary_muscles)s, %(fatigue_rating)s, %(technique_notes)s,
-                    %(common_mistakes)s, %(video_url)s, %(is_public)s
-                ) ON CONFLICT (name) DO NOTHING;
+                    %(secondary_muscles)s, %(main_target_muscle_group)s,
+                    %(fatigue_rating)s, %(technique_notes)s,
+                    %(common_mistakes)s, %(video_url)s, %(is_public)s, CURRENT_TIMESTAMP
+                ) ON CONFLICT (name) DO UPDATE SET
+                    category = EXCLUDED.category,
+                    equipment = EXCLUDED.equipment,
+                    difficulty = EXCLUDED.difficulty,
+                    primary_muscles = EXCLUDED.primary_muscles,
+                    secondary_muscles = EXCLUDED.secondary_muscles,
+                    main_target_muscle_group = EXCLUDED.main_target_muscle_group,
+                    fatigue_rating = EXCLUDED.fatigue_rating,
+                    technique_notes = EXCLUDED.technique_notes,
+                    common_mistakes = EXCLUDED.common_mistakes,
+                    video_url = EXCLUDED.video_url,
+                    is_public = EXCLUDED.is_public;
             """)
-            # ON CONFLICT (name) DO NOTHING ensures that if an exercise with the same name already exists, it's skipped.
+            # Using ON CONFLICT (name) DO UPDATE to ensure existing records are updated if script is run again.
 
             for exercise in EXERCISES_DATA:
+                if exercise["main_target_muscle_group"] is None:
+                    print(f"Warning: Could not determine main_target_muscle_group for {exercise['name']}, skipping this field for it or defaulting.")
+                    # Depending on DB schema, None might not be allowed if column is NOT NULL without default
+                    # For now, it will be passed as None.
+
                 try:
                     cur.execute(insert_query, {
                         "name": exercise["name"],
                         "category": exercise["category"],
                         "equipment": exercise["equipment"],
                         "difficulty": exercise["difficulty"],
-                        "primary_muscles": Json(exercise["primary_muscles"]), # Use Json adapter for JSONB
-                        "secondary_muscles": Json(exercise["secondary_muscles"]), # Use Json adapter for JSONB
+                        "primary_muscles": Json(exercise["primary_muscles"]),
+                        "secondary_muscles": Json(exercise.get("secondary_muscles", {})), # Ensure it's a dict
+                        "main_target_muscle_group": exercise["main_target_muscle_group"],
                         "fatigue_rating": exercise["fatigue_rating"],
                         "technique_notes": exercise["technique_notes"],
-                        "common_mistakes": exercise["common_mistakes"], # psycopg2 handles Python list to TEXT[]
+                        "common_mistakes": exercise["common_mistakes"],
                         "video_url": exercise["video_url"],
                         "is_public": exercise["is_public"]
                     })
-                    if cur.rowcount > 0:
-                        inserted_count +=1
+                    # rowcount for INSERT ON CONFLICT DO UPDATE returns:
+                    # 0 if no insert or update (row existed and was identical to EXCLUDED) - this is rare with JSONB
+                    # 1 if insert occurred
+                    # 1 if update occurred (PostgreSQL specific, other DBs might say 2 for update)
+                    if cur.rowcount > 0 : # This will count both inserts and updates as "processed"
+                        inserted_count +=1 # Renaming to processed_count might be clearer
                 except psycopg2.Error as e:
-                    print(f"Error inserting exercise {exercise['name']}: {e}")
-                    conn.rollback() # Rollback this specific transaction if problematic, or handle differently
-                    # For this script, we might choose to continue with other exercises
+                    print(f"Error processing exercise {exercise['name']}: {e}")
+                    conn.rollback()
 
-        # Commit the changes
         conn.commit()
         if inserted_count > 0:
-            print(f"Successfully inserted {inserted_count} new exercises into the 'exercises' table.")
+            print(f"Successfully processed (inserted or updated) {inserted_count} exercises in the 'exercises' table.")
         else:
-            print("No new exercises were inserted. They might already exist in the table.")
+            # This case might be hit if all exercises existed and were identical, or if rowcount behavior is subtle.
+            print("No exercises were newly inserted or updated. They might already exist and match the seed data.")
 
     except psycopg2.OperationalError as e:
         print(f"Error connecting to the database: {e}")
-        print("Please ensure PostgreSQL is running and connection details are correct.")
-        print("Also, ensure the 'exercises' table schema matches the data structure in this script.")
+        print(f"Please ensure PostgreSQL is running and accessible on {DB_HOST}:{DB_PORT}, "
+              f"and that database '{DB_NAME}' exists with user '{DB_USER}' having appropriate permissions.")
+        sys.exit(1)
     except psycopg2.Error as e:
         print(f"Error during database operation: {e}")
         if conn:
             conn.rollback()
+        sys.exit(1)
     finally:
         if conn:
             conn.close()
             print("Database connection closed after seeding.")
 
 if __name__ == "__main__":
-    print("Attempting to seed exercises data...")
+    print("Attempting to seed exercises data with main_target_muscle_group...")
     seed_exercises()
     print("Seeding script finished.")
-"""
