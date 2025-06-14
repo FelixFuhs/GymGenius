@@ -115,3 +115,31 @@ Key differences from local `docker-compose.yml`:
 *   **VPC Subnets**: Use private subnets for RDS and ECS tasks, public subnets for ALBs.
 *   **Secrets Management**: Avoid hardcoding secrets.
 *   **Regular Patching/Updates**: Keep Docker images and underlying infrastructure (if using EC2 launch type for ECS) updated.
+
+## Running the staging compose file locally
+
+The `docker-compose.staging.yml` file can be launched on your workstation to simulate the AWS staging stack.
+
+1. **Prepare environment variables** – export the values used inside the compose file or create a `.env` file in this directory:
+
+```bash
+export DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/gymgenius_staging
+export FLASK_ENV=production
+export API_BASE_URL=http://localhost:80
+```
+
+`DATABASE_URL` tells the `engine` container how to reach Postgres. `API_BASE_URL` allows the `webapp` to contact the API.
+
+2. **Start the services** – from the repo root run:
+
+```bash
+docker compose -f infrastructure/aws/docker-compose.staging.yml up --build
+```
+
+The engine will be exposed on port 80 and the webapp on port 80 as defined in the compose file.
+
+3. **Shut everything down** with `Ctrl+C` and then:
+
+```bash
+docker compose -f infrastructure/aws/docker-compose.staging.yml down
+```
