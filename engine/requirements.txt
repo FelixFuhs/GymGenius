@@ -1,3 +1,5 @@
 Flask==2.0.1
 # Using a slightly older but stable version for this example.
 # Update as necessary.
+bcrypt
+PyJWT

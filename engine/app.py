@@ -9,11 +9,22 @@ from engine.learning_models import ( # New imports
 import psycopg2
 import psycopg2.extras # For RealDictCursor
 import os
-from datetime import datetime
+from urllib.parse import urlparse # Add this import
+from datetime import datetime, timedelta, timezone
 import logging
 import math # For rounding and calculations
+import uuid # For generating UUIDs for new records
+import bcrypt # For password hashing
+import jwt # For JWT generation and decoding
+from functools import wraps # For creating decorators
 
 app = Flask(__name__)
+
+# --- JWT Configuration ---
+# In a real app, use a strong, randomly generated key stored securely (e.g., env variable)
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-super-secret-jwt-key-please-change')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1) # Access token valid for 1 hour
+# Consider adding JWT_REFRESH_TOKEN_EXPIRES if implementing refresh tokens
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,18 +33,88 @@ logger = logging.getLogger(__name__) # Use app.logger or a specific logger
 # --- Database Connection Helper ---
 def get_db_connection():
     """Establishes a connection to the PostgreSQL database."""
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        try:
+            url = urlparse(database_url)
+            conn = psycopg2.connect(
+                dbname=url.path[1:], # Remove leading '/'
+                user=url.username,
+                password=url.password,
+                host=url.hostname,
+                port=url.port
+            )
+            # logger.info("Connected to database using DATABASE_URL.") # Optional: for debugging
+            return conn
+        except Exception as e:
+            # Log that DATABASE_URL parsing failed and falling back or re-raising
+            logger.error(f"Failed to connect using DATABASE_URL: {e}. Falling back to POSTGRES_* vars.")
+            # Fall through to original method if DATABASE_URL connection fails
+            pass
+
+    # Original fallback to individual POSTGRES_* variables
     try:
         conn = psycopg2.connect(
             dbname=os.getenv("POSTGRES_DB", "gymgenius_dev"),
             user=os.getenv("POSTGRES_USER", "gymgenius"),
             password=os.getenv("POSTGRES_PASSWORD", "secret"),
-            host=os.getenv("POSTGRES_HOST", "db"),
+            host=os.getenv("POSTGRES_HOST", "db"), # In CI, this will be 'postgres' or 'localhost' for service container
             port=os.getenv("POSTGRES_PORT", "5432")
         )
+        # logger.info("Connected to database using POSTGRES_* environment variables.") # Optional
         return conn
     except psycopg2.OperationalError as e:
-        logger.error(f"Database connection error: {e}")
+        # Use app.logger if logger instance is not directly available or properly configured at this point
+        # For consistency with the rest of the file, using 'logger' which should be app.logger or a configured one.
+        logger.error(f"Database connection error (POSTGRES_* vars): {e}")
         raise
+
+# --- JWT Required Decorator ---
+def jwt_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            parts = auth_header.split()
+            if len(parts) == 2 and parts[0].lower() == 'bearer':
+                token = parts[1]
+            elif len(parts) == 1: # Handle cases where 'Bearer' prefix might be missing by mistake
+                token = parts[0]
+
+
+        if not token:
+            logger.warning("JWT token is missing")
+            return jsonify(message="Authentication token is missing!"), 401
+
+        try:
+            # Decode the token using the application's secret key
+            # Add 'algorithms' parameter to specify the algorithm used for encoding
+            data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=["HS256"])
+
+            # Make user_id available to the decorated route, e.g., via request context or direct pass
+            # For simplicity, we can fetch basic user info here if needed often, or just pass user_id
+            # For now, just passing user_id. Routes can fetch more details if needed.
+            # request.current_user_id = data['user_id'] # Example of adding to request context (Flask's g object is better)
+
+            # Pass the decoded payload (which should contain user_id) to the decorated function
+            # This way, the route can access it directly as an argument if designed so, or use g.user_id
+            # For this implementation, we'll assume routes can get it from g or it's passed if the decorator is modified
+            from flask import g
+            g.current_user_id = data['user_id'] # Store user_id in Flask's g object for easy access in routes
+
+        except jwt.ExpiredSignatureError:
+            logger.warning("JWT token has expired")
+            return jsonify(message="Your token has expired. Please log in again."), 401
+        except jwt.InvalidTokenError as e:
+            logger.error(f"Invalid JWT token: {e}")
+            return jsonify(message="Invalid token. Please log in again."), 401
+        except Exception as e:
+            logger.error(f"Error during token decoding: {e}", exc_info=True)
+            return jsonify(message="Error processing token."), 500
+
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.errorhandler(Exception)
@@ -48,6 +129,555 @@ def handle_exception(e):
 
 
 # --- Existing Endpoints ---
+
+# --- Authentication Endpoints (P1-BE-008) ---
+@app.route('/v1/auth/register', methods=['POST'])
+def register_user():
+    data = request.get_json()
+    if not data or not data.get('email') or not data.get('password'):
+        return jsonify(error="Email and password are required"), 400
+
+    email = data['email'].lower() # Store email in lowercase for consistency
+    password = data['password']
+
+    if len(password) < 8: # Basic password strength
+        return jsonify(error="Password must be at least 8 characters long"), 400
+
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Check if user already exists
+            cur.execute("SELECT id FROM users WHERE email = %s;", (email,))
+            if cur.fetchone():
+                return jsonify(error="Email address already registered"), 409 # Conflict
+
+            # Create new user
+            user_id = str(uuid.uuid4())
+            # Default values for other fields can be set here or by DB schema defaults
+            cur.execute(
+                """
+                INSERT INTO users (id, email, password_hash, created_at, updated_at,
+                                   goal_slider, experience_level, unit_system, rir_bias)
+                VALUES (%s, %s, %s, NOW(), NOW(), 0.5, 'beginner', 'metric', 0.0)
+                RETURNING id, email, created_at;
+                """,
+                (user_id, email, hashed_password.decode('utf-8'))
+            )
+            new_user = cur.fetchone()
+            conn.commit()
+            logger.info(f"User registered successfully: {email} (ID: {user_id})")
+            return jsonify(message="User registered successfully.", user=new_user), 201
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error during registration: {e}")
+        if conn: conn.rollback()
+        return jsonify(error="Database operation failed during registration"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error during registration: {e}", exc_info=True)
+        if conn: conn.rollback()
+        return jsonify(error="An unexpected error occurred during registration"), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/v1/auth/login', methods=['POST'])
+def login_user():
+    data = request.get_json()
+    if not data or not data.get('email') or not data.get('password'):
+        return jsonify(error="Email and password are required"), 400
+
+    email = data['email'].lower()
+    password = data['password']
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT id, password_hash FROM users WHERE email = %s;", (email,))
+            user_record = cur.fetchone()
+
+            if not user_record:
+                logger.warning(f"Login attempt failed for non-existent email: {email}")
+                return jsonify(error="Invalid credentials"), 401
+
+            if bcrypt.checkpw(password.encode('utf-8'), user_record['password_hash'].encode('utf-8')):
+                # Password matches, generate JWT
+                token_payload = {
+                    'user_id': str(user_record['id']),
+                    'exp': datetime.now(timezone.utc) + app.config['JWT_ACCESS_TOKEN_EXPIRES']
+                    # 'iat': datetime.now(timezone.utc) # Optional: Issued at
+                }
+                access_token = jwt.encode(token_payload, app.config['JWT_SECRET_KEY'], algorithm="HS256")
+
+                logger.info(f"User logged in successfully: {email}")
+                return jsonify(access_token=access_token), 200
+            else:
+                logger.warning(f"Login attempt failed for email (invalid password): {email}")
+                return jsonify(error="Invalid credentials"), 401
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error during login: {e}")
+        return jsonify(error="Database operation failed during login"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred during login"), 500
+    finally:
+        if conn:
+            conn.close()
+
+# --- User Profile Management APIs (P1-BE-009) ---
+@app.route('/v1/users/<uuid:user_id>/profile', methods=['GET'])
+@jwt_required
+def get_user_profile(user_id):
+    from flask import g # Import g here or ensure it's available
+    # Ensure the authenticated user can only access their own profile
+    # The user_id in the path should match the one in the token (g.current_user_id)
+    if str(user_id) != g.current_user_id:
+        logger.warning(f"Forbidden attempt to access profile. Token user: {g.current_user_id}, Path user: {user_id}")
+        return jsonify(error="Forbidden. You can only access your own profile."), 403
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id, email, name, birth_date, gender, goal_slider,
+                       experience_level, unit_system, available_plates,
+                       created_at, updated_at
+                FROM users WHERE id = %s;
+                """, (str(user_id),)
+            )
+            profile = cur.fetchone()
+            if not profile:
+                return jsonify(error="User profile not found"), 404
+
+            # Convert available_plates from JSON string in DB to list/dict if needed by frontend
+            # Assuming it's stored as JSONB and psycopg2 handles it.
+            return jsonify(profile), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error fetching profile for user {user_id}: {e}")
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error fetching profile for user {user_id}: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/v1/users/<uuid:user_id>/profile', methods=['PUT'])
+@jwt_required
+def update_user_profile(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        logger.warning(f"Forbidden attempt to update profile. Token user: {g.current_user_id}, Path user: {user_id}")
+        return jsonify(error="Forbidden. You can only update your own profile."), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify(error="Request body must be JSON"), 400
+
+    # Fields that can be updated by the user
+    allowed_fields = {
+        'name': str, 'birth_date': str, 'gender': str,
+        'goal_slider': float, 'experience_level': str,
+        'unit_system': str, 'available_plates': dict # Or list, depending on expected structure
+    }
+
+    update_fields = []
+    update_values = []
+
+    for field, field_type in allowed_fields.items():
+        if field in data:
+            value = data[field]
+            # Basic type validation, can be more sophisticated
+            if value is not None and not isinstance(value, field_type):
+                if field == 'birth_date': # Allow None for birth_date
+                    pass
+                elif field_type == float and isinstance(value, int): # Allow int for float fields
+                    value = float(value)
+                else:
+                    return jsonify(error=f"Invalid type for field '{field}'. Expected {field_type.__name__}."), 400
+
+            # Specific validation for certain fields
+            if field == 'gender' and value not in [None, 'male', 'female', 'other', 'prefer_not_to_say']:
+                return jsonify(error="Invalid value for 'gender'"), 400
+            if field == 'experience_level' and value not in [None, 'beginner', 'intermediate', 'advanced']:
+                return jsonify(error="Invalid value for 'experience_level'"), 400
+            if field == 'unit_system' and value not in [None, 'metric', 'imperial']:
+                return jsonify(error="Invalid value for 'unit_system'"), 400
+            if field == 'goal_slider' and value is not None and not (0.0 <= value <= 1.0):
+                 return jsonify(error="'goal_slider' must be between 0.0 and 1.0"), 400
+
+
+            update_fields.append(f"{field} = %s")
+            # For JSONB fields like available_plates, ensure it's passed as a JSON string or use psycopg2.extras.Json
+            if field == 'available_plates' and value is not None:
+                 update_values.append(psycopg2.extras.Json(value))
+            else:
+                update_values.append(value)
+
+    if not update_fields:
+        return jsonify(error="No valid fields provided for update"), 400
+
+    update_fields.append("updated_at = NOW()")
+
+    query = f"UPDATE users SET {', '.join(update_fields)} WHERE id = %s RETURNING *;"
+    update_values.append(str(user_id))
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(query, tuple(update_values))
+            updated_profile = cur.fetchone()
+            if not updated_profile: # Should not happen if ID is correct and record exists
+                return jsonify(error="Failed to update or find profile after update."), 500
+
+            # Remove password_hash before returning
+            if 'password_hash' in updated_profile:
+                del updated_profile['password_hash']
+
+            conn.commit()
+            logger.info(f"User profile updated successfully for user: {user_id}")
+            return jsonify(updated_profile), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error updating profile for user {user_id}: {e}")
+        if conn: conn.rollback()
+        return jsonify(error="Database operation failed during profile update"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error updating profile for user {user_id}: {e}", exc_info=True)
+        if conn: conn.rollback()
+        return jsonify(error="An unexpected error occurred during profile update"), 500
+    finally:
+        if conn:
+            conn.close()
+
+# --- Basic CRUD APIs for Exercises (P1-BE-010) ---
+@app.route('/v1/exercises', methods=['GET'])
+def list_exercises():
+    # Pagination parameters
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+    except ValueError:
+        return jsonify(error="Invalid 'page' or 'per_page' parameter. Must be integers."), 400
+
+    if page < 1: page = 1
+    if per_page < 1: per_page = 1
+    if per_page > 100: per_page = 100 # Max per_page limit
+    offset = (page - 1) * per_page
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Get total count for pagination metadata
+            cur.execute("SELECT COUNT(*) FROM exercises WHERE is_public = TRUE;")
+            total_exercises = cur.fetchone()['count']
+
+            # Fetch paginated exercises
+            cur.execute(
+                """
+                SELECT id, name, category, equipment, difficulty,
+                       primary_muscles, secondary_muscles, main_target_muscle_group, is_public
+                FROM exercises
+                WHERE is_public = TRUE
+                ORDER BY name
+                LIMIT %s OFFSET %s;
+                """,
+                (per_page, offset)
+            )
+            exercises_list = cur.fetchall()
+
+            return jsonify({
+                "page": page,
+                "per_page": per_page,
+                "total_exercises": total_exercises,
+                "total_pages": math.ceil(total_exercises / per_page),
+                "data": exercises_list
+            }), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error listing exercises: {e}")
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error listing exercises: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/v1/exercises/<uuid:exercise_id>', methods=['GET'])
+def get_exercise_details(exercise_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT * FROM exercises WHERE id = %s AND (is_public = TRUE OR TRUE);", # Assuming admin could see non-public, for now allow all by ID
+                (str(exercise_id),)
+            )
+            exercise = cur.fetchone()
+            if not exercise:
+                return jsonify(error="Exercise not found or not public"), 404
+
+            return jsonify(exercise), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error fetching exercise {exercise_id}: {e}")
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error fetching exercise {exercise_id}: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            conn.close()
+
+# --- Basic CRUD APIs for Workout Logging (P1-BE-011) ---
+@app.route('/v1/users/<uuid:user_id>/workouts', methods=['POST'])
+@jwt_required
+def create_workout(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        return jsonify(error="Forbidden. You can only create workouts for your own profile."), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify(error="Request body must be JSON"), 400
+
+    # Optional fields from request, with defaults or None
+    plan_day_id = data.get('plan_day_id')
+    started_at = data.get('started_at') # Expect ISO format string if provided
+    fatigue_level_reported = data.get('fatigue_level_reported')
+    sleep_hours = data.get('sleep_hours')
+    stress_level_reported = data.get('stress_level_reported')
+    notes = data.get('notes')
+
+    if started_at:
+        try:
+            started_at_dt = datetime.fromisoformat(started_at)
+        except ValueError:
+            return jsonify(error="Invalid 'started_at' format. Use ISO 8601 format."), 400
+    else:
+        started_at_dt = datetime.now(timezone.utc)
+
+    workout_id = str(uuid.uuid4())
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO workouts (id, user_id, plan_day_id, started_at,
+                                      fatigue_level_reported, sleep_hours, stress_level_reported, notes,
+                                      created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                RETURNING *;
+                """,
+                (workout_id, str(user_id), plan_day_id, started_at_dt,
+                 fatigue_level_reported, sleep_hours, stress_level_reported, notes)
+            )
+            new_workout = cur.fetchone()
+            conn.commit()
+            logger.info(f"Workout created successfully (ID: {workout_id}) for user: {user_id}")
+            return jsonify(new_workout), 201
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error creating workout for user {user_id}: {e}")
+        if conn: conn.rollback()
+        return jsonify(error="Database operation failed creating workout"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error creating workout for user {user_id}: {e}", exc_info=True)
+        if conn: conn.rollback()
+        return jsonify(error="An unexpected error occurred creating workout"), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/v1/users/<uuid:user_id>/workouts', methods=['GET'])
+@jwt_required
+def get_workouts_for_user(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        return jsonify(error="Forbidden. You can only view your own workouts."), 403
+
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10)) # Fewer workouts per page by default
+    except ValueError:
+        return jsonify(error="Invalid 'page' or 'per_page' parameter. Must be integers."), 400
+
+    if page < 1: page = 1
+    if per_page < 1: per_page = 1
+    if per_page > 50: per_page = 50
+    offset = (page - 1) * per_page
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM workouts WHERE user_id = %s;", (str(user_id),)
+            )
+            total_workouts = cur.fetchone()['count']
+
+            cur.execute(
+                "SELECT * FROM workouts WHERE user_id = %s ORDER BY started_at DESC LIMIT %s OFFSET %s;",
+                (str(user_id), per_page, offset)
+            )
+            workouts_list = cur.fetchall()
+
+            return jsonify({
+                "page": page,
+                "per_page": per_page,
+                "total_workouts": total_workouts,
+                "total_pages": math.ceil(total_workouts / per_page),
+                "data": workouts_list
+            }), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error fetching workouts for user {user_id}: {e}")
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error fetching workouts for user {user_id}: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/v1/workouts/<uuid:workout_id>', methods=['GET'])
+@jwt_required
+def get_single_workout(workout_id):
+    from flask import g
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # First, verify the workout belongs to the authenticated user
+            cur.execute("SELECT user_id FROM workouts WHERE id = %s;", (str(workout_id),))
+            workout_owner = cur.fetchone()
+            if not workout_owner:
+                return jsonify(error="Workout not found"), 404
+            if workout_owner['user_id'] != uuid.UUID(g.current_user_id): # Ensure types match for comparison
+                 logger.warning(f"Forbidden attempt to access workout {workout_id} by user {g.current_user_id}")
+                 return jsonify(error="Forbidden. You can only view your own workouts."), 403
+
+            # Fetch workout details
+            cur.execute("SELECT * FROM workouts WHERE id = %s;", (str(workout_id),))
+            workout_details = cur.fetchone() # Already checked it exists
+
+            # Fetch associated sets
+            cur.execute(
+                """
+                SELECT ws.*, e.name as exercise_name
+                FROM workout_sets ws
+                JOIN exercises e ON ws.exercise_id = e.id
+                WHERE ws.workout_id = %s
+                ORDER BY ws.set_number ASC;
+                """, (str(workout_id),)
+            )
+            sets_list = cur.fetchall()
+
+            workout_details['sets'] = sets_list
+            return jsonify(workout_details), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error fetching workout {workout_id}: {e}")
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error fetching workout {workout_id}: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/v1/workouts/<uuid:workout_id>/sets', methods=['POST'])
+@jwt_required
+def log_set_to_workout(workout_id):
+    from flask import g
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Verify workout belongs to the authenticated user
+            cur.execute("SELECT user_id FROM workouts WHERE id = %s;", (str(workout_id),))
+            workout_owner = cur.fetchone()
+            if not workout_owner:
+                return jsonify(error="Workout not found"), 404
+            if workout_owner['user_id'] != uuid.UUID(g.current_user_id):
+                 logger.warning(f"Forbidden attempt to log set to workout {workout_id} by user {g.current_user_id}")
+                 return jsonify(error="Forbidden. You can only add sets to your own workouts."), 403
+
+            data = request.get_json()
+            if not data:
+                return jsonify(error="Request body must be JSON"), 400
+
+            required_fields = ['exercise_id', 'set_number', 'actual_weight', 'actual_reps', 'actual_rir']
+            for field in required_fields:
+                if field not in data:
+                    return jsonify(error=f"Missing required field: {field}"), 400
+
+            # Type validation can be added here for each field
+            try:
+                exercise_id = str(uuid.UUID(data['exercise_id'])) # Validate UUID format
+                set_number = int(data['set_number'])
+                actual_weight = float(data['actual_weight'])
+                actual_reps = int(data['actual_reps'])
+                actual_rir = int(data['actual_rir'])
+                # Optional fields
+                rest_before_seconds = data.get('rest_before_seconds')
+                if rest_before_seconds is not None: rest_before_seconds = int(rest_before_seconds)
+                completed_at_str = data.get('completed_at')
+                set_notes = data.get('notes')
+            except (ValueError, TypeError) as ve:
+                return jsonify(error=f"Invalid data type for one or more fields: {ve}"), 400
+
+
+            completed_at_dt = datetime.now(timezone.utc)
+            if completed_at_str:
+                try:
+                    completed_at_dt = datetime.fromisoformat(completed_at_str)
+                except ValueError:
+                     return jsonify(error="Invalid 'completed_at' format. Use ISO 8601 format."), 400
+
+            set_id = str(uuid.uuid4())
+            cur.execute(
+                """
+                INSERT INTO workout_sets (
+                    id, workout_id, exercise_id, set_number,
+                    actual_weight, actual_reps, actual_rir,
+                    rest_before_seconds, completed_at, notes, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                RETURNING *;
+                """,
+                (set_id, str(workout_id), exercise_id, set_number,
+                 actual_weight, actual_reps, actual_rir,
+                 rest_before_seconds, completed_at_dt, set_notes)
+            )
+            new_set = cur.fetchone()
+            conn.commit()
+            logger.info(f"Set {set_id} logged to workout {workout_id} successfully.")
+            return jsonify(new_set), 201
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error logging set to workout {workout_id}: {e}")
+        if conn: conn.rollback()
+        return jsonify(error="Database operation failed logging set"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error logging set to workout {workout_id}: {e}", exc_info=True)
+        if conn: conn.rollback()
+        return jsonify(error="An unexpected error occurred logging set"), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route('/v1/predict/1rm/epley', methods=['POST'])
 def predict_1rm_epley():
     data = request.get_json()

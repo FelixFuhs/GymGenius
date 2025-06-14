@@ -1,13 +1,49 @@
 import psycopg2
 import os
 import sys
+from urllib.parse import urlparse # Add this import
 
-# Database connection details from environment variables
-DB_NAME = os.getenv("POSTGRES_DB", "gymgenius")
-DB_USER = os.getenv("POSTGRES_USER", "user")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
-DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+# Database connection details
+DATABASE_URL = os.getenv("DATABASE_URL")
+DB_NAME_FALLBACK = os.getenv("POSTGRES_DB", "gymgenius")
+DB_USER_FALLBACK = os.getenv("POSTGRES_USER", "user")
+DB_PASSWORD_FALLBACK = os.getenv("POSTGRES_PASSWORD", "password")
+DB_HOST_FALLBACK = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT_FALLBACK = os.getenv("POSTGRES_PORT", "5432")
+
+conn_params = {}
+if DATABASE_URL:
+    try:
+        url = urlparse(DATABASE_URL)
+        conn_params = {
+            'dbname': url.path[1:],
+            'user': url.username,
+            'password': url.password,
+            'host': url.hostname,
+            'port': url.port
+        }
+        # Storing the connection method for logging
+        _db_connection_method = f"DATABASE_URL to host '{url.hostname}'"
+    except Exception as e:
+        print(f"Warning: Could not parse DATABASE_URL ('{DATABASE_URL}'): {e}. Falling back to POSTGRES_* variables.")
+        conn_params = { # Fallback to individual variables if DATABASE_URL parsing fails
+            'dbname': DB_NAME_FALLBACK,
+            'user': DB_USER_FALLBACK,
+            'password': DB_PASSWORD_FALLBACK,
+            'host': DB_HOST_FALLBACK,
+            'port': DB_PORT_FALLBACK
+        }
+        _db_connection_method = f"POSTGRES_* variables to host '{DB_HOST_FALLBACK}'"
+else:
+    conn_params = {
+        'dbname': DB_NAME_FALLBACK,
+        'user': DB_USER_FALLBACK,
+        'password': DB_PASSWORD_FALLBACK,
+        'host': DB_HOST_FALLBACK,
+        'port': DB_PORT_FALLBACK
+    }
+    _db_connection_method = f"POSTGRES_* variables to host '{DB_HOST_FALLBACK}'"
+
 
 # SQL commands to create tables and indexes
 SQL_COMMANDS = """
@@ -191,26 +227,24 @@ EXECUTE FUNCTION trigger_set_timestamp();
 def create_schema():
     conn = None
     try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT
-        )
-        print(f"Successfully connected to database '{DB_NAME}' on host '{DB_HOST}'.")
+        # Use the globally defined conn_params
+        print(f"Attempting to connect using {_db_connection_method}.")
+        conn = psycopg2.connect(**conn_params)
+        # Use conn_params to report which database and host we connected to
+        print(f"Successfully connected to database '{conn_params.get('dbname')}' on host '{conn_params.get('host')}'.")
         with conn.cursor() as cur:
             cur.execute(SQL_COMMANDS)
             print("Schema creation commands executed.")
         conn.commit()
         print("Schema created successfully (or already existed).")
     except psycopg2.OperationalError as e:
-        print(f"Error connecting to the database: {e}")
-        print(f"Please ensure PostgreSQL is running and accessible on {DB_HOST}:{DB_PORT}, "
-              f"and that database '{DB_NAME}' exists with user '{DB_USER}' having appropriate permissions.")
+        print(f"Error connecting to the database using method '{_db_connection_method}': {e}")
+        # Generic advice part
+        print(f"Please ensure PostgreSQL is running and accessible, "
+              f"and that the target database exists with appropriate permissions.")
         sys.exit(1)
     except psycopg2.Error as e:
-        print(f"Error during database operation: {e}")
+        print(f"Error during database operation (using '{_db_connection_method}'): {e}")
         if conn:
             conn.rollback()
         sys.exit(1)
