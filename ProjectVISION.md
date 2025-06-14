@@ -549,7 +549,7 @@ class UserLearningModel:
 - **API**: RESTful with OpenAPI documentation
 
 ### Infrastructure
-- **Hosting**: AWS or Google Cloud Platform
+- **Hosting**: Local Docker Compose initially; later deployable to AWS or another cloud provider
 - **Container**: Docker with Kubernetes
 - **CI/CD**: GitHub Actions
 - **Monitoring**: Sentry for errors, Datadog for metrics

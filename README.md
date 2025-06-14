@@ -67,7 +67,7 @@ open http://localhost:3000
 * **Frontend**: React + TypeScript + Vite, Zustand state, Tailwind UI
 * **Backend**: Node 18, Express / Fastify, PostgreSQL 16, Redis 7
 * **ML Service**: Python 3.11, PyTorch 2.3, FastAPI, pydantic
-* **DevOps**: Docker, GitHub Actions, Terraform + AWS ECS (prod)
+* **DevOps**: Docker, GitHub Actions; cloud deployment via AWS ECS planned for Phase 4
 * **Observability**: Sentry, Datadog, OpenTelemetry traces
 
 > Full dependency matrix lives in **[`TECH_STACK.md`](TECH_STACK.md)**.
