@@ -517,6 +517,7 @@ function updateFooterNav() {
             <a href="#exercises">Exercises</a>
             <a href="#workouts">My Workouts</a>
             <a href="#rir-weight-input">RIR/Weight Calc</a>
+            <a id="feedback-link" target="_blank">Beta Feedback</a>
             <a href="#" id="logout-link">Logout</a>
         `;
         footerNav.querySelector('#logout-link').addEventListener('click', (e) => {
@@ -528,7 +529,12 @@ function updateFooterNav() {
         footerNav.innerHTML = `
             <a href="#login">Login</a>
             <a href="#signup">Sign Up</a>
+            <a id="feedback-link" target="_blank">Beta Feedback</a>
         `;
+    }
+    const feedbackAnchor = footerNav.querySelector('#feedback-link');
+    if (feedbackAnchor) {
+        feedbackAnchor.href = typeof SURVEY_URL !== 'undefined' ? SURVEY_URL : '#';
     }
 }
 

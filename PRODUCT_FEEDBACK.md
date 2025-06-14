@@ -147,3 +147,7 @@ This outlines the Key Performance Indicators (KPIs) to track the success, engage
     *   Allow segmentation by user demographics, experience level, etc.
 
 This `PRODUCT_FEEDBACK.md` serves as a starting point. The survey should be implemented using a suitable survey tool (e.g., Google Forms, Typeform, SurveyMonkey), and the KPI dashboard built out using appropriate analytics and visualization tools.
+
+### Deployment Notes
+
+The beta feedback survey is hosted on **Typeform** at `https://gymgenius.typeform.com/beta-survey`. The link is exposed in the PWA footer and configured via `webapp/js/config.js` so it can be updated without markup changes.
