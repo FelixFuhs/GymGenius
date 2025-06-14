@@ -27,6 +27,7 @@ license:     MIT
 6. [Roadmap](#roadmap)
 7. [Community & Support](#community--support)
 8. [License](#license)
+9. [Staging Compose](#staging-compose)
 
 ### Why GymGenius?
 
@@ -97,3 +98,7 @@ The current roadmap lives in **[`ROADMAP.md`](ROADMAP.md)**. High-level phases:
 ### License
 
 Distributed under the **MIT License** – see **[`LICENSE.md`](LICENSE.md)** for full text.
+
+### Staging Compose
+
+For a local mock of the AWS stack, follow the steps in **[`infrastructure/aws/README.md`](infrastructure/aws/README.md#running-the-staging-compose-file-locally)**.
