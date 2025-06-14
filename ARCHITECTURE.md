@@ -7,25 +7,17 @@
 ```mermaid
 flowchart LR
     subgraph Client
-        A[Web PWA<br/>React + TS]
+        A[Web PWA<br/>HTML + JS]
     end
     subgraph Docker Compose Network
-        B(API Service<br/>Node 18)
-        C(ML Engine<br/>Python 3.11)
-        D(Job Worker<br/>Bull Queue)
+        B(Flask API & Engine<br/>Python 3.11)
     end
     subgraph Data Layer
-        E[(PostgreSQL 16)]
-        F[(Redis 7)]
-        G[(S3 Model Store)]
+        E[(PostgreSQL 13)]
     end
 
     A -- REST/JSON --> B
-    B -- gRPC --> C
-    B <-- Redis Pub/Sub --> D
     B -- SQL --> E
-    C -- SQL (read-only) --> E
-    C -- store ckpt --> G
 ```
 
 ## 2 Service Registry (machine-readable)
@@ -35,37 +27,21 @@ flowchart LR
   "services": [
     {
       "name": "web",
-      "path": "apps/web",
-      "lang": "typescript",
-      "port": 3000,
-      "depends_on": ["api"]
-    },
-    {
-      "name": "api",
-      "path": "apps/api",
-      "lang": "typescript",
-      "port": 4000,
-      "depends_on": ["postgres", "redis", "engine"]
+      "path": "webapp",
+      "lang": "javascript",
+      "port": 8000,
+      "depends_on": ["engine"]
     },
     {
       "name": "engine",
-      "path": "services/engine",
+      "path": "engine",
       "lang": "python",
       "port": 5000,
-      "depends_on": ["postgres", "s3"]
-    },
-    {
-      "name": "worker",
-      "path": "services/worker",
-      "lang": "typescript",
-      "queue": "bull",
-      "depends_on": ["redis", "postgres"]
+      "depends_on": ["postgres"]
     }
   ],
   "datastores": [
-    { "name": "postgres", "type": "sql", "image": "postgres:16" },
-    { "name": "redis", "type": "cache", "image": "redis:7" },
-    { "name": "s3", "type": "object_storage", "provider": "minio" }
+    { "name": "postgres", "type": "sql", "image": "postgres:13" }
   ]
 }
 ```
@@ -76,19 +52,14 @@ Agents can parse this JSON to auto-map folder names to Docker services.
 
 | Path              | Payload                          | Notes                 |
 | ----------------- | -------------------------------- | --------------------- |
-| `web → api`       | REST/JSON (`/workouts`, `/sets`) | JWT auth              |
-| `api → engine`    | gRPC (`PredictSet` req/resp)     | \~5 ms avg            |
-| `api ⇆ redis`     | Pub/Sub `workout_logged`         | Triggers worker jobs  |
-| `worker → engine` | CLI `train.py --days=1`          | Nightly fine-tune     |
-| `engine → s3`     | `model-{date}.pth`               | Versioned checkpoints |
-| `api → postgres`  | CRUD                             | Prisma ORM            |
+| `web → engine`    | REST/JSON (`/v1/...`)            | JWT auth (planned)    |
+| `engine → postgres` | SQL                             | psycopg2 driver       |
 
 ## 4 Key Tech Decisions (TDR links)
 
-* **Monorepo** (`pnpm workspace`) until MAU > 50 k → TDR-001
+* **Monorepo** until MAU > 50 k → TDR-001
 * **Postgres** over Mongo for relational complexity → TDR-002
-* **Redis** chosen for both cache and queue broker → TDR-003
-* **Docker Compose** in dev; AWS ECS Fargate in production (Phase 4+) → TDR-004
+* **Docker Compose** in dev; AWS ECS Fargate in production (Phase 4+) → TDR-003
 
 (TDR docs live in `docs/tdr/`.)
 

@@ -48,26 +48,25 @@ make dev            # alias for `docker compose -f docker-compose.dev.yml up --b
 open http://localhost:3000
 ```
 
-> **Prerequisites**: Docker ≥ 24, Node 18 LTS, Make, GNU Bash (macOS/Linux) or WSL 2 (Windows).
+> **Prerequisites**: Docker ≥ 24, Python 3.11, Make, GNU Bash (macOS/Linux) or WSL 2 (Windows).
 
 ### Project Structure
 
 | Path                   | Purpose                                      |
 | ---------------------- | -------------------------------------------- |
-| `/apps/web/`           | React + TypeScript PWA                       |
-| `/apps/api/`           | Express (Node) REST API                      |
-| `/services/engine/`    | Python micro-service (adaptive algorithm)    |
-| `/packages/ui/`        | Shared design-system components              |
-| `/database/`           | Prisma schema & migrations                   |
-| `/docs/`               | Architecture diagrams, research white-papers |
-| `docker-compose.*.yml` | Local vs CI vs prod stacks                   |
+| `/webapp/`             | Vanilla JS + HTML PWA                        |
+| `/engine/`             | Flask API with adaptive logic                |
+| `/database/`           | SQL schema & seed scripts                    |
+| `/tests/`              | Unit tests                                   |
+| `/infrastructure/`     | Deployment configs                           |
+| `docker-compose.yml`   | Local dev stack                              |
 
 ### Tech Stack
 
-* **Frontend**: React + TypeScript + Vite, Zustand state, Tailwind UI
-* **Backend**: Node 18, Express / Fastify, PostgreSQL 16, Redis 7
-* **ML Service**: Python 3.11, PyTorch 2.3, FastAPI, pydantic
-* **DevOps**: Docker, GitHub Actions; cloud deployment via AWS ECS planned for Phase 4
+* **Frontend**: Vanilla JavaScript + HTML, Service Worker
+* **Backend**: Python 3.11, Flask, PostgreSQL 13
+* **ML Logic**: Integrated into the Flask service
+* **DevOps**: Docker Compose, GitHub Actions; AWS ECS planned for Phase 4
 * **Observability**: Sentry, Datadog, OpenTelemetry traces
 
 > Full dependency matrix lives in **[`TECH_STACK.md`](TECH_STACK.md)**.
