@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Placeholder for future unreleased changes.
+- **P2-INF-004**: Documented conceptual setup for a staging environment on AWS ECS + RDS in `infrastructure/aws/README.md` and provided an illustrative `docker-compose.staging.yml`.
+- **P2-PM-005**: Drafted beta feedback survey questions and a KPI dashboard outline in `PRODUCT_FEEDBACK.md`.
 
 ## [0.2.0] - 2024-08-02 - Phase 2 Beta Features
 
