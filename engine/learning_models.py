@@ -4,6 +4,7 @@ Core logic for learning models related to user performance and fatigue.
 from datetime import datetime, timedelta
 from math import exp
 from typing import List, Dict, Any
+from pprint import pprint
 
 # Define reasonable bounds for RIR bias
 MIN_RIR_BIAS = -2.0
@@ -191,5 +192,118 @@ if __name__ == '__main__':
 
     fatigue_with_invalid = calculate_current_fatigue('chest', history_with_invalid)
     print(f"Fatigue with some invalid records (should skip them): {fatigue_with_invalid:.2f}")
+
+
+# User sets goal: 0 = pure hypertrophy, 1 = pure strength
+def calculate_training_params(goal_strength_fraction: float) -> dict:
+    """
+    Calculates training parameters based on a user's goal ranging from pure hypertrophy to pure strength.
+
+    Args:
+        goal_strength_fraction: A float between 0.0 (pure hypertrophy) and 1.0 (pure strength).
+
+    Returns:
+        A dictionary containing calculated training parameters:
+        - 'load_percentage_of_1rm': Target load as a fraction of 1 Rep Max.
+        - 'target_rir': Target Reps In Reserve (rounded for practical use).
+        - 'target_rir_float': Target Reps In Reserve (as a float for precision).
+        - 'rest_seconds': Recommended rest time in seconds.
+        - 'rep_range_low': Lower end of the recommended rep range.
+        - 'rep_range_high': Upper end of the recommended rep range.
+    """
+    if not 0.0 <= goal_strength_fraction <= 1.0:
+        raise ValueError("goal_strength_fraction must be between 0.0 and 1.0")
+
+    load_percentage = 0.60 + 0.35 * goal_strength_fraction
+    target_rir_float = 2.5 - 1.5 * goal_strength_fraction  # Keep as float for now
+    rest_minutes = 1.5 + 2.0 * goal_strength_fraction
+
+    # Rep ranges
+    rep_high_float = 6.0 + 6.0 * (1.0 - goal_strength_fraction) # Use floats for precision
+    rep_high = int(round(rep_high_float))
+    # Ensure rep_low is at least 1 and also considers the float value before rounding rep_high
+    rep_low_candidate = rep_high_float - 4.0
+    rep_low = int(round(max(1.0, rep_low_candidate)))
+
+    # Ensure rep_low is not greater than rep_high after rounding adjustments
+    if rep_low > rep_high:
+        rep_low = rep_high
+
+    return {
+        'load_percentage_of_1rm': round(load_percentage, 4), # Store with precision
+        'target_rir': int(round(target_rir_float)), # Round RIR for practical use
+        'target_rir_float': round(target_rir_float, 2), # Also return float for potential finer use
+        'rest_seconds': int(round(rest_minutes * 60)),  # in seconds
+        'rep_range_low': rep_low,
+        'rep_range_high': rep_high
+    }
+
+if __name__ == '__main__':
+    # ... (previous examples for update_user_rir_bias and calculate_current_fatigue remain) ...
+
+    print("\n--- Training Parameter Calculation Examples ---")
+    goals = [0.0, 0.25, 0.5, 0.75, 1.0]
+    for goal in goals:
+        params = calculate_training_params(goal)
+        print(f"Goal Fraction: {goal:.2f}")
+        print(f"  Load % of 1RM: {params['load_percentage_of_1rm']:.4f}")
+        print(f"  Target RIR (rounded): {params['target_rir']}")
+        print(f"  Target RIR (float): {params['target_rir_float']:.2f}")
+        print(f"  Rest (seconds): {params['rest_seconds']}")
+        print(f"  Rep Range: {params['rep_range_low']}-{params['rep_range_high']}")
+        print("-" * 20)
+
+    # Test edge case for rep_low and rep_high logic
+    print("Testing rep range logic specifically:")
+    # This goal (e.g., 0.0) should give rep_high_float = 12, rep_high = 12. rep_low_candidate = 8, rep_low = 8
+    params_hypertrophy = calculate_training_params(0.0)
+    print(f"Goal 0.0 (Hypertrophy): Rep Range {params_hypertrophy['rep_range_low']}-{params_hypertrophy['rep_range_high']}")
+
+    # This goal (e.g., 1.0) should give rep_high_float = 6, rep_high = 6. rep_low_candidate = 2, rep_low = 2
+    params_strength = calculate_training_params(1.0)
+    print(f"Goal 1.0 (Strength): Rep Range {params_strength['rep_range_low']}-{params_strength['rep_range_high']}")
+
+    # A goal that might make rep_low > rep_high if not careful after rounding
+    # e.g. if rep_high_float = 6.4 (rounds to 6) and rep_low_candidate = 2.4 (rounds to 2) - fine
+    # e.g. if rep_high_float = 6.6 (rounds to 7) and rep_low_candidate = 2.7 (rounds to 3) - fine
+    # e.g. if rep_high_float = 6.1 (rounds to 6) and rep_low_candidate = 2.3 (rounds to 2) - fine
+    # The logic `rep_low = int(round(max(1.0, rep_high_float - 4.0)))` and `if rep_low > rep_high: rep_low = rep_high` should handle this.
+    # Let's test a value like goal_strength_fraction = 0.9, where rep_high_float = 6 + 6*(0.1) = 6.6 (rounds to 7)
+    # rep_low_candidate = 6.6 - 4 = 2.6 (rounds to 3). So 3-7, which is fine.
+    params_intermediate = calculate_training_params(0.90) # rep_high_float = 6.6 -> 7, target_rir_float = 2.5 - 1.5*0.9 = 2.5 - 1.35 = 1.15 -> 1
+    print(f"Goal 0.90: Rep Range {params_intermediate['rep_range_low']}-{params_intermediate['rep_range_high']}, RIR {params_intermediate['target_rir']}")
+    # Test value from problem statement (0.0)
+    # load_percentage = 0.60 + 0.35 * 0.0 = 0.60
+    # target_rir_float = 2.5 - 1.5 * 0.0 = 2.5  (rounds to 3)
+    # rest_minutes = 1.5 + 2.0 * 0.0 = 1.5 (90s)
+    # rep_high_float = 6.0 + 6.0 * (1.0 - 0.0) = 12.0 (rounds to 12)
+    # rep_low = int(round(max(1.0, 12.0 - 4.0))) = int(round(max(1.0, 8.0))) = 8.  Range: 8-12
+
+    # Test value from problem statement (0.5)
+    # load_percentage = 0.60 + 0.35 * 0.5 = 0.60 + 0.175 = 0.775
+    # target_rir_float = 2.5 - 1.5 * 0.5 = 2.5 - 0.75 = 1.75 (rounds to 2)
+    # rest_minutes = 1.5 + 2.0 * 0.5 = 1.5 + 1.0 = 2.5 (150s)
+    # rep_high_float = 6.0 + 6.0 * (1.0 - 0.5) = 6.0 + 3.0 = 9.0 (rounds to 9)
+    # rep_low = int(round(max(1.0, 9.0 - 4.0))) = int(round(max(1.0, 5.0))) = 5. Range: 5-9
+
+    # Test value from problem statement (1.0)
+    # load_percentage = 0.60 + 0.35 * 1.0 = 0.95
+    # target_rir_float = 2.5 - 1.5 * 1.0 = 1.0 (rounds to 1)
+    # rest_minutes = 1.5 + 2.0 * 1.0 = 3.5 (210s)
+    # rep_high_float = 6.0 + 6.0 * (1.0 - 1.0) = 6.0 (rounds to 6)
+    # rep_low = int(round(max(1.0, 6.0 - 4.0))) = int(round(max(1.0, 2.0))) = 2. Range: 2-6
+
+    print("\nTesting with values from problem statement prompt:")
+    print("Goal 0.0 (Pure Hypertrophy):")
+    pprint(calculate_training_params(0.0))
+    print("Goal 0.5 (Balanced):")
+    pprint(calculate_training_params(0.5))
+    print("Goal 1.0 (Pure Strength):")
+    pprint(calculate_training_params(1.0))
+
+    try:
+        calculate_training_params(1.1)
+    except ValueError as e:
+        print(f"\nCaught expected error for out-of-bounds input: {e}")
 
 ```
