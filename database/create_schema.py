@@ -1,166 +1,196 @@
 import psycopg2
-from psycopg2 import sql
+import os
+import sys
 
-# Placeholder for database connection details
-DB_NAME = "projectvision"
-DB_USER = "user"
-DB_PASSWORD = "password"
-DB_HOST = "localhost"
-DB_PORT = "5432"
+# Database connection details from environment variables
+DB_NAME = os.getenv("POSTGRES_DB", "gymgenius")
+DB_USER = os.getenv("POSTGRES_USER", "user")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
 # SQL commands to create tables and indexes
 SQL_COMMANDS = """
+-- Enable UUID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Users Table
 CREATE TABLE IF NOT EXISTS users (
-    user_id SERIAL PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255),
+    birth_date DATE,
+    gender VARCHAR(20),
+    goal_slider DECIMAL(3,2) DEFAULT 0.5,
+    experience_level VARCHAR(20) DEFAULT 'intermediate',
+    unit_system VARCHAR(10) DEFAULT 'metric',
+    available_plates JSONB DEFAULT '{"kg": [1.25, 2.5, 5, 10, 20]}',
+    rir_bias DECIMAL(3,1) DEFAULT 2.0,
+    recovery_multipliers JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Exercises Table
 CREATE TABLE IF NOT EXISTS exercises (
-    exercise_id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    muscle_group VARCHAR(255),
-    equipment VARCHAR(255),
-    difficulty_level VARCHAR(50),
-    media_url VARCHAR(255), -- URL to image or video
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    category VARCHAR(50),
+    equipment VARCHAR(50),
+    difficulty VARCHAR(20),
+    primary_muscles JSONB NOT NULL,
+    secondary_muscles JSONB,
+    main_target_muscle_group VARCHAR(100), -- New column for fatigue endpoint simplification
+    fatigue_rating VARCHAR(20),
+    technique_notes TEXT,
+    common_mistakes TEXT[],
+    video_url VARCHAR(500),
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    is_public BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Workout Plans Table
 CREATE TABLE IF NOT EXISTS workout_plans (
-    plan_id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    description TEXT,
-    goal VARCHAR(255), -- e.g., strength, hypertrophy, endurance
-    skill_level VARCHAR(50), -- e.g., beginner, intermediate, advanced
-    duration_weeks INTEGER,
-    is_active BOOLEAN DEFAULT TRUE,
+    days_per_week INTEGER,
+    plan_length_weeks INTEGER,
+    goal_focus DECIMAL(3,2),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Plan Days Table
 CREATE TABLE IF NOT EXISTS plan_days (
-    day_id SERIAL PRIMARY KEY,
-    plan_id INTEGER REFERENCES workout_plans(plan_id) ON DELETE CASCADE,
-    day_of_week INTEGER NOT NULL, -- 1 for Monday, 7 for Sunday
-    name VARCHAR(255), -- e.g., "Chest Day", "Leg Day"
-    description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (plan_id, day_of_week)
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_id UUID REFERENCES workout_plans(id) ON DELETE CASCADE,
+    day_number INTEGER NOT NULL,
+    name VARCHAR(100),
+    UNIQUE(plan_id, day_number)
 );
 
+-- Plan Exercises Table
 CREATE TABLE IF NOT EXISTS plan_exercises (
-    plan_exercise_id SERIAL PRIMARY KEY,
-    day_id INTEGER REFERENCES plan_days(day_id) ON DELETE CASCADE,
-    exercise_id INTEGER REFERENCES exercises(exercise_id) ON DELETE RESTRICT,
-    sets INTEGER,
-    reps_min INTEGER,
-    reps_max INTEGER,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_day_id UUID REFERENCES plan_days(id) ON DELETE CASCADE,
+    exercise_id UUID REFERENCES exercises(id) ON DELETE RESTRICT,
+    order_index INTEGER NOT NULL,
+    sets INTEGER NOT NULL,
+    rep_range_low INTEGER,
+    rep_range_high INTEGER,
+    target_rir INTEGER,
     rest_seconds INTEGER,
     notes TEXT,
-    sequence_order INTEGER, -- Order of exercise within the day
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    UNIQUE(plan_day_id, order_index)
 );
 
+-- Workouts Table (Log of actual workout sessions)
 CREATE TABLE IF NOT EXISTS workouts (
-    workout_id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
-    plan_id INTEGER REFERENCES workout_plans(plan_id) ON DELETE SET NULL, -- Can be null if not following a plan
-    day_id INTEGER REFERENCES plan_days(day_id) ON DELETE SET NULL, -- Can be null if not tied to a specific plan day
-    name VARCHAR(255), -- e.g., "Morning Lift"
-    start_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    end_time TIMESTAMP WITH TIME ZONE,
-    notes TEXT, -- User's notes about the workout
-    mood VARCHAR(50),
-    perceived_exertion INTEGER, -- RPE scale 1-10
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    plan_day_id UUID REFERENCES plan_days(id) ON DELETE SET NULL,
+    started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    session_rpe INTEGER CHECK (session_rpe BETWEEN 1 AND 10),
+    fatigue_level INTEGER CHECK (fatigue_level BETWEEN 1 AND 10),
+    sleep_hours DECIMAL(3,1),
+    stress_level INTEGER CHECK (stress_level BETWEEN 1 AND 10),
+    notes TEXT
 );
 
+-- Workout Sets Table (Log of actual sets performed)
 CREATE TABLE IF NOT EXISTS workout_sets (
-    set_id SERIAL PRIMARY KEY,
-    workout_id INTEGER REFERENCES workouts(workout_id) ON DELETE CASCADE,
-    plan_exercise_id INTEGER REFERENCES plan_exercises(plan_exercise_id) ON DELETE SET NULL, -- Link to planned exercise if any
-    exercise_id INTEGER REFERENCES exercises(exercise_id) ON DELETE RESTRICT, -- Actual exercise performed
-    sequence_order INTEGER, -- Order of the set in the workout for that exercise
-    weight_kg NUMERIC(6,2),
-    reps INTEGER,
-    rest_seconds INTEGER,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workout_id UUID REFERENCES workouts(id) ON DELETE CASCADE,
+    exercise_id UUID REFERENCES exercises(id) ON DELETE RESTRICT,
+    set_number INTEGER NOT NULL,
+    recommended_weight DECIMAL(7,2),
+    recommended_reps INTEGER,
+    recommended_rir INTEGER,
+    confidence_score DECIMAL(3,2),
+    actual_weight DECIMAL(7,2),
+    actual_reps INTEGER,
+    actual_rir INTEGER,
+    rest_before_seconds INTEGER,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    form_rating INTEGER CHECK (form_rating BETWEEN 1 AND 5),
     notes TEXT,
-    set_type VARCHAR(50), -- e.g., warm-up, working, drop-set, failure
-    perceived_exertion INTEGER, -- RPE for this specific set
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    UNIQUE(workout_id, exercise_id, set_number)
 );
 
+-- Estimated 1RM History Table
 CREATE TABLE IF NOT EXISTS estimated_1rm_history (
-    e1rm_id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
-    exercise_id INTEGER REFERENCES exercises(exercise_id) ON DELETE CASCADE,
-    e1rm_value NUMERIC(7,2) NOT NULL,
-    calculation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    workout_set_id INTEGER REFERENCES workout_sets(set_id) ON DELETE SET NULL, -- Optional: link to the set used for calculation
-    formula_used VARCHAR(50), -- e.g., Epley, Brzycki
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, exercise_id, calculation_date)
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+    estimated_1rm DECIMAL(7,2) NOT NULL,
+    calculation_method VARCHAR(50),
+    confidence DECIMAL(3,2),
+    calculated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Muscle Recovery Patterns Table
 CREATE TABLE IF NOT EXISTS muscle_recovery_patterns (
-    recovery_id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
-    muscle_group VARCHAR(255) NOT NULL,
-    last_trained_date TIMESTAMP WITH TIME ZONE,
-    estimated_recovery_days INTEGER,
-    recovery_status VARCHAR(50), -- e.g., recovering, recovered, needs_attention
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, muscle_group)
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    muscle_group VARCHAR(50) NOT NULL,
+    recovery_tau_hours DECIMAL(5,1),
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, muscle_group)
 );
 
+-- Plateau Events Table
 CREATE TABLE IF NOT EXISTS plateau_events (
-    plateau_id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
-    exercise_id INTEGER REFERENCES exercises(exercise_id) ON DELETE CASCADE,
-    start_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_date TIMESTAMP WITH TIME ZONE, -- Null if plateau is ongoing
-    description TEXT, -- e.g., "Stuck at 100kg bench for 3 weeks"
-    potential_causes TEXT, -- e.g., "Overtraining, poor nutrition, lack of sleep"
-    strategies_tried TEXT,
-    status VARCHAR(50) DEFAULT 'active', -- e.g., active, resolved
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+    detected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    plateau_duration_days INTEGER,
+    protocol_applied VARCHAR(50),
+    resolved_at TIMESTAMP WITH TIME ZONE
 );
 
--- Indexes for faster queries
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_exercises_created_by ON exercises(created_by);
+-- idx_exercises_name is implicitly created by UNIQUE constraint on name
 CREATE INDEX IF NOT EXISTS idx_workout_plans_user_id ON workout_plans(user_id);
 CREATE INDEX IF NOT EXISTS idx_plan_days_plan_id ON plan_days(plan_id);
-CREATE INDEX IF NOT EXISTS idx_plan_exercises_day_id ON plan_exercises(day_id);
+CREATE INDEX IF NOT EXISTS idx_plan_exercises_plan_day_id ON plan_exercises(plan_day_id);
 CREATE INDEX IF NOT EXISTS idx_plan_exercises_exercise_id ON plan_exercises(exercise_id);
-CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
-CREATE INDEX IF NOT EXISTS idx_workouts_plan_id ON workouts(plan_id);
-CREATE INDEX IF NOT EXISTS idx_workouts_day_id ON workouts(day_id);
+CREATE INDEX IF NOT EXISTS idx_workouts_user_id_started_at ON workouts(user_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_workout_sets_workout_id ON workout_sets(workout_id);
-CREATE INDEX IF NOT EXISTS idx_workout_sets_exercise_id ON workout_sets(exercise_id);
-CREATE INDEX IF NOT EXISTS idx_e1rm_history_user_id_exercise_id ON estimated_1rm_history(user_id, exercise_id);
-CREATE INDEX IF NOT EXISTS idx_muscle_recovery_user_id_muscle_group ON muscle_recovery_patterns(user_id, muscle_group);
-CREATE INDEX IF NOT EXISTS idx_plateau_events_user_id_exercise_id ON plateau_events(user_id, exercise_id);
+CREATE INDEX IF NOT EXISTS idx_workout_sets_exercise_id_completed_at ON workout_sets(exercise_id, completed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_1rm_history_user_exercise_date ON estimated_1rm_history(user_id, exercise_id, calculated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_muscle_recovery_user_muscle_group ON muscle_recovery_patterns(user_id, muscle_group);
+CREATE INDEX IF NOT EXISTS idx_plateau_events_user_exercise ON plateau_events(user_id, exercise_id);
+CREATE INDEX IF NOT EXISTS idx_exercises_main_target_muscle_group ON exercises(main_target_muscle_group); -- Index for the new column
+
+-- Trigger function to update 'updated_at' columns
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply trigger to tables with 'updated_at'
+CREATE TRIGGER set_timestamp_users
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp();
+
+CREATE TRIGGER set_timestamp_workout_plans
+BEFORE UPDATE ON workout_plans
+FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp();
 """
 
 def create_schema():
-    """Connects to the PostgreSQL database and creates the schema."""
     conn = None
     try:
-        # Connect to the database
         conn = psycopg2.connect(
             dbname=DB_NAME,
             user=DB_USER,
@@ -168,31 +198,28 @@ def create_schema():
             host=DB_HOST,
             port=DB_PORT
         )
-        print(f"Successfully connected to database '{DB_NAME}' as user '{DB_USER}'.")
-
+        print(f"Successfully connected to database '{DB_NAME}' on host '{DB_HOST}'.")
         with conn.cursor() as cur:
-            # Execute the SQL commands
             cur.execute(SQL_COMMANDS)
             print("Schema creation commands executed.")
-
-        # Commit the changes
         conn.commit()
         print("Schema created successfully (or already existed).")
-
     except psycopg2.OperationalError as e:
         print(f"Error connecting to the database: {e}")
-        print("Please ensure PostgreSQL is running and connection details are correct.")
+        print(f"Please ensure PostgreSQL is running and accessible on {DB_HOST}:{DB_PORT}, "
+              f"and that database '{DB_NAME}' exists with user '{DB_USER}' having appropriate permissions.")
+        sys.exit(1)
     except psycopg2.Error as e:
         print(f"Error during database operation: {e}")
         if conn:
-            conn.rollback() # Rollback changes if any error occurs
+            conn.rollback()
+        sys.exit(1)
     finally:
         if conn:
             conn.close()
             print("Database connection closed.")
 
 if __name__ == "__main__":
-    print("Attempting to create database schema...")
+    print("Attempting to create/update database schema...")
     create_schema()
     print("Script finished.")
-"""

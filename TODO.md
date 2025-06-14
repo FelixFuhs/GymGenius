@@ -13,9 +13,9 @@ This file lists the next logical tasks to be done in the GymGenius project.
 
 ## Phase 2 - Private Beta (≤ 100 users)
 
-- **P2-DS-001**: `@engine` RIR-bias learning + fatigue decay model
-- **P2-FE-002**: `@web` “Why this weight?” tooltip (explainable AI)
-- **P2-BE-003**: `@api-team` Webhook → nightly model-training pipeline
+- [x] **P2-DS-001**: `@engine` RIR-bias learning + fatigue decay model
+- [x] **P2-FE-002**: `@web` “Why this weight?” tooltip (explainable AI)
+- [x] **P2-BE-003**: `@api-team` Webhook → nightly model-training pipeline
 - **P2-INF-004**: `@infra` Staging environment (AWS ECS + RDS)
 - **P2-PM-005**: `@product` Beta feedback survey + KPI dashboard
 
