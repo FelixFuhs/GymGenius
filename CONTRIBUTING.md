@@ -1,11 +1,3 @@
-Below are the last two root-level meta files.
-Copy them straight into your repo and you now have the **full six-file AI-friendly spec suite**. 🚀
-
----
-
-## `CONTRIBUTING.md`
-
-````markdown
 ---
 file: CONTRIBUTING.md
 purpose: Human contribution guide (AIs see AGENT_GUIDE.md)
@@ -14,10 +6,7 @@ updated: 2025-06-14
 
 # Contributing to **GymGenius** 🏋️‍♀️
 
-Thank you for considering a contribution!  
-Whether you’re fixing a typo, building a feature, or hardening the ML engine, we welcome PRs of all sizes.
-
----
+Thank you for considering a contribution! Whether you're fixing a typo, building a feature, or hardening the ML engine, we welcome PRs of all sizes.
 
 ## 1 — Prerequisites
 
@@ -34,27 +23,22 @@ Clone the repo and start the dev stack:
 git clone https://github.com/your-org/gymgenius.git
 cd gymgenius
 make dev      # docker compose up --build
-````
-
----
+```
 
 ## 2 — Issue & Feature Workflow
 
 1. **Search first** – avoid duplicates.
 2. Open an **Issue** using the correct template:
-
    * 🐞 Bug report
    * 💡 Feature request
 3. A maintainer will triage and assign a *task-ID* (see `ROADMAP.md`).
 4. Create a branch: `git checkout -b P2-FE-002/new-tooltip`.
 
----
-
 ## 3 — Branch & Commit Conventions
 
-| Convention | Example                                                                               |
-| ---------- | ------------------------------------------------------------------------------------- |
-| Branch     | `P<phase>-<area>-NNN/<short-desc>`<br>`P1-BE-001/add-login`                           |
+| Convention | Example |
+| ---------- | ------------------------------------------------------------------ |
+| Branch     | `P<phase>-<area>-NNN/<short-desc>`<br>`P1-BE-001/add-login` |
 | Commit     | Conventional Commits + task-ID in scope:<br>`feat(api): P1-BE-003 add refresh tokens` |
 
 **Commit structure**
@@ -69,8 +53,6 @@ Refs: #<issue-number>
 
 *Allowed* types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`.
 
----
-
 ## 4 — Code Style & Tooling
 
 | Language     | Formatter       | Linter          | Command          |
@@ -81,8 +63,6 @@ Refs: #<issue-number>
 
 * Breaking lint rules blocks CI.
 * Do **not** commit with warnings suppressed via `// eslint-disable`. Fix the root cause.
-
----
 
 ## 5 — Tests & Coverage
 
@@ -99,8 +79,6 @@ make test       # runs both jest & pytest
 
 PRs failing to meet coverage will not pass CI unless tagged `#skip-cov` by a maintainer.
 
----
-
 ## 6 — Database Migrations
 
 1. Modify the Prisma schema.
@@ -109,8 +87,6 @@ PRs failing to meet coverage will not pass CI unless tagged `#skip-cov` by a mai
 4. Update seed scripts if necessary.
 
 Migrations **must** be backward-compatible until a major version bump.
-
----
 
 ## 7 — Pull-Request Checklist
 
@@ -124,8 +100,6 @@ Migrations **must** be backward-compatible until a major version bump.
 
 Two approvals required (one may be from an automation account).
 
----
-
 ## 8 — Release Flow
 
 1. Maintainer merges PRs → `main`.
@@ -133,13 +107,9 @@ Two approvals required (one may be from an automation account).
 3. GitHub Actions tags Docker images and deploys to **staging**; smoke tests run.
 4. Manual promotion → **production** with `gh workflow run deploy-prod`.
 
----
-
 ## 9 — Code of Conduct
 
 All participants must abide by the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md).
-
----
 
 ## 10 — Security & Disclosure
 
@@ -147,49 +117,4 @@ All participants must abide by the [Contributor Covenant v2.1](CODE_OF_CONDUCT.m
 * Please **do not** open GitHub Issues for security matters.
 * We follow a 90-day public disclosure window.
 
----
-
 Happy lifting & coding! 💪
-
-````
-
----
-
-## `LICENSE.md`  (MIT)
-
-```text
-MIT License
-
-Copyright (c) 2025 GymGenius Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-````
-
----
-
-🎉 **Your lean, AI-ready repo scaffold is now complete**:
-
-* `README.md`
-* `ROADMAP.md`
-* `ARCHITECTURE.md`
-* `AGENT_GUIDE.md`
-* `CONTRIBUTING.md`
-* `LICENSE.md`
-
-Ping me anytime for deeper dives (e.g., test templates, CI config, or detailed API specs).
