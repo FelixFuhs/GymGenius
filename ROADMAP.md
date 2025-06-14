@@ -32,10 +32,10 @@
 | **P2-BE-003** | `@api-team` | Webhook → nightly model-training pipeline | - [ ] |
 | **P2-INF-004** | `@infra` | Local staging environment via Docker Compose; AWS deployment deferred to Phase 4 (see P4-INF-011) | - [ ] |
 | **P2-PM-005** | `@product` | Beta feedback survey + KPI dashboard | - [ ] |
-| **P2-DS-006** | `@engine` | Implement trend detection for exercise performance. | - [ ] |
-| **P2-DS-007** | `@engine` | Implement basic plateau detection (based on trend). | - [ ] |
-| **P2-DS-008** | `@engine` | Implement generation of simple deload protocols. | - [ ] |
-| **P2-DS-009** | `@engine` | Implement confidence scoring for weight recommendations. | - [ ] |
+| **P2-DS-006** | `@engine` | Implement trend detection for exercise performance. | - [x] |
+| **P2-DS-007** | `@engine` | Implement basic plateau detection (based on trend). | - [x] |
+| **P2-DS-008** | `@engine` | Implement generation of simple deload protocols. | - [x] |
+| **P2-DS-009** | `@engine` | Implement confidence scoring for weight recommendations. | - [x] |
 | **P2-FE-006** | `@web` | Frontend integration for displaying AI weight recommendations, target reps/RIR. | - [ ] |
 
 Exit criteria: **day-7 retention ≥ 50 %**, MAE < 2.5 % on weight predictions.
