@@ -35,7 +35,7 @@ lint-web:
 
 lint-engine:
 	@echo 'Linting engine...'
-	ruff check engine tests webapp/tests || true
+	ruff check engine tests webapp/tests
 	@echo 'Engine linting complete.'
 
 lint: lint-web lint-engine
