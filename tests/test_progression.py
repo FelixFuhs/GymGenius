@@ -23,7 +23,6 @@ class TestProgressionUtils(unittest.TestCase):
         proto = generate_deload_protocol()
         self.assertIsInstance(proto, list)
         self.assertGreaterEqual(len(proto), 1)
-        # Each protocol entry should include a week identifier
         self.assertIn("week_number", proto[0])
 
     def test_confidence_score_bounds(self):
