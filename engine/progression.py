@@ -28,16 +28,6 @@ def calculate_trend_slope(values: Sequence[float]) -> float:
     den = sum((x - x_mean) ** 2 for x in x_vals)
     return num / den if den else 0.0
 
-
-def detect_plateau(values: Sequence[float], threshold: float = 0.005) -> bool:
-    """Return True if progression has slowed below threshold."""
-    if len(values) < 3:
-        return False
-    slope = calculate_trend_slope(values)
-    avg = mean(values)
-    return abs(slope) < threshold * avg
-
-
 def detect_plateau(
     values: Sequence[float],
     threshold: float = 0.005,  # Threshold for slope to be considered near zero
@@ -65,7 +55,6 @@ def detect_plateau(
     """
     n = len(values)
     slope = calculate_trend_slope(values)
-    avg_value = mean(values) if values else 0.0
 
     # Normalize threshold against the average value if avg_value is significant
     # This makes threshold relative to the magnitude of values
@@ -93,7 +82,6 @@ def detect_plateau(
     # if the condition is met over that period.
     # A more advanced version would slide a window or check segments.
 
-    consecutive_plateau_points = 0
     # Iterate backwards from the end of the series for `min_duration` points
     # to see if the plateau condition holds for these recent points.
     # This is a bit tricky as slope is for the whole series.

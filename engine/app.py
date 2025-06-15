@@ -1025,11 +1025,11 @@ def trigger_training_pipeline_route():
         return jsonify(error="Failed to enqueue training pipeline"), 500
 
 # --- Plateau Detection and Deload Suggestion Logic ---
-from typing import List, Dict, Any # Already imported math, uuid
-import random
-from pprint import pprint
+from typing import List, Dict, Any  # noqa: E402 - placed after top-level code intentionally
+import random  # noqa: E402
+from pprint import pprint  # noqa: E402
 
-from engine.progression import detect_plateau, generate_deload_protocol, PlateauStatus
+from engine.progression import detect_plateau, generate_deload_protocol, PlateauStatus  # noqa: E402
 
 def _get_mock_historical_performance_data(
     scenario: str = "stagnation",

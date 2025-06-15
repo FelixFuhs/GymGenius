@@ -5,6 +5,7 @@ from engine.progression import (
     detect_plateau,
     generate_deload_protocol,
     confidence_score,
+    PlateauStatus,
 )
 
 
@@ -13,13 +14,16 @@ class TestProgressionUtils(unittest.TestCase):
         self.assertGreater(calculate_trend_slope([1, 2, 3, 4]), 0)
 
     def test_plateau_detection(self):
-        values = [100, 101, 101.1, 101.2]
-        self.assertTrue(detect_plateau(values))
+        values = [100, 100.02, 99.98, 100.0]
+        result = detect_plateau(values)
+        self.assertTrue(result["plateauing"])
+        self.assertEqual(result["status"], PlateauStatus.STAGNATION)
 
     def test_deload_protocol_shape(self):
         proto = generate_deload_protocol()
-        self.assertIn("week1", proto)
-        self.assertIn("week2", proto)
+        self.assertIsInstance(proto, list)
+        self.assertGreaterEqual(len(proto), 1)
+        self.assertIn("volume_multiplier", proto[0])
 
     def test_confidence_score_bounds(self):
         preds = [100, 105, 110]
