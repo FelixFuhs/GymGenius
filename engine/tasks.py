@@ -5,7 +5,7 @@ import psycopg2.extras
 from redis import Redis
 from rq import Queue
 
-from .app import get_db_connection
+from .app import get_db_connection, release_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -38,4 +38,4 @@ def nightly_user_model_update(task_name="nightly_user_model_update", force_run=F
         logger.error("Database error during nightly update: %s", e)
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)

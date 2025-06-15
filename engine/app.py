@@ -8,6 +8,7 @@ from engine.learning_models import ( # New imports
 )
 import psycopg2
 import psycopg2.extras # For RealDictCursor
+from psycopg2 import pool
 import os
 from urllib.parse import urlparse # Add this import
 from datetime import datetime, timedelta, timezone
@@ -31,43 +32,72 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__) # Use app.logger or a specific logger
 
 # --- Database Connection Helper ---
-def get_db_connection():
-    """Establishes a connection to the PostgreSQL database."""
+_connection_pool: pool.SimpleConnectionPool | None = None
+
+
+def _init_connection_pool() -> None:
+    """Initialises the global connection pool."""
+    global _connection_pool
+    if _connection_pool is not None:
+        return
+
     database_url = os.getenv("DATABASE_URL")
+    conn_kwargs = {}
     if database_url:
         try:
             url = urlparse(database_url)
-            conn = psycopg2.connect(
-                dbname=url.path[1:], # Remove leading '/'
-                user=url.username,
-                password=url.password,
-                host=url.hostname,
-                port=url.port
-            )
-            # logger.info("Connected to database using DATABASE_URL.") # Optional: for debugging
-            return conn
+            conn_kwargs = {
+                "dbname": url.path[1:],  # Remove leading '/'
+                "user": url.username,
+                "password": url.password,
+                "host": url.hostname,
+                "port": url.port,
+            }
         except Exception as e:
-            # Log that DATABASE_URL parsing failed and falling back or re-raising
-            logger.error(f"Failed to connect using DATABASE_URL: {e}. Falling back to POSTGRES_* vars.")
-            # Fall through to original method if DATABASE_URL connection fails
-            pass
+            logger.error(
+                f"Failed to parse DATABASE_URL: {e}. Falling back to POSTGRES_* vars."
+            )
+            conn_kwargs = {}
 
-    # Original fallback to individual POSTGRES_* variables
+    if not conn_kwargs:
+        conn_kwargs = {
+            "dbname": os.getenv("POSTGRES_DB", "gymgenius_dev"),
+            "user": os.getenv("POSTGRES_USER", "gymgenius"),
+            "password": os.getenv("POSTGRES_PASSWORD", "secret"),
+            "host": os.getenv("POSTGRES_HOST", "db"),
+            "port": os.getenv("POSTGRES_PORT", "5432"),
+        }
+
+    minconn = int(os.getenv("DB_POOL_MIN", "1"))
+    maxconn = int(os.getenv("DB_POOL_MAX", "5"))
     try:
-        conn = psycopg2.connect(
-            dbname=os.getenv("POSTGRES_DB", "gymgenius_dev"),
-            user=os.getenv("POSTGRES_USER", "gymgenius"),
-            password=os.getenv("POSTGRES_PASSWORD", "secret"),
-            host=os.getenv("POSTGRES_HOST", "db"), # In CI, this will be 'postgres' or 'localhost' for service container
-            port=os.getenv("POSTGRES_PORT", "5432")
-        )
-        # logger.info("Connected to database using POSTGRES_* environment variables.") # Optional
-        return conn
+        _connection_pool = pool.SimpleConnectionPool(minconn, maxconn, **conn_kwargs)
     except psycopg2.OperationalError as e:
-        # Use app.logger if logger instance is not directly available or properly configured at this point
-        # For consistency with the rest of the file, using 'logger' which should be app.logger or a configured one.
-        logger.error(f"Database connection error (POSTGRES_* vars): {e}")
+        logger.error(f"Database connection error during pool init: {e}")
         raise
+
+
+def get_db_connection():
+    """Get a connection from the global pool."""
+    global _connection_pool
+    if _connection_pool is None:
+        _init_connection_pool()
+    assert _connection_pool is not None
+    return _connection_pool.getconn()
+
+
+def release_db_connection(conn) -> None:
+    """Return a connection to the pool or close it if pooling is unavailable."""
+    if not conn:
+        return
+    if _connection_pool:
+        try:
+            _connection_pool.putconn(conn)
+            return
+        except Exception:
+            # Fall back to closing if the connection is not from the pool
+            pass
+    conn.close()
 
 # --- JWT Required Decorator ---
 def jwt_required(f):
@@ -183,7 +213,7 @@ def register_user():
         return jsonify(error="An unexpected error occurred during registration"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/auth/login', methods=['POST'])
 def login_user():
@@ -228,7 +258,7 @@ def login_user():
         return jsonify(error="An unexpected error occurred during login"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- User Profile Management APIs (P1-BE-009) ---
 @app.route('/v1/users/<uuid:user_id>/profile', methods=['GET'])
@@ -269,7 +299,7 @@ def get_user_profile(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/users/<uuid:user_id>/profile', methods=['PUT'])
 @jwt_required
@@ -360,7 +390,7 @@ def update_user_profile(user_id):
         return jsonify(error="An unexpected error occurred during profile update"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Basic CRUD APIs for Exercises (P1-BE-010) ---
 @app.route('/v1/exercises', methods=['GET'])
@@ -418,7 +448,7 @@ def list_exercises():
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/exercises/<uuid:exercise_id>', methods=['GET'])
 def get_exercise_details(exercise_id):
@@ -444,7 +474,7 @@ def get_exercise_details(exercise_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Basic CRUD APIs for Workout Logging (P1-BE-011) ---
 @app.route('/v1/users/<uuid:user_id>/workouts', methods=['POST'])
@@ -507,7 +537,7 @@ def create_workout(user_id):
         return jsonify(error="An unexpected error occurred creating workout"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/users/<uuid:user_id>/workouts', methods=['GET'])
 @jwt_required
@@ -561,7 +591,7 @@ def get_workouts_for_user(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/workouts/<uuid:workout_id>', methods=['GET'])
 @jwt_required
@@ -607,7 +637,7 @@ def get_single_workout(workout_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/workouts/<uuid:workout_id>/sets', methods=['POST'])
 @jwt_required
@@ -690,7 +720,7 @@ def log_set_to_workout(workout_id):
         return jsonify(error="An unexpected error occurred logging set"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 
 @app.route('/v1/predict/1rm/epley', methods=['POST'])
@@ -778,7 +808,7 @@ def rir_bias_update_route(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/user/<uuid:user_id>/fatigue-status', methods=['GET'])
 def fatigue_status_route(user_id):
@@ -859,7 +889,7 @@ def fatigue_status_route(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/user/<uuid:user_id>/exercise/<uuid:exercise_id>/recommend-set-parameters', methods=['GET'])
 def recommend_set_parameters_route(user_id, exercise_id):
@@ -988,7 +1018,7 @@ def recommend_set_parameters_route(user_id, exercise_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Workout Plan Builder Endpoints ---
 
@@ -1060,7 +1090,7 @@ def create_workout_plan(user_id):
         return jsonify(error="An unexpected error occurred creating workout plan"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/users/<uuid:user_id>/plans', methods=['GET'])
 @jwt_required
@@ -1090,7 +1120,7 @@ def get_workout_plans_for_user(user_id):
         return jsonify(error="An unexpected error occurred fetching workout plans"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/plans/<uuid:plan_id>', methods=['GET'])
 @jwt_required
@@ -1144,7 +1174,7 @@ def get_workout_plan_details(plan_id):
         return jsonify(error="An unexpected error occurred fetching plan details"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/plans/<uuid:plan_id>', methods=['PUT'])
 @jwt_required
@@ -1226,7 +1256,7 @@ def update_workout_plan(plan_id):
         return jsonify(error="An unexpected error occurred updating plan"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/plans/<uuid:plan_id>', methods=['DELETE'])
 @jwt_required
@@ -1273,7 +1303,7 @@ def delete_workout_plan(plan_id):
         return jsonify(error="An unexpected error occurred deleting plan"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Plan Day Endpoints ---
 
@@ -1344,7 +1374,7 @@ def create_plan_day(plan_id):
         return jsonify(error="An unexpected error occurred creating plan day"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/plans/<uuid:plan_id>/days', methods=['GET'])
 @jwt_required
@@ -1382,7 +1412,7 @@ def get_plan_days(plan_id):
         return jsonify(error="An unexpected error occurred fetching plan days"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/plandays/<uuid:day_id>', methods=['PUT'])
 @jwt_required
@@ -1414,7 +1444,6 @@ def update_plan_day(day_id):
                 logger.warning(f"Forbidden attempt to update plan day {day_id} by user {g.current_user_id}")
                 return jsonify(error="Forbidden. You do not own the parent plan of this day."), 403
 
-            allowed_fields = {'name': str, 'day_number': int}
             update_fields_parts = []
             update_values = []
 
@@ -1470,7 +1499,7 @@ def update_plan_day(day_id):
         return jsonify(error="An unexpected error occurred updating plan day"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/plandays/<uuid:day_id>', methods=['DELETE'])
 @jwt_required
@@ -1522,7 +1551,7 @@ def delete_plan_day(day_id):
         return jsonify(error="An unexpected error occurred deleting plan day"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Plan Exercise Endpoints ---
 
@@ -1543,8 +1572,10 @@ def create_plan_exercise(day_id):
         exercise_id = str(uuid.UUID(data['exercise_id'])) # Validate UUID
         order_index = int(data['order_index'])
         sets = int(data['sets'])
-        if order_index < 0: raise ValueError("'order_index' must be non-negative.")
-        if sets < 1: raise ValueError("'sets' must be at least 1.")
+        if order_index < 0:
+            raise ValueError("'order_index' must be non-negative.")
+        if sets < 1:
+            raise ValueError("'sets' must be at least 1.")
     except (ValueError, TypeError) as e:
         return jsonify(error=f"Invalid data type or value for required fields: {e}"), 400
 
@@ -1643,7 +1674,7 @@ def create_plan_exercise(day_id):
         return jsonify(error="An unexpected error occurred creating plan exercise"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/plandays/<uuid:day_id>/exercises', methods=['GET'])
 @jwt_required
@@ -1694,7 +1725,7 @@ def get_plan_exercises_for_day(day_id):
         return jsonify(error="An unexpected error occurred fetching plan exercises"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/planexercises/<uuid:plan_exercise_id>', methods=['PUT'])
 @jwt_required
@@ -1812,7 +1843,7 @@ def update_plan_exercise(plan_exercise_id):
         return jsonify(error="An unexpected error occurred updating plan exercise"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @app.route('/v1/planexercises/<uuid:plan_exercise_id>', methods=['DELETE'])
 @jwt_required
@@ -1865,7 +1896,7 @@ def delete_plan_exercise(plan_exercise_id):
         return jsonify(error="An unexpected error occurred deleting plan exercise"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- New Webhook Endpoint for Training Pipeline ---
 @app.route('/v1/system/trigger-training-pipeline', methods=['POST'])
@@ -2026,7 +2057,7 @@ if __name__ == '__main__':
         logger.warning(f"Could not perform initial schema check for 'main_target_muscle_group' column (DB might not be ready or accessible for this check): {_e}")
     finally:
         if _conn_check:
-            _conn_check.close()
+            release_db_connection(_conn_check)
 
     # --- Test Plateau Detection and Deload Suggestion ---
     print("\n--- Testing Plateau Detection and Deload Integration ---")
@@ -2242,7 +2273,7 @@ def get_plateau_analysis(user_id, exercise_id):
         return jsonify(error="An unexpected error occurred during analysis."), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 
 if __name__ == '__main__':
