@@ -1,8 +1,8 @@
 ---
 name:        GymGenius
 tagline:     "The AI-Powered Adaptive Training System That Thinks So You Don\'t Have To"
-version:     0.1.0
-phase:       alpha
+version:     0.2.0
+phase:       beta
 license:     MIT
 ---
 
@@ -16,7 +16,7 @@ license:     MIT
 |-------|---------|
 | ![build](https://img.shields.io/github/actions/workflow/status/your-org/gymgenius/ci.yml) | CI status |
 | ![license](https://img.shields.io/badge/License-MIT-blue.svg) | MIT license |
-| ![phase](https://img.shields.io/badge/Phase-Alpha-yellow) | Current roadmap phase |
+| ![phase](https://img.shields.io/badge/Phase-Beta-yellow) | Current roadmap phase |
 
 ## Table of Contents
 1. [Why GymGenius?](#why-gymgenius)
