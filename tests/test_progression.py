@@ -18,8 +18,9 @@ class TestProgressionUtils(unittest.TestCase):
 
     def test_deload_protocol_shape(self):
         proto = generate_deload_protocol()
-        self.assertIn("week1", proto)
-        self.assertIn("week2", proto)
+        self.assertIsInstance(proto, list)
+        self.assertGreaterEqual(len(proto), 1)
+        self.assertIn("week_number", proto[0])
 
     def test_confidence_score_bounds(self):
         preds = [100, 105, 110]
