@@ -42,6 +42,9 @@ license:     MIT
 git clone https://github.com/your-org/gymgenius.git
 cd gymgenius
 
+# 1.1 Configure environment variables
+cp .env.example .env  # then fill in JWT and Postgres settings
+
 # 2 Spin up full stack (API + DB + ML worker + Web)
 make dev            # alias for `docker compose -f docker-compose.dev.yml up --build`
 
@@ -56,6 +59,13 @@ To process background training jobs separately, run the worker:
 ```bash
 python -m engine.worker
 ```
+
+### Environment Variables
+
+The API requires several settings to run. Copy `.env.example` to `.env` and provide values for:
+
+- `JWT_SECRET_KEY`
+- `DATABASE_URL` *(optional)* or `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`
 
 ### Project Structure
 

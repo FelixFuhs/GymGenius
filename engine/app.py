@@ -22,7 +22,7 @@ app = Flask(__name__)
 
 # --- JWT Configuration ---
 # In a real app, use a strong, randomly generated key stored securely (e.g., env variable)
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-super-secret-jwt-key-please-change')
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1) # Access token valid for 1 hour
 # Consider adding JWT_REFRESH_TOKEN_EXPIRES if implementing refresh tokens
 
@@ -55,11 +55,11 @@ def get_db_connection():
     # Original fallback to individual POSTGRES_* variables
     try:
         conn = psycopg2.connect(
-            dbname=os.getenv("POSTGRES_DB", "gymgenius_dev"),
-            user=os.getenv("POSTGRES_USER", "gymgenius"),
-            password=os.getenv("POSTGRES_PASSWORD", "secret"),
-            host=os.getenv("POSTGRES_HOST", "db"), # In CI, this will be 'postgres' or 'localhost' for service container
-            port=os.getenv("POSTGRES_PORT", "5432")
+            dbname=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+            host=os.getenv("POSTGRES_HOST"),  # In CI, this will be 'postgres' or 'localhost' for service container
+            port=os.getenv("POSTGRES_PORT")
         )
         # logger.info("Connected to database using POSTGRES_* environment variables.") # Optional
         return conn
