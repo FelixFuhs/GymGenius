@@ -1,5 +1,4 @@
 import pytest
-import json
 import uuid
 import datetime
 from unittest.mock import patch, MagicMock, ANY # ANY is useful for some mock assertions
@@ -244,7 +243,7 @@ def test_get_plateau_analysis_exercise_no_main_target_muscle_group(mock_get_db_c
         headers={'Authorization': f'Bearer {token}'}
     )
     assert response.status_code == 404
-    assert f"is missing 'main_target_muscle_group'" in response.get_json()['error']
+    assert "is missing 'main_target_muscle_group'" in response.get_json()['error']
 
 @patch('engine.app.get_db_connection')
 def test_get_plateau_analysis_db_error_exercise_fetch(mock_get_db_conn, client):

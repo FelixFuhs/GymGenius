@@ -23,8 +23,8 @@ app = Flask(__name__)
 # --- JWT Configuration ---
 # In a real app, use a strong, randomly generated key stored securely (e.g., env variable)
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-super-secret-jwt-key-please-change')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1) # Access token valid for 1 hour
-# Consider adding JWT_REFRESH_TOKEN_EXPIRES if implementing refresh tokens
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Access token valid for 1 hour
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)  # Refresh token valid for 7 days
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -185,6 +185,34 @@ def register_user():
         if conn:
             conn.close()
 
+@app.route('/v1/auth/refresh', methods=['POST'])
+def refresh_access_token():
+    data = request.get_json()
+    if not data or 'refresh_token' not in data:
+        return jsonify(error='Refresh token is required'), 400
+
+    refresh_token = data['refresh_token']
+    try:
+        payload = jwt.decode(refresh_token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        if payload.get('type') != 'refresh':
+            return jsonify(error='Invalid token type'), 401
+
+        new_payload = {
+            'user_id': payload['user_id'],
+            'type': 'access',
+            'exp': datetime.now(timezone.utc) + app.config['JWT_ACCESS_TOKEN_EXPIRES'],
+        }
+        new_access_token = jwt.encode(new_payload, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+        return jsonify(access_token=new_access_token), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify(error='Refresh token expired'), 401
+    except jwt.InvalidTokenError as e:
+        logger.error(f'Invalid refresh token: {e}')
+        return jsonify(error='Invalid token'), 401
+    except Exception as e:
+        logger.error(f'Error during token refresh: {e}', exc_info=True)
+        return jsonify(error='Error processing token'), 500
+
 @app.route('/v1/auth/login', methods=['POST'])
 def login_user():
     data = request.get_json()
@@ -206,16 +234,21 @@ def login_user():
                 return jsonify(error="Invalid credentials"), 401
 
             if bcrypt.checkpw(password.encode('utf-8'), user_record['password_hash'].encode('utf-8')):
-                # Password matches, generate JWT
-                token_payload = {
+                # Password matches, generate JWTs
+                access_payload = {
                     'user_id': str(user_record['id']),
-                    'exp': datetime.now(timezone.utc) + app.config['JWT_ACCESS_TOKEN_EXPIRES']
-                    # 'iat': datetime.now(timezone.utc) # Optional: Issued at
+                    'type': 'access',
+                    'exp': datetime.now(timezone.utc) + app.config['JWT_ACCESS_TOKEN_EXPIRES'],
                 }
-                access_token = jwt.encode(token_payload, app.config['JWT_SECRET_KEY'], algorithm="HS256")
-
+                refresh_payload = {
+                    'user_id': str(user_record['id']),
+                    'type': 'refresh',
+                    'exp': datetime.now(timezone.utc) + app.config['JWT_REFRESH_TOKEN_EXPIRES'],
+                }
+                access_token = jwt.encode(access_payload, app.config['JWT_SECRET_KEY'], algorithm="HS256")
+                refresh_token = jwt.encode(refresh_payload, app.config['JWT_SECRET_KEY'], algorithm="HS256")
                 logger.info(f"User logged in successfully: {email}")
-                return jsonify(access_token=access_token), 200
+                return jsonify(access_token=access_token, refresh_token=refresh_token), 200
             else:
                 logger.warning(f"Login attempt failed for email (invalid password): {email}")
                 return jsonify(error="Invalid credentials"), 401
@@ -1414,7 +1447,6 @@ def update_plan_day(day_id):
                 logger.warning(f"Forbidden attempt to update plan day {day_id} by user {g.current_user_id}")
                 return jsonify(error="Forbidden. You do not own the parent plan of this day."), 403
 
-            allowed_fields = {'name': str, 'day_number': int}
             update_fields_parts = []
             update_values = []
 
@@ -1543,8 +1575,10 @@ def create_plan_exercise(day_id):
         exercise_id = str(uuid.UUID(data['exercise_id'])) # Validate UUID
         order_index = int(data['order_index'])
         sets = int(data['sets'])
-        if order_index < 0: raise ValueError("'order_index' must be non-negative.")
-        if sets < 1: raise ValueError("'sets' must be at least 1.")
+        if order_index < 0:
+            raise ValueError("'order_index' must be non-negative.")
+        if sets < 1:
+            raise ValueError("'sets' must be at least 1.")
     except (ValueError, TypeError) as e:
         return jsonify(error=f"Invalid data type or value for required fields: {e}"), 400
 
