@@ -1,0 +1,217 @@
+/* Basic styling for the Plan Builder page */
+body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background: #333;
+    color: #fff;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0;
+}
+
+header nav a {
+    color: #fff;
+    text-decoration: none;
+    margin: 0 10px;
+}
+
+main {
+    padding: 20px;
+    display: flex;
+    flex-wrap: nowrap; /* Prevent wrapping of main panels */
+    gap: 20px;
+}
+
+aside#left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 320px; /* Fixed width for the left panel */
+    flex-shrink: 0; /* Prevent left panel from shrinking */
+}
+
+section#plan-creation-area {
+    flex-grow: 1; /* Center panel takes remaining space */
+    /* min-width: 300px; already set */
+}
+
+div#right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 280px; /* Fixed width for the right panel */
+    flex-shrink: 0; /* Prevent right panel from shrinking */
+}
+
+
+section { /* Common styling for all sections */
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#exercise-list-container, #plan-templates-section {
+    /* Styles for sections within the left panel */
+    /* flex-basis: 300px; No longer needed due to fixed panel width */
+}
+
+#exercise-list, #plan-templates-list {
+    list-style-type: none;
+    padding: 0;
+    max-height: 300px; /* Adjusted max-height */
+    overflow-y: auto;
+}
+
+#exercise-list li, #plan-templates-list li {
+    padding: 10px;
+    border: 1px solid #ddd;
+    margin-bottom: 5px;
+    background-color: #f9f9f9;
+    display: flex; /* For aligning items if needed, like template name and button */
+    justify-content: space-between;
+    align-items: center;
+}
+
+#exercise-list li {
+    cursor: grab; /* Only exercise list items are grabbable */
+}
+
+
+/* Styling for Load Template buttons */
+.load-template-btn {
+    padding: 5px 10px;
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-left: 10px; /* Space it from template name */
+}
+
+.load-template-btn:hover {
+    background-color: #45a049;
+}
+
+/* Styling for Plan Details/Summary section */
+#plan-details h5 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    color: #333;
+    font-size: 0.95em;
+}
+
+#plan-details ul {
+    list-style-type: none;
+    padding-left: 10px;
+    font-size: 0.9em;
+}
+
+#plan-details ul li {
+    padding: 3px 0;
+    color: #555;
+}
+
+#drop-zone {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    text-align: center; /* Center placeholder text */
+}
+
+#drop-zone.drag-over {
+    background-color: #e0e0e0;
+    border-color: #aaa;
+}
+
+/* Styling for items in the exercise list that are being dragged */
+#exercise-list li.dragging {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+/* Styling for the list of exercises within the plan drop zone */
+#plan-exercise-list {
+    list-style-type: none;
+    padding: 0;
+    width: 100%; /* Occupy full width of drop-zone */
+}
+
+#plan-exercise-list li {
+    background-color: #e9e9e9;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remove-exercise-btn {
+    padding: 5px 10px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.remove-exercise-btn:hover {
+    background-color: #cc0000;
+}
+
+#plan-details, #plan-controls {
+    /* Sections within the right panel */
+    /* flex-basis: 100%; No longer needed due to fixed panel width */
+    margin-top: 0; /* Reset margin-top if not needed */
+}
+
+#plan-details p, #plan-controls button {
+    margin: 10px 0;
+}
+
+#plan-controls button { /* General styling for buttons in plan-controls */
+    padding: 10px 15px;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block; /* Make buttons take full width of their container if desired */
+    width: 100%;
+    margin-bottom: 8px; /* Add some space between buttons */
+}
+
+#plan-controls button:last-child {
+    margin-bottom: 0;
+}
+
+#plan-controls button:hover {
+    background-color: #555;
+}
+
+
+footer {
+    text-align: center;
+    padding: 20px;
+    background: #333;
+    color: #fff;
+    margin-top: 20px;
+}

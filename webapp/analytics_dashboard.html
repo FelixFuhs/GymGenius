@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <link rel="stylesheet" href="css/style.css"> <!-- Optional: if global styles apply -->
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="plan_builder.html">Plan Builder</a>
+            <!-- Add other common nav links if any -->
+        </nav>
+        <h1>Analytics Dashboard</h1>
+    </header>
+
+    <main id="dashboard-main">
+        <section id="1rm-evolution-section" class="dashboard-section">
+            <h2>1RM Evolution</h2>
+            <div>
+                <label for="exerciseSelector1RM">Select Exercise:</label>
+                <select id="exerciseSelector1RM"></select>
+            </div>
+            <div class="chart-container">
+                <canvas id="1rmEvolutionChart"></canvas>
+            </div>
+        </section>
+
+        <section id="strength-curve-section" class="dashboard-section">
+            <h2>Strength Curves</h2>
+            <div>
+                <label for="exerciseSelectorStrengthCurve">Select Exercise:</label>
+                <select id="exerciseSelectorStrengthCurve"></select>
+            </div>
+            <div class="chart-container">
+                <canvas id="strengthCurveChart"></canvas>
+            </div>
+        </section>
+
+        <section id="volume-heatmap-section" class="dashboard-section">
+            <h2>Weekly Volume Distribution</h2> <!-- Changed title -->
+            <div class="chart-container"> <!-- Added chart-container for consistent sizing -->
+                <canvas id="volumeDistributionChart"></canvas> <!-- Changed div to canvas and updated ID -->
+            </div>
+        </section>
+
+        <section id="key-metrics-section" class="dashboard-section">
+            <h2>Key Metric Trends</h2>
+            <div id="keyMetricsContainer">
+                <ul id="metrics-list">
+                    <!-- Key metrics will be populated here -->
+                    <li>Metric 1: Value (Trend)</li>
+                    <li>Metric 2: Value (Trend)</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 GymGenius. All rights reserved.</p>
+    </footer>
+
+    <script src="js/dashboard_charts.js"></script>
+</body>
+</html>

@@ -1024,10 +1024,115 @@ def trigger_training_pipeline_route():
         logger.error(f"Failed to enqueue training pipeline: {e}", exc_info=True)
         return jsonify(error="Failed to enqueue training pipeline"), 500
 
+# --- Plateau Detection and Deload Suggestion Logic ---
+from typing import List, Dict, Any # Already imported math, uuid
+import random
+from pprint import pprint
+
+from engine.progression import detect_plateau, generate_deload_protocol, PlateauStatus
+
+def _get_mock_historical_performance_data(
+    scenario: str = "stagnation",
+    lookback_period: int = 10,
+    base_value: float = 100.0
+) -> List[float]:
+    """Generates mock historical performance data for testing."""
+    data = []
+    if scenario == "progression":
+        data = [base_value + i * 0.5 for i in range(lookback_period)] # Steady small gains
+    elif scenario == "stagnation":
+        data = [base_value + (i * 0.1 if i < lookback_period / 2 else (lookback_period / 2 * 0.1) + random.uniform(-0.1, 0.1) ) for i in range(lookback_period)]
+    elif scenario == "regression":
+        data = [base_value - i * 0.5 for i in range(lookback_period)] # Steady decline
+    elif scenario == "short_history":
+        data = [base_value, base_value + 0.5] # Not enough data for min_duration=3 or 5
+    elif scenario == "volatile":
+        # Creates a sine wave pattern, could be tricky for simple linear regression
+        data = [base_value + 5 * math.sin(math.pi * i / (lookback_period/2)) + random.uniform(-1,1) for i in range(lookback_period)]
+    elif scenario == "initial_gains_then_stagnation":
+        half_period = lookback_period // 2
+        data = [base_value + i * 1.0 for i in range(half_period)]
+        stagnation_value = data[-1]
+        data.extend([stagnation_value + random.uniform(-0.2, 0.2) for _ in range(lookback_period - half_period)])
+    else: # Default to stagnation
+        data = [base_value + random.uniform(-0.2, 0.2) for _ in range(lookback_period)]
+
+    return [round(x, 2) for x in data]
+
+def check_for_plateau_and_suggest_deload(
+    user_id: str,
+    exercise_id: str,
+    historical_performance_data: List[float] = None,
+    mock_scenario: str = "stagnation", # Used if historical_performance_data is None
+    mock_fatigue: float = 40.0,
+    plateau_min_duration: int = 5 # Default min_duration for plateau detection
+) -> Dict[str, Any]:
+    """
+    Checks for plateaus using historical data and suggests a deload if needed.
+    If historical_performance_data is None, mock data is generated based on mock_scenario.
+    """
+    if historical_performance_data is None:
+        logger.info(f"No historical data provided for user {user_id}, exercise {exercise_id}. Generating mock data for scenario: {mock_scenario}.")
+        historical_performance_data = _get_mock_historical_performance_data(
+            scenario=mock_scenario,
+            lookback_period=max(10, plateau_min_duration + 2) # Ensure enough data for lookback
+        )
+
+    plateau_result = detect_plateau(
+        values=historical_performance_data,
+        min_duration=plateau_min_duration
+        # Using default threshold from detect_plateau
+    )
+
+    result = {
+        "user_id": user_id,
+        "exercise_id": exercise_id,
+        "sample_historical_data": historical_performance_data[:5], # Show a sample
+        "plateau_check_details": plateau_result,
+        "deload_suggested": False,
+        "deload_protocol": None,
+        "user_notification": ""
+    }
+
+    if plateau_result['plateauing']:
+        status = plateau_result['status']
+        plateau_severity = 0.0
+        if status == PlateauStatus.REGRESSION:
+            plateau_severity = 0.8
+        elif status == PlateauStatus.STAGNATION:
+            plateau_severity = 0.5
+        elif status in [PlateauStatus.REGRESSION_WARNING, PlateauStatus.STAGNATION_WARNING]:
+            plateau_severity = 0.3
+
+        # Determine deload duration
+        deload_duration_weeks = 2 if plateau_severity >= 0.7 else 1
+
+        # Generate deload protocol
+        deload_protocol = generate_deload_protocol(
+            plateau_severity=plateau_severity,
+            deload_duration_weeks=deload_duration_weeks,
+            recent_fatigue_score=mock_fatigue # Using the mock_fatigue passed in
+        )
+
+        result["deload_suggested"] = True
+        result["deload_protocol"] = deload_protocol
+        result["user_notification"] = (
+            f"Plateau detected for exercise {exercise_id} (Status: {status.name}, Slope: {plateau_result['slope']:.3f}). "
+            f"A {deload_duration_weeks}-week deload is suggested."
+        )
+
+        logger.info(f"INFO: Storing deload protocol for user {user_id}, exercise {exercise_id}.")
+        logger.info(f"User Notification: {result['user_notification']}")
+        logger.info(f"Deload Protocol: {deload_protocol}")
+
+
+    return result
+
 
 if __name__ == '__main__':
     _conn_check = None
     try:
+        # Keep existing DB check
         _conn_check = get_db_connection()
         with _conn_check.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
             _cur.execute("""
@@ -1046,4 +1151,50 @@ if __name__ == '__main__':
         if _conn_check:
             _conn_check.close()
 
+    # --- Test Plateau Detection and Deload Suggestion ---
+    print("\n--- Testing Plateau Detection and Deload Integration ---")
+    test_user_id = "user_test_123"
+    test_exercise_id = "exercise_bench_press"
+
+    scenarios_to_test = [
+        {"name": "Clear Progression", "scenario": "progression", "fatigue": 20.0},
+        {"name": "Stagnation (Moderate Fatigue)", "scenario": "stagnation", "fatigue": 50.0},
+        {"name": "Stagnation (High Fatigue)", "scenario": "stagnation", "fatigue": 75.0},
+        {"name": "Regression", "scenario": "regression", "fatigue": 60.0},
+        {"name": "Short History", "scenario": "short_history", "fatigue": 30.0},
+        {"name": "Volatile Data", "scenario": "volatile", "fatigue": 40.0},
+        {"name": "Initial Gains then Stagnation", "scenario": "initial_gains_then_stagnation", "fatigue": 55.0}
+    ]
+
+    for test_case in scenarios_to_test:
+        print(f"\n--- Scenario: {test_case['name']} (Fatigue: {test_case['fatigue']}) ---")
+        result = check_for_plateau_and_suggest_deload(
+            user_id=test_user_id,
+            exercise_id=test_exercise_id,
+            mock_scenario=test_case["scenario"],
+            mock_fatigue=test_case["fatigue"],
+            plateau_min_duration=5 # Using min_duration of 5 for these tests
+        )
+        # Using pprint for better readability of the dictionary
+        pprint(result, indent=2)
+        print("--------------------------------------------------")
+
+    # Example with directly passed historical data
+    print("\n--- Scenario: Direct Data - Clear Regression ---")
+    direct_data = [110.0, 108.0, 107.5, 106.0, 105.0, 103.0, 102.0]
+    result_direct = check_for_plateau_and_suggest_deload(
+        user_id=test_user_id,
+        exercise_id="exercise_squat",
+        historical_performance_data=direct_data,
+        mock_fatigue=70.0,
+        plateau_min_duration=4 # Test with different min_duration
+    )
+    pprint(result_direct, indent=2)
+    print("--------------------------------------------------")
+
+    # Keep the Flask app run command if this file is also meant to be executable as a server
+    # For subtask testing, the print statements above are the primary output.
+    # If running in a CI/test environment where the Flask app shouldn't start,
+    # you might guard app.run with a specific condition.
+    # For now, assuming it's fine as is.
     app.run(host='0.0.0.0', port=5000, debug=True)
