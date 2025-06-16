@@ -1414,7 +1414,6 @@ def update_plan_day(day_id):
                 logger.warning(f"Forbidden attempt to update plan day {day_id} by user {g.current_user_id}")
                 return jsonify(error="Forbidden. You do not own the parent plan of this day."), 403
 
-            allowed_fields = {'name': str, 'day_number': int}
             update_fields_parts = []
             update_values = []
 
@@ -1543,8 +1542,10 @@ def create_plan_exercise(day_id):
         exercise_id = str(uuid.UUID(data['exercise_id'])) # Validate UUID
         order_index = int(data['order_index'])
         sets = int(data['sets'])
-        if order_index < 0: raise ValueError("'order_index' must be non-negative.")
-        if sets < 1: raise ValueError("'sets' must be at least 1.")
+        if order_index < 0:
+            raise ValueError("'order_index' must be non-negative.")
+        if sets < 1:
+            raise ValueError("'sets' must be at least 1.")
     except (ValueError, TypeError) as e:
         return jsonify(error=f"Invalid data type or value for required fields: {e}"), 400
 
