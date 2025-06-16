@@ -1414,7 +1414,6 @@ def update_plan_day(day_id):
                 logger.warning(f"Forbidden attempt to update plan day {day_id} by user {g.current_user_id}")
                 return jsonify(error="Forbidden. You do not own the parent plan of this day."), 403
 
-            allowed_fields = {'name': str, 'day_number': int}
             update_fields_parts = []
             update_values = []
 
@@ -1543,8 +1542,10 @@ def create_plan_exercise(day_id):
         exercise_id = str(uuid.UUID(data['exercise_id'])) # Validate UUID
         order_index = int(data['order_index'])
         sets = int(data['sets'])
-        if order_index < 0: raise ValueError("'order_index' must be non-negative.")
-        if sets < 1: raise ValueError("'sets' must be at least 1.")
+        if order_index < 0:
+            raise ValueError("'order_index' must be non-negative.")
+        if sets < 1:
+            raise ValueError("'sets' must be at least 1.")
     except (ValueError, TypeError) as e:
         return jsonify(error=f"Invalid data type or value for required fields: {e}"), 400
 
@@ -2240,6 +2241,162 @@ def get_plateau_analysis(user_id, exercise_id):
     except Exception as e:
         logger.error(f"Unexpected error during plateau analysis for user {user_id}, exercise {exercise_id}: {e}", exc_info=True)
         return jsonify(error="An unexpected error occurred during analysis."), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/v1/users/<uuid:user_id>/analytics/1rm-evolution', methods=['GET'])
+@jwt_required
+def get_1rm_evolution(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        logger.warning(
+            f"Forbidden attempt to access 1RM evolution for user {user_id} by user {g.current_user_id}"
+        )
+        return jsonify(error="Forbidden. You can only access your own data."), 403
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT exercise_id, estimated_1rm, calculated_at
+                FROM estimated_1rm_history
+                WHERE user_id = %s
+                ORDER BY calculated_at ASC;
+                """,
+                (str(user_id),),
+            )
+            records = cur.fetchall()
+
+        evolution: dict[str, list[dict[str, float | str]]] = {}
+        for rec in records:
+            ex_id = str(rec["exercise_id"])
+            evolution.setdefault(ex_id, []).append(
+                {
+                    "date": rec["calculated_at"].isoformat(),
+                    "estimated_1rm": float(rec["estimated_1rm"]),
+                }
+            )
+
+        return jsonify(evolution), 200
+    except psycopg2.Error as e:
+        logger.error(
+            f"Database error during 1RM evolution fetch for user {user_id}: {e}",
+            exc_info=True,
+        )
+        return jsonify(error="Database error during analytics fetch."), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/v1/users/<uuid:user_id>/analytics/volume-heatmap', methods=['GET'])
+@jwt_required
+def get_volume_heatmap(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        logger.warning(
+            f"Forbidden attempt to access volume heatmap for user {user_id} by user {g.current_user_id}"
+        )
+        return jsonify(error="Forbidden. You can only access your own data."), 403
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT date_trunc('week', ws.completed_at) AS week,
+                       e.main_target_muscle_group AS muscle_group,
+                       SUM(ws.actual_weight * ws.actual_reps) AS volume
+                FROM workout_sets ws
+                JOIN workouts w ON ws.workout_id = w.id
+                JOIN exercises e ON ws.exercise_id = e.id
+                WHERE w.user_id = %s AND ws.completed_at IS NOT NULL
+                GROUP BY week, muscle_group
+                ORDER BY week ASC;
+                """,
+                (str(user_id),),
+            )
+            rows = cur.fetchall()
+
+        heatmap = [
+            {
+                "week": row["week"].date().isoformat(),
+                "muscle_group": row["muscle_group"],
+                "volume": float(row["volume"] or 0),
+            }
+            for row in rows
+        ]
+
+        return jsonify(heatmap), 200
+    except psycopg2.Error as e:
+        logger.error(
+            f"Database error during volume heatmap fetch for user {user_id}: {e}",
+            exc_info=True,
+        )
+        return jsonify(error="Database error during analytics fetch."), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/v1/users/<uuid:user_id>/analytics/key-metrics', methods=['GET'])
+@jwt_required
+def get_key_metrics(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        logger.warning(
+            f"Forbidden attempt to access key metrics for user {user_id} by user {g.current_user_id}"
+        )
+        return jsonify(error="Forbidden. You can only access your own data."), 403
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT COUNT(*) AS count FROM workouts WHERE user_id = %s;", (str(user_id),))
+            total_workouts = int(cur.fetchone()["count"])
+
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(ws.actual_weight * ws.actual_reps), 0) AS volume
+                FROM workout_sets ws
+                JOIN workouts w ON ws.workout_id = w.id
+                WHERE w.user_id = %s
+                  AND ws.actual_weight IS NOT NULL
+                  AND ws.actual_reps IS NOT NULL;
+                """,
+                (str(user_id),),
+            )
+            total_volume = float(cur.fetchone()["volume"] or 0)
+
+            cur.execute(
+                "SELECT AVG(session_rpe) AS avg FROM workouts WHERE user_id = %s AND session_rpe IS NOT NULL;",
+                (str(user_id),),
+            )
+            avg_rpe_row = cur.fetchone()
+            avg_rpe = float(avg_rpe_row["avg"] or 0)
+
+        return (
+            jsonify(
+                {
+                    "total_workouts": total_workouts,
+                    "total_volume": total_volume,
+                    "avg_session_rpe": avg_rpe,
+                }
+            ),
+            200,
+        )
+    except psycopg2.Error as e:
+        logger.error(
+            f"Database error during key metrics fetch for user {user_id}: {e}",
+            exc_info=True,
+        )
+        return jsonify(error="Database error during analytics fetch."), 500
     finally:
         if conn:
             conn.close()
