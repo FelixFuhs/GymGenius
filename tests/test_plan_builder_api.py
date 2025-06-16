@@ -64,20 +64,39 @@ def test_create_workout_plan_success(mock_get_db_conn, client):
         'created_at': '2023-01-01T10:00:00Z',
         'updated_at': '2023-01-01T10:00:00Z'
     }
-    mock_cursor.fetchone.return_value = mock_plan_data
+    mock_cursor.fetchone.side_effect = [
+        mock_plan_data,
+        {'main_target_muscle_group': 'chest'}
+    ]
 
     token = generate_jwt_token(MOCK_USER_ID)
     response = client.post(
         f'/v1/users/{MOCK_USER_ID}/plans',
         headers={'Authorization': f'Bearer {token}'},
-        json={'name': 'My New Plan', 'days_per_week': 3, 'plan_length_weeks': 4, 'goal_focus': 'hypertrophy'}
+        json={
+            'name': 'My New Plan',
+            'days_per_week': 3,
+            'plan_length_weeks': 4,
+            'goal_focus': 'hypertrophy',
+            'days': [
+                {
+                    'day_number': 1,
+                    'name': 'Day 1',
+                    'exercises': [
+                        {'exercise_id': MOCK_EXERCISE_ID_DB, 'sets': 5}
+                    ]
+                }
+            ]
+        }
     )
 
     assert response.status_code == 201
     response_data = response.get_json()
     assert response_data['name'] == 'My New Plan'
     assert response_data['user_id'] == MOCK_USER_ID
-    mock_cursor.execute.assert_called_once() # Simplified check, could be more specific
+    assert response_data['total_volume'] == 5
+    assert response_data['muscle_group_frequency']['chest'] == 1
+    assert any('plan_metrics' in str(c.args[0]) for c in mock_cursor.execute.call_args_list)
 
 @patch('engine.app.get_db_connection')
 def test_create_workout_plan_unauthorized_no_token(mock_get_db_conn, client):
