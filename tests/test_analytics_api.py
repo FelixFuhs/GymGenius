@@ -1,5 +1,4 @@
 import pytest
-import json
 import uuid
 import datetime
 from unittest.mock import patch, MagicMock, ANY # ANY is useful for some mock assertions
@@ -244,7 +243,7 @@ def test_get_plateau_analysis_exercise_no_main_target_muscle_group(mock_get_db_c
         headers={'Authorization': f'Bearer {token}'}
     )
     assert response.status_code == 404
-    assert f"is missing 'main_target_muscle_group'" in response.get_json()['error']
+    assert "is missing 'main_target_muscle_group'" in response.get_json()['error']
 
 @patch('engine.app.get_db_connection')
 def test_get_plateau_analysis_db_error_exercise_fetch(mock_get_db_conn, client):
@@ -330,6 +329,92 @@ def test_get_plateau_analysis_db_error_fatigue_calc_related_fetch(mock_get_db_co
     )
     assert response.status_code == 500
     assert "Database operation failed" in response.get_json()['error']
+
+
+@patch('engine.app.get_db_connection')
+def test_1rm_evolution_success(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+    mock_cursor.fetchall.return_value = [
+        {
+            'exercise_id': uuid.UUID(MOCK_EXERCISE_ID),
+            'estimated_1rm': 100.0,
+            'calculated_at': datetime.datetime(2024, 1, 1)
+        },
+        {
+            'exercise_id': uuid.UUID(MOCK_EXERCISE_ID),
+            'estimated_1rm': 105.0,
+            'calculated_at': datetime.datetime(2024, 1, 8)
+        }
+    ]
+
+    token = generate_jwt_token(MOCK_USER_ID)
+    response = client.get(
+        f'/v1/users/{MOCK_USER_ID}/analytics/1rm-evolution',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert MOCK_EXERCISE_ID in data
+    assert len(data[MOCK_EXERCISE_ID]) == 2
+
+
+def test_1rm_evolution_unauthorized(client):
+    response = client.get(f'/v1/users/{MOCK_USER_ID}/analytics/1rm-evolution')
+    assert response.status_code == 401
+
+
+@patch('engine.app.get_db_connection')
+def test_volume_heatmap_success(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+    mock_cursor.fetchall.return_value = [
+        {
+            'week': datetime.datetime(2024, 1, 1),
+            'muscle_group': 'chest',
+            'volume': 500.0
+        }
+    ]
+
+    token = generate_jwt_token(MOCK_USER_ID)
+    resp = client.get(
+        f'/v1/users/{MOCK_USER_ID}/analytics/volume-heatmap',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data[0]['muscle_group'] == 'chest'
+
+
+@patch('engine.app.get_db_connection')
+def test_key_metrics_success(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+    mock_cursor.fetchone.side_effect = [
+        {'count': 5},
+        {'volume': 1000.0},
+        {'avg': 7.5}
+    ]
+
+    token = generate_jwt_token(MOCK_USER_ID)
+    resp = client.get(
+        f'/v1/users/{MOCK_USER_ID}/analytics/key-metrics',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data['total_workouts'] == 5
+    assert data['total_volume'] == 1000.0
+    assert data['avg_session_rpe'] == 7.5
 
 if __name__ == '__main__':
     pytest.main()
