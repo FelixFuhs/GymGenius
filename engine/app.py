@@ -9,6 +9,7 @@ from engine.learning_models import ( # New imports
 import psycopg2
 import psycopg2.extras # For RealDictCursor
 from psycopg2 import pool
+from psycopg2.extensions import connection as PGConnection
 import os
 from urllib.parse import urlparse # Add this import
 from datetime import datetime, timedelta, timezone
@@ -77,7 +78,7 @@ def _init_connection_pool() -> None:
         raise
 
 
-def get_db_connection():
+def get_db_connection() -> PGConnection:
     """Get a connection from the global pool."""
     global _connection_pool
     if _connection_pool is None:
@@ -86,7 +87,7 @@ def get_db_connection():
     return _connection_pool.getconn()
 
 
-def release_db_connection(conn) -> None:
+def release_db_connection(conn: PGConnection | None) -> None:
     """Return a connection to the pool or close it if pooling is unavailable."""
     if not conn:
         return
