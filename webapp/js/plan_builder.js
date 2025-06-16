@@ -3,18 +3,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Plan Builder script loaded');
 
-    // Mock list of exercises
-    const mockExercises = [
-        { id: 1, name: 'Push-ups', type: 'Strength', muscleGroup: 'Chest' },
-        { id: 2, name: 'Squats', type: 'Strength', muscleGroup: 'Legs' },
-        { id: 3, name: 'Jumping Jacks', type: 'Cardio', muscleGroup: 'Full Body' }, // Could contribute to overall activity but not specific muscle volume
-        { id: 4, name: 'Plank', type: 'Core', muscleGroup: 'Core' }, // Standardized to 'Core'
-        { id: 5, name: 'Bicep Curls', type: 'Strength', muscleGroup: 'Arms' }, // Could be 'Biceps' or 'Arms'
-        { id: 6, name: 'Lunges', type: 'Strength', muscleGroup: 'Legs' },
-        { id: 7, name: 'Bent Over Rows', type: 'Strength', muscleGroup: 'Back' },
-        { id: 8, name: 'Overhead Press', type: 'Strength', muscleGroup: 'Shoulders' },
-        { id: 9, name: 'Tricep Dips', type: 'Strength', muscleGroup: 'Arms' }, // Could be 'Triceps' or 'Arms'
-    ];
+    // Fetch exercises from API
+    function fetchExercises() {
+        return fetch(`${API_BASE_URL}/v1/exercises`, {
+            headers: getAuthHeaders()
+        })
+            .then(resp => resp.json())
+            .catch(err => {
+                console.error('Failed to fetch exercises:', err);
+                return [];
+            });
+    }
 
     const exerciseListElement = document.getElementById('exercise-list');
     const dropZoneElement = document.getElementById('drop-zone');
@@ -28,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const planTemplatesListElement = document.getElementById('plan-templates-list');
 
     let currentPlan = []; // Will now store exercises with potential sets/reps
+    let availableExercises = [];
 
     // --- Predefined Plan Templates ---
     const planTemplates = [
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     ];
 
-    // Function to display exercises from mockExercises
+    // Function to display exercises fetched from API
     function displayExercises(exercises) {
         if (!exerciseListElement) return;
         exerciseListElement.innerHTML = ''; // Clear existing list
@@ -118,11 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const exerciseFromMock = mockExercises.find(ex => ex.id.toString() === exerciseId);
-        if (exerciseFromMock) {
-            // Add default sets/reps when adding from mock list
+        const exerciseFromList = availableExercises.find(ex => ex.id.toString() === exerciseId);
+        if (exerciseFromList) {
+            // Add default sets/reps when adding from list
             const exerciseToAdd = {
-                ...exerciseFromMock,
+                ...exerciseFromList,
                 sets: 3, // Default sets
                 reps: 10 // Default reps
             };
@@ -308,7 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearPlanButton) clearPlanButton.addEventListener('click', clearPlan);
 
     // Initial setup
-    displayExercises(mockExercises);
+    fetchExercises().then(exercises => {
+        availableExercises = exercises;
+        displayExercises(exercises);
+    });
     displayPlanTemplates(); // Display templates on load
     renderPlan(); // To show the initial "Drag and drop" message
     calculatePlanDetails();
