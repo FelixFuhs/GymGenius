@@ -123,6 +123,13 @@ CREATE TABLE IF NOT EXISTS plan_exercises (
     UNIQUE(plan_day_id, order_index)
 );
 
+-- Plan Metrics Table to store aggregated plan volume and frequency
+CREATE TABLE IF NOT EXISTS plan_metrics (
+    plan_id UUID PRIMARY KEY REFERENCES workout_plans(id) ON DELETE CASCADE,
+    total_volume INTEGER DEFAULT 0,
+    muscle_group_frequency JSONB DEFAULT '{}'
+);
+
 -- Workouts Table (Log of actual workout sessions)
 CREATE TABLE IF NOT EXISTS workouts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -195,6 +202,7 @@ CREATE INDEX IF NOT EXISTS idx_workout_plans_user_id ON workout_plans(user_id);
 CREATE INDEX IF NOT EXISTS idx_plan_days_plan_id ON plan_days(plan_id);
 CREATE INDEX IF NOT EXISTS idx_plan_exercises_plan_day_id ON plan_exercises(plan_day_id);
 CREATE INDEX IF NOT EXISTS idx_plan_exercises_exercise_id ON plan_exercises(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_plan_metrics_plan_id ON plan_metrics(plan_id);
 CREATE INDEX IF NOT EXISTS idx_workouts_user_id_started_at ON workouts(user_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_workout_sets_workout_id ON workout_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_workout_sets_exercise_id_completed_at ON workout_sets(exercise_id, completed_at DESC);

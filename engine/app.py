@@ -1044,8 +1044,53 @@ def create_workout_plan(user_id):
                 (plan_id, str(user_id), plan_name, days_per_week, plan_length_weeks, goal_focus)
             )
             new_plan = cur.fetchone()
+
+            # --- Calculate volume and frequency if plan details provided ---
+            total_volume = 0
+            freq_tracker = {}
+            days_payload = data.get('days', []) or []
+
+            for day in days_payload:
+                day_number = day.get('day_number')
+                day_name = day.get('name')
+                day_id = str(uuid.uuid4())
+                if day_number is not None:
+                    cur.execute(
+                        "INSERT INTO plan_days (id, plan_id, day_number, name) VALUES (%s, %s, %s, %s);",
+                        (day_id, plan_id, day_number, day_name),
+                    )
+
+                for ex in day.get('exercises', []) or []:
+                    exercise_id = ex.get('exercise_id')
+                    sets = int(ex.get('sets', 0))
+                    if not exercise_id:
+                        continue
+                    cur.execute(
+                        "SELECT main_target_muscle_group FROM exercises WHERE id = %s;",
+                        (exercise_id,),
+                    )
+                    ex_details = cur.fetchone()
+                    mg = ex_details.get('main_target_muscle_group') if ex_details else None
+                    cur.execute(
+                        "INSERT INTO plan_exercises (id, plan_day_id, exercise_id, order_index, sets) VALUES (%s, %s, %s, %s, %s);",
+                        (str(uuid.uuid4()), day_id, exercise_id, ex.get('order_index', 0), sets),
+                    )
+                    total_volume += sets
+                    if mg and day_number is not None:
+                        freq_tracker.setdefault(mg, set()).add(day_number)
+
+            freq_counts = {k: len(v) for k, v in freq_tracker.items()}
+            cur.execute(
+                "INSERT INTO plan_metrics (plan_id, total_volume, muscle_group_frequency) VALUES (%s, %s, %s);",
+                (plan_id, total_volume, psycopg2.extras.Json(freq_counts)),
+            )
+
             conn.commit()
-            logger.info(f"Workout plan '{plan_name}' (ID: {plan_id}) created successfully for user: {user_id}")
+            new_plan['total_volume'] = total_volume
+            new_plan['muscle_group_frequency'] = freq_counts
+            logger.info(
+                f"Workout plan '{plan_name}' (ID: {plan_id}) created successfully for user: {user_id}"
+            )
             return jsonify(new_plan), 201
 
     except psycopg2.Error as e:
@@ -1414,7 +1459,6 @@ def update_plan_day(day_id):
                 logger.warning(f"Forbidden attempt to update plan day {day_id} by user {g.current_user_id}")
                 return jsonify(error="Forbidden. You do not own the parent plan of this day."), 403
 
-            allowed_fields = {'name': str, 'day_number': int}
             update_fields_parts = []
             update_values = []
 
@@ -1543,8 +1587,10 @@ def create_plan_exercise(day_id):
         exercise_id = str(uuid.UUID(data['exercise_id'])) # Validate UUID
         order_index = int(data['order_index'])
         sets = int(data['sets'])
-        if order_index < 0: raise ValueError("'order_index' must be non-negative.")
-        if sets < 1: raise ValueError("'sets' must be at least 1.")
+        if order_index < 0:
+            raise ValueError("'order_index' must be non-negative.")
+        if sets < 1:
+            raise ValueError("'sets' must be at least 1.")
     except (ValueError, TypeError) as e:
         return jsonify(error=f"Invalid data type or value for required fields: {e}"), 400
 
