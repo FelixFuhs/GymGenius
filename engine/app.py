@@ -1414,7 +1414,6 @@ def update_plan_day(day_id):
                 logger.warning(f"Forbidden attempt to update plan day {day_id} by user {g.current_user_id}")
                 return jsonify(error="Forbidden. You do not own the parent plan of this day."), 403
 
-            allowed_fields = {'name': str, 'day_number': int}
             update_fields_parts = []
             update_values = []
 
@@ -1543,8 +1542,10 @@ def create_plan_exercise(day_id):
         exercise_id = str(uuid.UUID(data['exercise_id'])) # Validate UUID
         order_index = int(data['order_index'])
         sets = int(data['sets'])
-        if order_index < 0: raise ValueError("'order_index' must be non-negative.")
-        if sets < 1: raise ValueError("'sets' must be at least 1.")
+        if order_index < 0:
+            raise ValueError("'order_index' must be non-negative.")
+        if sets < 1:
+            raise ValueError("'sets' must be at least 1.")
     except (ValueError, TypeError) as e:
         return jsonify(error=f"Invalid data type or value for required fields: {e}"), 400
 
@@ -1904,7 +1905,6 @@ def trigger_training_pipeline_route():
 # --- Plateau Detection and Deload Suggestion Logic ---
 from typing import List, Dict, Any  # noqa: E402 - placed after top-level code intentionally
 import random  # noqa: E402
-from pprint import pprint  # noqa: E402
 
 from engine.progression import detect_plateau, generate_deload_protocol, PlateauStatus  # noqa: E402
 
@@ -2006,75 +2006,6 @@ def check_for_plateau_and_suggest_deload(
     return result
 
 
-if __name__ == '__main__':
-    _conn_check = None
-    try:
-        # Keep existing DB check
-        _conn_check = get_db_connection()
-        with _conn_check.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
-            _cur.execute("""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name='exercises' AND column_name='main_target_muscle_group';
-            """)
-            if not _cur.fetchone():
-                logger.warning("WARNING: The 'exercises' table does not seem to have the "
-                               "'main_target_muscle_group' column assumed by some endpoints. "
-                               "These endpoints may not function correctly for session history.")
-    except Exception as _e:
-        # Log a more general warning if DB connection itself fails here for the check
-        logger.warning(f"Could not perform initial schema check for 'main_target_muscle_group' column (DB might not be ready or accessible for this check): {_e}")
-    finally:
-        if _conn_check:
-            _conn_check.close()
-
-    # --- Test Plateau Detection and Deload Suggestion ---
-    print("\n--- Testing Plateau Detection and Deload Integration ---")
-    test_user_id = "user_test_123"
-    test_exercise_id = "exercise_bench_press"
-
-    scenarios_to_test = [
-        {"name": "Clear Progression", "scenario": "progression", "fatigue": 20.0},
-        {"name": "Stagnation (Moderate Fatigue)", "scenario": "stagnation", "fatigue": 50.0},
-        {"name": "Stagnation (High Fatigue)", "scenario": "stagnation", "fatigue": 75.0},
-        {"name": "Regression", "scenario": "regression", "fatigue": 60.0},
-        {"name": "Short History", "scenario": "short_history", "fatigue": 30.0},
-        {"name": "Volatile Data", "scenario": "volatile", "fatigue": 40.0},
-        {"name": "Initial Gains then Stagnation", "scenario": "initial_gains_then_stagnation", "fatigue": 55.0}
-    ]
-
-    for test_case in scenarios_to_test:
-        print(f"\n--- Scenario: {test_case['name']} (Fatigue: {test_case['fatigue']}) ---")
-        result = check_for_plateau_and_suggest_deload(
-            user_id=test_user_id,
-            exercise_id=test_exercise_id,
-            mock_scenario=test_case["scenario"],
-            mock_fatigue=test_case["fatigue"],
-            plateau_min_duration=5 # Using min_duration of 5 for these tests
-        )
-        # Using pprint for better readability of the dictionary
-        pprint(result, indent=2)
-        print("--------------------------------------------------")
-
-    # Example with directly passed historical data
-    print("\n--- Scenario: Direct Data - Clear Regression ---")
-    direct_data = [110.0, 108.0, 107.5, 106.0, 105.0, 103.0, 102.0]
-    result_direct = check_for_plateau_and_suggest_deload(
-        user_id=test_user_id,
-        exercise_id="exercise_squat",
-        historical_performance_data=direct_data,
-        mock_fatigue=70.0,
-        plateau_min_duration=4 # Test with different min_duration
-    )
-    pprint(result_direct, indent=2)
-    print("--------------------------------------------------")
-
-    # Keep the Flask app run command if this file is also meant to be executable as a server
-    # For subtask testing, the print statements above are the primary output.
-    # If running in a CI/test environment where the Flask app shouldn't start,
-    # you might guard app.run with a specific condition.
-    # For now, assuming it's fine as is.
-    # app.run(host='0.0.0.0', port=5000, debug=True) # Comment out for sequential execution if __main__ is run multiple times
 
 # --- Analytics Dashboard Endpoints ---
 @app.route('/v1/users/<uuid:user_id>/exercises/<uuid:exercise_id>/plateau-analysis', methods=['GET'])
@@ -2245,72 +2176,3 @@ def get_plateau_analysis(user_id, exercise_id):
             conn.close()
 
 
-if __name__ == '__main__':
-    _conn_check = None
-    try:
-        # Keep existing DB check
-        _conn_check = get_db_connection()
-        with _conn_check.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
-            _cur.execute("""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name='exercises' AND column_name='main_target_muscle_group';
-            """)
-            if not _cur.fetchone():
-                logger.warning("WARNING: The 'exercises' table does not seem to have the "
-                               "'main_target_muscle_group' column assumed by some endpoints. "
-                               "These endpoints may not function correctly for session history.")
-    except Exception as _e:
-        # Log a more general warning if DB connection itself fails here for the check
-        logger.warning(f"Could not perform initial schema check for 'main_target_muscle_group' column (DB might not be ready or accessible for this check): {_e}")
-    finally:
-        if _conn_check:
-            _conn_check.close()
-
-    # --- Test Plateau Detection and Deload Suggestion ---
-    print("\n--- Testing Plateau Detection and Deload Integration ---")
-    test_user_id = "user_test_123"
-    test_exercise_id = "exercise_bench_press"
-
-    scenarios_to_test = [
-        {"name": "Clear Progression", "scenario": "progression", "fatigue": 20.0},
-        {"name": "Stagnation (Moderate Fatigue)", "scenario": "stagnation", "fatigue": 50.0},
-        {"name": "Stagnation (High Fatigue)", "scenario": "stagnation", "fatigue": 75.0},
-        {"name": "Regression", "scenario": "regression", "fatigue": 60.0},
-        {"name": "Short History", "scenario": "short_history", "fatigue": 30.0},
-        {"name": "Volatile Data", "scenario": "volatile", "fatigue": 40.0},
-        {"name": "Initial Gains then Stagnation", "scenario": "initial_gains_then_stagnation", "fatigue": 55.0}
-    ]
-
-    for test_case in scenarios_to_test:
-        print(f"\n--- Scenario: {test_case['name']} (Fatigue: {test_case['fatigue']}) ---")
-        result = check_for_plateau_and_suggest_deload(
-            user_id=test_user_id,
-            exercise_id=test_exercise_id,
-            mock_scenario=test_case["scenario"],
-            mock_fatigue=test_case["fatigue"],
-            plateau_min_duration=5 # Using min_duration of 5 for these tests
-        )
-        # Using pprint for better readability of the dictionary
-        pprint(result, indent=2)
-        print("--------------------------------------------------")
-
-    # Example with directly passed historical data
-    print("\n--- Scenario: Direct Data - Clear Regression ---")
-    direct_data = [110.0, 108.0, 107.5, 106.0, 105.0, 103.0, 102.0]
-    result_direct = check_for_plateau_and_suggest_deload(
-        user_id=test_user_id,
-        exercise_id="exercise_squat",
-        historical_performance_data=direct_data,
-        mock_fatigue=70.0,
-        plateau_min_duration=4 # Test with different min_duration
-    )
-    pprint(result_direct, indent=2)
-    print("--------------------------------------------------")
-
-    # Keep the Flask app run command if this file is also meant to be executable as a server
-    # For subtask testing, the print statements above are the primary output.
-    # If running in a CI/test environment where the Flask app shouldn't start,
-    # you might guard app.run with a specific condition.
-    # For now, assuming it's fine as is.
-    app.run(host='0.0.0.0', port=5000, debug=True)
