@@ -21,7 +21,7 @@ from functools import wraps # For creating decorators
 app = Flask(__name__)
 
 # --- JWT Configuration ---
-# In a real app, use a strong, randomly generated key stored securely (e.g., env variable)
+# In production, use a strong, random key provided via environment variable
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-super-secret-jwt-key-please-change')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Access token valid for 1 hour
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)  # Refresh token valid for 7 days
