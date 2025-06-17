@@ -18,10 +18,22 @@ from engine.learning_models import (
     SessionRecord,
 )
 
-from engine.predictions import extended_epley_1rm
+from engine.predictions import extended_epley_1rm, round_to_available_plates, calculate_confidence_score
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
+
+# --- Constants for Smart 1RM Defaults ---
+EXERCISE_DEFAULT_1RM = {
+    'barbell_bench_press': {'beginner': 40.0, 'intermediate': 70.0, 'advanced': 100.0},
+    'bicep_curl': {'beginner': 10.0, 'intermediate': 20.0, 'advanced': 30.0},
+    'leg_press': {'beginner': 100.0, 'intermediate': 200.0, 'advanced': 300.0},
+    'deadlift': {'beginner': 60.0, 'intermediate': 100.0, 'advanced': 140.0},
+    'overhead_press': {'beginner': 30.0, 'intermediate': 50.0, 'advanced': 70.0},
+    # Add more exercises as needed. Key by exercise name (lowercase, spaces replaced with underscore)
+}
+
+FALLBACK_DEFAULT_1RM = 30.0 # Generic fallback if no specific default is found
 
 analytics_bp = Blueprint('analytics', __name__)
 
@@ -202,13 +214,33 @@ def recommend_set_parameters_route(user_id, exercise_id):
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT goal_slider, rir_bias, recovery_multipliers FROM users WHERE id = %s;", (user_id_str,))
+            cur.execute("SELECT goal_slider, rir_bias, recovery_multipliers, experience_level, equipment_settings FROM users WHERE id = %s;", (user_id_str,))
             user_data_db = cur.fetchone() # Renamed
             if not user_data_db:
                 return jsonify(error="User not found"), 404
 
             goal_slider = float(user_data_db['goal_slider'])
+            user_rir_bias = float(user_data_db.get('rir_bias', 0.0)) # Added .get with default
+            user_experience_level = user_data_db.get('experience_level', 'intermediate').lower() # Default to intermediate
             recovery_multipliers_data = user_data_db.get('recovery_multipliers') or {} # Renamed
+
+            equipment_settings = user_data_db.get('equipment_settings')
+            if not isinstance(equipment_settings, dict):
+                equipment_settings = {}
+
+            user_available_plates_from_db = equipment_settings.get('available_plates_kg')
+            if isinstance(user_available_plates_from_db, list) and \
+               all(isinstance(p, (int, float)) and p > 0 for p in user_available_plates_from_db) and \
+               user_available_plates_from_db:
+                user_available_plates = user_available_plates_from_db
+            else:
+                user_available_plates = None
+
+            user_barbell_weight_from_db = equipment_settings.get('barbell_weight_kg')
+            if isinstance(user_barbell_weight_from_db, (int, float)) and user_barbell_weight_from_db > 0:
+                user_barbell_weight = user_barbell_weight_from_db
+            else:
+                user_barbell_weight = None
 
             cur.execute("SELECT name, main_target_muscle_group FROM exercises WHERE id = %s;", (exercise_id_str,))
             exercise_data_db = cur.fetchone() # Renamed
@@ -226,11 +258,31 @@ def recommend_set_parameters_route(user_id, exercise_id):
                 LIMIT 1;
             """, (user_id_str, exercise_id_str))
             e1rm_data = cur.fetchone()
-            estimated_1rm = 50.0
-            e1rm_source = "default"
+            estimated_1rm = None
+            e1rm_source = None
             if e1rm_data:
                 estimated_1rm = float(e1rm_data['estimated_1rm'])
                 e1rm_source = "history"
+            else:
+                # No history, try to use smart defaults
+                exercise_key = exercise_name.lower().replace(' ', '_') # Normalize exercise name for lookup
+                if exercise_key in EXERCISE_DEFAULT_1RM:
+                    if user_experience_level in EXERCISE_DEFAULT_1RM[exercise_key]:
+                        estimated_1rm = EXERCISE_DEFAULT_1RM[exercise_key][user_experience_level]
+                        e1rm_source = f"{user_experience_level}_default_for_{exercise_key}"
+                    else:
+                        # Exercise is known, but experience level isn't a category in its defaults
+                        # Fallback to 'intermediate' for that exercise if available, else generic fallback
+                        if 'intermediate' in EXERCISE_DEFAULT_1RM[exercise_key]:
+                            estimated_1rm = EXERCISE_DEFAULT_1RM[exercise_key]['intermediate']
+                            e1rm_source = f"intermediate_default_for_{exercise_key}"
+                        else: # Should not happen if defaults are structured well
+                            estimated_1rm = FALLBACK_DEFAULT_1RM
+                            e1rm_source = "fallback_default_no_level_match"
+
+                if estimated_1rm is None: # If still None, use the generic fallback
+                    estimated_1rm = FALLBACK_DEFAULT_1RM
+                    e1rm_source = "fallback_default_exercise_unknown"
 
             user_recovery_multiplier = 1.0
             if isinstance(recovery_multipliers_data, dict): # Check if dict
@@ -264,8 +316,21 @@ def recommend_set_parameters_route(user_id, exercise_id):
             )
 
             load_percentage_of_1rm = 0.60 + 0.35 * goal_slider
-            target_rir_ideal_float = 2.5 - 1.5 * goal_slider
-            target_rir_ideal = int(round(target_rir_ideal_float))
+
+            # Calculate the system's ideal target RIR (actual physiological RIR)
+            target_rir_ideal_actual_float = 2.5 - 1.5 * goal_slider
+
+            # Adjust the RIR value to be displayed to the user, accounting for their bias
+            # If bias is positive, user underestimates RIR (e.g., says RIR 1 when it's RIR 2).
+            # So, to get them to an actual RIR of 2, we tell them to aim for RIR 1 (2 - 1 = 1).
+            target_rir_for_user_perception_float = target_rir_ideal_actual_float - user_rir_bias
+
+            # Clamp the displayed RIR to a practical range (e.g., 0 to 5)
+            target_rir_for_user_perception_float = max(0.0, min(target_rir_for_user_perception_float, 5.0))
+            target_rir_to_display = int(round(target_rir_for_user_perception_float))
+
+            # For explanation and API response, also have the system's actual target RIR rounded
+            system_actual_target_rir = int(round(target_rir_ideal_actual_float))
 
             rep_high_float = 6.0 + 6.0 * (1.0 - goal_slider)
             rep_high = int(round(rep_high_float))
@@ -277,11 +342,16 @@ def recommend_set_parameters_route(user_id, exercise_id):
             fatigue_points_for_reduction = 10.0
             # Ensure current_fatigue is float for division
             fatigue_adjustment_factor = (float(current_fatigue) / fatigue_points_for_reduction) * fatigue_reduction_per_10_points
-            fatigue_adjustment_factor = min(fatigue_adjustment_factor, 0.5)
+            fatigue_adjustment_factor = min(fatigue_adjustment_factor, 0.10)
 
             weight_reduction_due_to_fatigue = base_recommended_weight * fatigue_adjustment_factor
             adjusted_weight = base_recommended_weight - weight_reduction_due_to_fatigue
-            final_rounded_weight = round(adjusted_weight * 2) / 2.0 # Ensure float division for 0.5 steps
+
+            final_rounded_weight = round_to_available_plates(
+                adjusted_weight,
+                user_available_plates,
+                user_barbell_weight
+            )
 
             goal_slider_desc = "hypertrophy" if goal_slider < 0.34 else "strength" if goal_slider > 0.66 else "blend"
             explanation = (
@@ -289,8 +359,26 @@ def recommend_set_parameters_route(user_id, exercise_id):
                 f"Goal ('{goal_slider_desc}', slider: {goal_slider:.2f}): target {load_percentage_of_1rm*100:.0f}% of 1RM. "
                 f"Base weight: {base_recommended_weight:.1f}kg. "
                 f"Fatigue on '{main_target_muscle_group}' ({current_fatigue:.1f} pts): applied -{weight_reduction_due_to_fatigue:.1f}kg reduction. "
-                f"Final Recommendation: {final_rounded_weight:.1f}kg for {rep_low}-{rep_high} reps @ RIR ~{target_rir_ideal}."
             )
+
+            # Add RIR bias information to explanation
+            if abs(user_rir_bias) > 0.05: # Only add if bias is significant
+                 explanation += (
+                    f"Your RIR reporting bias is {user_rir_bias:+.1f}. "
+                    f"To achieve an actual RIR of ~{system_actual_target_rir}, system recommends you aim for RIR ~{target_rir_to_display}. "
+                )
+            else:
+                explanation += f"Target RIR ~{system_actual_target_rir}. "
+
+
+            explanation += (
+                f"Final Recommendation: {final_rounded_weight:.1f}kg for {rep_low}-{rep_high} reps @ RIR ~{target_rir_to_display} (your perception)."
+            )
+
+            confidence_score = calculate_confidence_score(user_id_str, exercise_id_str, cur)
+
+            if confidence_score is not None:
+                explanation += f" Recommendation confidence: {confidence_score*100:.0f}%. "
 
             return jsonify({
                 "user_id": user_id_str,
@@ -304,7 +392,10 @@ def recommend_set_parameters_route(user_id, exercise_id):
                 "recommended_weight_kg": final_rounded_weight,
                 "target_reps_low": rep_low,
                 "target_reps_high": rep_high,
-                "target_rir": target_rir_ideal,
+                "target_rir": target_rir_to_display, # This is the RIR the user should aim for based on their perception
+                "system_target_actual_rir": system_actual_target_rir, # For clarity
+                "user_rir_bias_applied": round(user_rir_bias, 2), # For clarity, rounded
+                "confidence_score": confidence_score, # New field (can be None)
                 "explanation": explanation
             }), 200
 
