@@ -14,6 +14,7 @@ class PlateauStatus(Enum):
     REGRESSION = "Performance has regressed."
     STAGNATION_WARNING = "Performance is showing signs of stagnation." # For early warning
     REGRESSION_WARNING = "Performance is showing signs of regression." # For early warning
+    INSUFFICIENT_DATA = "Insufficient data to determine plateau."
 
 
 def calculate_trend_slope(values: Sequence[float]) -> float:
@@ -71,8 +72,11 @@ def detect_plateau(
         'details': "Not enough data to determine plateau."
     }
 
-    if n < min_duration: # Need at least min_duration points to potentially form a plateau
-        plateau_info['details'] = f"Not enough data (need at least {min_duration} points)."
+    if n < min_duration:  # Need at least min_duration points to potentially form a plateau
+        plateau_info['details'] = (
+            f"Not enough data (need at least {min_duration} points)."
+        )
+        plateau_info['status'] = PlateauStatus.INSUFFICIENT_DATA
         return plateau_info
 
     # Check the last `min_duration` points for plateau characteristics
