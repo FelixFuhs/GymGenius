@@ -36,7 +36,7 @@ gymgenius/
 ├── AGENT\_GUIDE.md         # bot rules
 ├── CONTRIBUTING.md
 ├── LICENSE.md
-├── docker-compose.dev.yml
+├── docker-compose.yml
 ├── .env.example
 ├── apps/
 │   ├── web/               # React + TS PWA

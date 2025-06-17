@@ -46,10 +46,10 @@ cd gymgenius
 cp .env.example .env  # then fill in JWT and Postgres settings
 
 # 2 Spin up full stack (API + DB + ML worker + Web)
-make dev            # alias for `docker compose -f docker-compose.dev.yml up --build`
+make dev            # alias for `docker compose up --build`
 
 # 3 Visit the app
-open http://localhost:3000
+open http://localhost:8000
 ```
 
 > **Prerequisites**: Docker ≥ 24, Python 3.11, Make, GNU Bash (macOS/Linux) or WSL 2 (Windows).
