@@ -1,10 +1,13 @@
-.PHONY: build up down logs test lint shell-web shell-engine help
+.PHONY: build up down dev logs test lint shell-web shell-engine help
 
 build:
 	docker-compose build
 
 up:
 	docker-compose up -d
+
+dev:
+	docker compose up --build
 
 down:
 	docker-compose down
@@ -51,6 +54,7 @@ help:
 	@echo '  build         Build docker images'
 	@echo '  up            Start services in detached mode'
 	@echo '  down          Stop services'
+	@echo '  dev           Build and run services'
 	@echo '  logs          Follow service logs'
 	@echo '  test          Run all tests'
 	@echo '  test-web      Run webapp tests'
