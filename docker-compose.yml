@@ -7,6 +7,7 @@ services:
       - "8000:80"
     volumes:
       - ./webapp:/usr/share/nginx/html
+      - ./webapp/default.conf:/etc/nginx/conf.d/default.conf # Added this line
     depends_on:
       - db
       - engine
@@ -27,6 +28,16 @@ services:
       - "5000:5000"
     volumes:
       - ./engine:/app
+    depends_on: # Added redis here
+      - db
+      - redis
+  redis: # Added redis service
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
   postgres_data:
+  redis_data: # Added redis_data volume

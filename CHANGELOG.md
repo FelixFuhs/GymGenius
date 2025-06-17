@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Addressed missing Redis dependency for the background worker (`engine.worker`) by adding a Redis service to `docker-compose.yml` and updating documentation.
+- Corrected a critical Nginx proxy configuration issue by adding `webapp/default.conf` and updating `docker-compose.yml` to ensure the frontend can communicate with the backend API.
+- Fixed a bug in `webapp/js/app.js` where `set_number` was hardcoded, preventing correct logging of multiple sets for an exercise. Implemented dynamic set number tracking.
+- Improved local development setup instructions in `README.md` and created a comprehensive `HOW_TO_USE.md`.
+
+### Changed
+- Updated `ARCHITECTURE.md` and partially updated `TECHNICAL_SPEC.md` to better reflect the current tech stack (VanillaJS, Python/Flask, Redis) and acknowledge discrepancies with prior documentation.
+
 ### Added
 - **P2-INF-004**: Documented conceptual setup for a staging environment on AWS ECS + RDS in `infrastructure/aws/README.md` and provided an illustrative `docker-compose.staging.yml`.
 - **P2-PM-005**: Drafted beta feedback survey questions and a KPI dashboard outline in `PRODUCT_FEEDBACK.md`.

@@ -343,9 +343,8 @@ function LogSetPage() {
 
     const params = new URLSearchParams(window.location.hash.split('?')[1]);
     const exerciseName = params.get('exerciseName') || 'Selected Exercise';
-    // For a real app, exerciseId would be reliably passed.
     const exerciseIdFromParam = params.get('exerciseId');
-    const exerciseId = exerciseIdFromParam; // Will be undefined if not passed, handle below.
+    const exerciseId = exerciseIdFromParam;
 
     if (!exerciseId) {
         page.innerHTML = '<h2>Error: Exercise ID missing.</h2><p><a href="#exercises">Go back to exercises.</a></p>';
@@ -356,8 +355,18 @@ function LogSetPage() {
         return page;
     }
 
+    let currentSetNumber = 1;
+    const localExerciseId = exerciseId; // To avoid issues with 'exerciseId' in nested scopes
+
+    function updateSetNumberDisplay(setNum) {
+        const displayElement = page.querySelector('#current-set-number-display');
+        if (displayElement) {
+            displayElement.textContent = setNum;
+        }
+    }
+
     page.innerHTML = `
-        <h2>Log Set for ${exerciseName}</h2>
+        <h2>Log Set <span id="current-set-number-display">1</span> for ${exerciseName}</h2>
         <div id="logset-message" class="message" style="display:none;"></div>
         <div id="logset-error" class="error-message" style="display:none;"></div>
 
@@ -396,14 +405,17 @@ function LogSetPage() {
     const tooltipTriggerEl = page.querySelector('#rec-tooltip-trigger');
     const recErrorEl = page.querySelector('#rec-error');
     const aiRecommendationDiv = page.querySelector('#ai-recommendation');
+    const messageDiv = page.querySelector('#logset-message');
+    const formErrorDiv = page.querySelector('#logset-error');
+
+    updateSetNumberDisplay(currentSetNumber); // Initial display
 
     // Fetch AI Recommendation
-    // Ensure engine/app.py is running and accessible
-    const apiUrl = `${API_BASE_URL}/v1/user/${currentUserId}/exercise/${exerciseId}/recommend-set-parameters`;
+    const apiUrl = `${API_BASE_URL}/v1/user/${currentUserId}/exercise/${localExerciseId}/recommend-set-parameters`;
     console.log(`Fetching recommendation from: ${apiUrl}`);
 
-    if (currentUserId && exerciseId) { // Only fetch if both IDs are available
-        fetch(apiUrl, { headers: getAuthHeaders() }) // Add Auth headers
+    if (currentUserId && localExerciseId) {
+        fetch(apiUrl, { headers: getAuthHeaders() })
           .then(response => {
             if (!response.ok) {
               return response.json().then(errData => {
@@ -425,29 +437,54 @@ function LogSetPage() {
               page.querySelector('#reps').value = data.target_reps_high;
               page.querySelector('#rir').value = data.target_rir;
             } else {
-              const errorMsg = data.error || 'Could not parse AI recommendation data.';
-              recErrorEl.textContent = errorMsg;
-              // Keep N/A or clear recommendation fields
+              recErrorEl.textContent = data.error || 'Could not parse AI recommendation data.';
             }
           })
           .catch(error => {
             console.error('Error fetching AI recommendation:', error);
             recErrorEl.textContent = `AI Rec Error: ${error.message}`;
-            // Keep N/A or clear recommendation fields
           });
     } else {
         aiRecommendationDiv.innerHTML = '<p>AI Recommendations not available (missing user/exercise ID).</p>';
     }
 
-    const messageDiv = page.querySelector('#logset-message');
-    const formErrorDiv = page.querySelector('#logset-error');
+    // Fetch existing sets to determine currentSetNumber
+    if (currentWorkoutId && localExerciseId) {
+        fetch(`${API_BASE_URL}/v1/workouts/${currentWorkoutId}/sets?exercise_id=${localExerciseId}`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Failed to fetch existing sets for exercise:', response.status);
+                return { data: [] }; // Default to no existing sets on error
+            }
+            return response.json();
+        })
+        .then(existingSetsResult => {
+            if (existingSetsResult && existingSetsResult.data && existingSetsResult.data.length > 0) {
+                currentSetNumber = existingSetsResult.data.length + 1;
+            } else {
+                currentSetNumber = 1; // Default if no sets or error during fetch
+            }
+            updateSetNumberDisplay(currentSetNumber);
+        })
+        .catch(error => {
+            console.error('Error fetching existing sets:', error);
+            currentSetNumber = 1; // Default on network error
+            updateSetNumberDisplay(currentSetNumber);
+        });
+    } else {
+        // If no currentWorkoutId, it's effectively set 1 for a new workout
+        updateSetNumberDisplay(currentSetNumber); // Ensure display is 1
+    }
+
 
     page.querySelector('#log-set-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         messageDiv.style.display = 'none'; messageDiv.textContent = '';
         formErrorDiv.style.display = 'none'; formErrorDiv.textContent = '';
 
-        // Step 1: Ensure currentWorkoutId is set (Implicit Workout Creation)
         if (!currentWorkoutId) {
             try {
                 console.log("No active workout ID, creating a new one for user:", currentUserId);
@@ -470,14 +507,12 @@ function LogSetPage() {
             }
         }
 
-        // Step 2: Log the set
         const setData = {
-            exercise_id: exerciseId,
-            set_number: 1, // Simplified: manage set_number properly in a real app
+            exercise_id: localExerciseId, // Use localExerciseId
+            set_number: currentSetNumber, // Use dynamic set number
             actual_weight: parseFloat(e.target.weight.value),
             actual_reps: parseInt(e.target.reps.value),
             actual_rir: parseInt(e.target.rir.value),
-            // completed_at: new Date().toISOString() // Backend defaults to NOW()
         };
 
         fetch(`${API_BASE_URL}/v1/workouts/${currentWorkoutId}/sets`, {
@@ -488,13 +523,16 @@ function LogSetPage() {
         .then(response => response.json().then(data => ({ status: response.status, body: data })))
         .then(({ status, body }) => {
             if (status === 201) {
-                messageDiv.textContent = 'Set logged successfully!';
+                // messageDiv.textContent = `Set ${currentSetNumber} logged successfully! Next is Set #${currentSetNumber + 1}.`;
+                messageDiv.textContent = `Set ${currentSetNumber} logged successfully!`;
                 messageDiv.style.display = 'block';
+                currentSetNumber++; // Increment for the next set
+                updateSetNumberDisplay(currentSetNumber); // Update display
+
                 e.target.reset(); // Clear form for next set
-                // Optionally, keep recommended values or smart clear
-                page.querySelector('#weight').value = setData.actual_weight; // Keep weight for next set
-                page.querySelector('#reps').value = ''; // Clear reps
-                page.querySelector('#rir').value = '';  // Clear RIR
+                page.querySelector('#weight').value = setData.actual_weight;
+                page.querySelector('#reps').value = '';
+                page.querySelector('#rir').value = '';
             } else {
                 formErrorDiv.textContent = body.error || 'Failed to log set.';
                 formErrorDiv.style.display = 'block';

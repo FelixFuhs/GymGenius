@@ -1,3 +1,5 @@
+**Disclaimer:** This Project VISION document describes a comprehensive and forward-looking architecture (e.g., React, Node.js API, Prisma, gRPC components, extensive ML/AI features) that appears to be significantly different from, or a future iteration of, the currently implemented codebase (which primarily uses VanillaJS for the frontend and Python/Flask for the backend API and engine). The recent review and updates focused on making the existing codebase functional and well-documented for local development. While this document provides valuable insight into the project's long-term goals, it should be read with the understanding that not all described features or technologies are present in the current reviewed version.
+
 # GymGenius - Comprehensive Project Specification
 *The AI-Powered Adaptive Training System That Thinks So You Don't Have To*
 

@@ -5,117 +5,80 @@ Below is a **drop-in `TECHNICAL_SPEC.md`** tailored to **GymGenius** and written
 
 *Version 1.0 – 14 Jun 2025*
 
+**Note:** This document appears to describe a system architecture (React, Node API, Prisma, gRPC) that differs significantly from the currently implemented VanillaJS frontend and Flask/Python backend. The following sections have been partially updated to reflect the *existing* codebase's structure and dependencies as of October 2023, but a full rewrite would be needed for complete accuracy with the current implementation. The primary focus of the recent review was on the existing codebase.
+
 ---
 
 ## 1 · Project Overview
 
-GymGenius is a **monorepo** that ships a mobile-first PWA, a Node API, and a Python ML micro-service.  
+GymGenius is a **monorepo** that ships a mobile-first PWA (VanillaJS) and a Python/Flask backend (API and worker).
 Goal: deliver real-time weight/rep/rest prescriptions that adapt to each user’s history, recovery, and goals.
 
 **Pipeline (stateless per service):**
 
-1. **Web PWA** – logs set, fetches recommendation via REST.
-2. **API** – auth, validation, orchestration, queues jobs.
-3. **Engine** – gRPC micro-service; predicts weight, learns RIR-bias & recovery τ.
-4. **Worker** – nightly fine-tunes models, aggregates analytics.
-5. **Storage** – Postgres (relational), Redis (cache/queue), S3 (model ckpts, exports).
-6. **Observability** – OpenTelemetry traces, Sentry errors, Datadog metrics.
+1. **Web PWA** – logs set, fetches recommendation via REST (Vanilla JS, HTML, CSS).
+2. **API (Engine)** – Flask/Python backend; auth, validation, business logic, serves recommendations, queues jobs via RQ.
+3. **Worker (Engine)** – Python RQ worker; processes background tasks (e.g., analytics, future ML model updates).
+4. **Storage** – Postgres (relational data), Redis (RQ queue and potentially caching).
 
-All compute nodes are **stateless**; persistence lives only in Postgres, Redis, and S3.
+All compute nodes are **stateless**; persistence lives only in Postgres and Redis.
 
 ---
 
 ## 2 · Repository / File Structure
 
-```
-
+```markdown
 gymgenius/
-├── README.md              # pitch + quick-start
-├── ROADMAP.md             # phase backlog
-├── ARCHITECTURE.md        # service registry + diagrams
-├── AGENT\_GUIDE.md         # bot rules
+├── README.md
+├── HOW_TO_USE.md
+├── ROADMAP.md
+├── ARCHITECTURE.md
+├── TECHNICAL_SPEC.md
+├── AGENT_GUIDE.md
 ├── CONTRIBUTING.md
 ├── LICENSE.md
+├── Makefile
 ├── docker-compose.yml
 ├── .env.example
-├── apps/
-│   ├── web/               # React + TS PWA
-│   └── api/               # Express/Fastify service
-├── services/
-│   ├── engine/            # PyTorch adaptive engine
-│   └── worker/            # Bull queue consumer
-├── packages/
-│   └── ui/                # Tailwind component library
 ├── database/
-│   ├── schema.prisma
-│   ├── migrations/
-│   └── seed.ts
-├── infra/                 # Terraform / ECS / GitHub Actions manifests
-├── scripts/               # one-off helpers
-└── tests/
-├── web/
-├── api/
-└── engine/
-
-````
+│   ├── create_schema.py
+│   └── seed_data.py
+├── engine/
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   ├── blueprints/
+│   └── worker.py
+├── webapp/
+│   ├── index.html
+│   ├── js/app.js
+│   ├── css/style.css
+│   ├── Dockerfile
+│   └── default.conf (Nginx config)
+├── tests/
+│   └── # Python tests for engine
+└── webapp/tests/ # JS tests or Python tests for web aspects
+```
 
 ### 2.1 Key Files
 
 | File / Dir                 | Purpose                                                         | Notable Imports / Tools                |
 |----------------------------|-----------------------------------------------------------------|----------------------------------------|
-| **schema.prisma**          | Postgres schema incl. enums, relations                          | Prisma ORM                             |
-| **engine/model.py**        | PyTorch-Lightning module (extended Epley, Bayesian layers)      | torch, pyro-ppl                        |
-| **engine/api.proto**       | gRPC contract (`PredictSet`, `WarmStart`)                       | protobuf 3                             |
-| **api/routes/sets.ts**     | `POST /sets` & `GET /recommendation`                            | zod validation, OpenAPI decorators     |
-| **worker/train.py**        | Nightly fine-tune script, pushes ckpt to S3                     | boto3, pandas                          |
-| **web/src/hooks/usePredict.ts** | React SWR hook → `/recommendation`                          | zustand, ky, msw                       |
-| **infra/ci.yml**           | GitHub Actions: lint-test-docker-deploy                         | pnpm, pytest, ruff, kubectl            |
+| **database/create_schema.py** | Python script to define and create PostgreSQL schema.          | psycopg2                               |
+| **database/seed_data.py**  | Python script to populate database with initial data.           | psycopg2                               |
+| **engine/app.py**          | Main Flask application file for the backend API.                | Flask, PyJWT, psycopg2                 |
+| **engine/worker.py**       | Python RQ worker for background tasks.                          | rq, redis                              |
+| **webapp/js/app.js**       | Main JavaScript file for frontend logic and interactivity.      | Vanilla JS, Fetch API                  |
+| **webapp/default.conf**    | Nginx configuration for serving frontend and proxying API.      | Nginx                                  |
+| **docker-compose.yml**     | Defines and configures multi-container local dev environment.   | Docker Compose                         |
+| **Makefile**               | Provides helper commands for building, running, testing.        | Make                                   |
 
 ---
 
 ## 3 · Data-Flow Specification
 
-### 3.1 Core Prisma Models
-
-```prisma
-model User {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  passwordHash    String
-  goalSlider      Float    @default(0.5)   // 0 = hypertrophy, 1 = strength
-  rirBias         Float    @default(2.0)
-  createdAt       DateTime @default(now())
-  workouts        Workout[]
-}
-
-model Workout {
-  id          String   @id @default(uuid())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
-  startedAt   DateTime
-  completedAt DateTime?
-  sessionRpe  Int?
-  sets        WorkoutSet[]
-}
-
-model WorkoutSet {
-  id                 String  @id @default(uuid())
-  workout            Workout @relation(fields: [workoutId], references: [id])
-  workoutId          String
-  exerciseId         String
-  setNumber          Int
-  recommendedWeight  Float
-  recommendedRepsLo  Int
-  recommendedRepsHi  Int
-  recommendedRir     Int
-  confidence         Float
-  actualWeight       Float?
-  actualReps         Int?
-  actualRir          Int?
-  completedAt        DateTime?
-  @@index([exerciseId, completedAt])
-}
-````
+### 3.1 Core Data Models
+The database schema is defined imperatively in `database/create_schema.py` using SQL commands. Key tables include `users`, `exercises`, `workouts`, and `workout_sets`. Refer to this script for detailed table structures and relationships.
 
 ### 3.2 `POST /recommendation` (API → Engine)
 
@@ -186,20 +149,23 @@ All endpoints validated with **zod** → automatic OpenAPI JSON.
 ## 6 · Dev Environment & Commands
 
 ```bash
-# spin up full stack
+# spin up full stack (web, engine, db, redis)
 make dev
 
-# run linters
-make lint      # eslint + ruff
+# run linters (ruff for Python, node --check for JS)
+make lint
 
-# run tests
-make test      # jest + pytest
+# run tests (pytest for engine and webapp tests)
+make test
 
-# DB migration (dev)
-pnpm db:migrate:dev
+# initialize/update database schema
+docker compose exec engine python database/create_schema.py
 
-# gRPC stubs regen
-make proto
+# seed initial data
+docker compose exec engine python database/seed_data.py
+
+# run background worker
+docker compose exec engine python -m engine.worker
 ```
 
 ---
@@ -260,25 +226,22 @@ make proto
 
 ## 11 · Dependencies (≥ Version)
 
-| Package                    | Purpose                  |
-| -------------------------- | ------------------------ |
-| **node** 18 LTS            | API & web runtime        |
-| **pnpm** 9.x               | Monorepo package manager |
-| **react** 19.x             | Front-end                |
-| **zustand** 4.x            | State management         |
-| **tailwindcss** 4.x        | Styles                   |
-| **express / fastify** 4    | API server               |
-| **prisma** 5.x             | ORM                      |
-| **grpc-tools** 1.63        | Proto codegen            |
-| **python** 3.11            | ML engine                |
-| **pytorch-lightning** 2    | Training loop            |
-| **pyro-ppl** 1.x           | Bayesian layers          |
-| **structlog** 24           | JSON logs                |
-| **ruff** 0.4               | Python linter            |
-| **jest** 30 / **pytest** 8 | Tests (TS / Py)          |
-| **open-telemetry** 1.26    | Tracing                  |
-| **sentry-sdk** 2.0         | Error tracking           |
-| **aws-cli / boto3**        | S3 model store           |
+| Package                    | Purpose                                  |
+| -------------------------- | ---------------------------------------- |
+| **Python** 3.11            | Backend engine and worker runtime        |
+| **Flask** 2.x              | Backend API framework                    |
+| **psycopg2-binary**        | PostgreSQL adapter for Python            |
+| **PyJWT**                  | JWT authentication                       |
+| **bcrypt**                 | Password hashing                         |
+| **rq**                     | Redis Queue for background tasks         |
+| **redis** (Python package) | Redis client for Python                  |
+| **Vanilla JavaScript (ES6+)** | Frontend logic                           |
+| **Nginx**                  | Web server and reverse proxy             |
+| **Docker / Docker Compose**| Containerization and local orchestration |
+| **PostgreSQL** 16          | Database                                 |
+| **Redis** (Server)         | In-memory store for task queue/cache     |
+| **pytest**                 | Python testing framework                 |
+| **ruff**                   | Python linter                            |
 
 ---
 

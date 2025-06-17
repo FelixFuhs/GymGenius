@@ -10,6 +10,8 @@ Thank you for considering a contribution! Whether you're fixing a typo, building
 
 ## 1 — Prerequisites
 
+**Note:** These contribution guidelines and prerequisites (Node, pnpm, TypeScript, Prisma) appear to be for a different or future version of the tech stack. The current primary codebase uses VanillaJS for the frontend and Python/Flask for the backend. Please refer to `HOW_TO_USE.md` and the `Makefile` for setting up and working with the current version. The `lint-web` command in the `Makefile` does use `node --check` for basic JavaScript syntax checking.
+
 | Tool | Version | Install |
 |------|---------|---------|
 | Node | ≥ 18.x  | <https://nodejs.org> |

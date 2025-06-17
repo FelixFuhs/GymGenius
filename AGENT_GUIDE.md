@@ -20,6 +20,8 @@
 
 ## 3 Coding Rules
 
+**Note:** Some tools and commands mentioned (e.g., `pnpm db:migrate:dev`) relate to a different or future tech stack (Node.js, Prisma). For the current Python/Flask backend and VanillaJS frontend, refer to the `Makefile` and standard practices for those technologies.
+
 * Run `make lint` → eslint/prettier must pass.
 * Generate code **inside the correct workspace path**; never touch `/node_modules`.
 * Follow folder mapping from `ARCHITECTURE.md` JSON.
