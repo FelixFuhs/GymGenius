@@ -107,9 +107,9 @@ def create_workout(user_id):
     # Optional fields from request, with defaults or None
     plan_day_id = data.get('plan_day_id')
     started_at = data.get('started_at') # Expect ISO format string if provided
-    fatigue_level_reported = data.get('fatigue_level_reported')
+    fatigue_level = data.get('fatigue_level')
     sleep_hours = data.get('sleep_hours')
-    stress_level_reported = data.get('stress_level_reported')
+    stress_level = data.get('stress_level')
     notes = data.get('notes')
 
     if started_at:
@@ -128,13 +128,13 @@ def create_workout(user_id):
             cur.execute(
                 """
                 INSERT INTO workouts (id, user_id, plan_day_id, started_at,
-                                      fatigue_level_reported, sleep_hours, stress_level_reported, notes,
+                                      fatigue_level, sleep_hours, stress_level, notes,
                                       created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                 RETURNING *;
                 """,
                 (workout_id, str(user_id), plan_day_id, started_at_dt,
-                 fatigue_level_reported, sleep_hours, stress_level_reported, notes)
+                 fatigue_level, sleep_hours, stress_level, notes)
             )
             new_workout = cur.fetchone()
             conn.commit()
