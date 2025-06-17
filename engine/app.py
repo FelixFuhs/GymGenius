@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import psycopg2
-import psycopg2.extras # For RealDictCursor
-from psycopg2 import pool # For connection pooling
+import psycopg2.extras  # For RealDictCursor
 import os
 from urllib.parse import urlparse # Add this import
 from datetime import timedelta
@@ -191,10 +190,10 @@ def handle_exception(e):
 
 
 # Import blueprints after pool initialization and app context is more stable
-from .blueprints.auth import auth_bp
-from .blueprints.workouts import workouts_bp
-from .blueprints.plans import plans_bp
-from .blueprints.analytics import analytics_bp
+from .blueprints.auth import auth_bp  # noqa: E402
+from .blueprints.workouts import workouts_bp  # noqa: E402
+from .blueprints.plans import plans_bp  # noqa: E402
+from .blueprints.analytics import analytics_bp  # noqa: E402
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(workouts_bp)

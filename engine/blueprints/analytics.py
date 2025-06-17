@@ -350,7 +350,6 @@ def trigger_training_pipeline_route():
 @jwt_required
 def get_plateau_analysis(user_id, exercise_id):
     from flask import g
-    from engine.progression import PlateauStatus
     # from engine.learning_models import calculate_current_fatigue, DEFAULT_RECOVERY_TAU_MAP, SessionRecord -> Already imported
 
     # Authorization

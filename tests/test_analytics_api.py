@@ -45,10 +45,10 @@ MOCK_MUSCLE_GROUP = "chest"
 
 # --- Test Cases for Plateau Analysis Endpoint ---
 
-@patch('engine.app.generate_deload_protocol')
-@patch('engine.app.detect_plateau')
-@patch('engine.app.calculate_current_fatigue')
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.generate_deload_protocol')
+@patch('engine.blueprints.analytics.detect_plateau')
+@patch('engine.blueprints.analytics.calculate_current_fatigue')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_success_no_plateau(
     mock_get_db_conn, mock_calc_fatigue, mock_detect_plateau, mock_gen_deload, client
 ):
@@ -90,10 +90,10 @@ def test_get_plateau_analysis_success_no_plateau(
     mock_detect_plateau.assert_called_once()
 
 
-@patch('engine.app.generate_deload_protocol')
-@patch('engine.app.detect_plateau')
-@patch('engine.app.calculate_current_fatigue')
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.generate_deload_protocol')
+@patch('engine.blueprints.analytics.detect_plateau')
+@patch('engine.blueprints.analytics.calculate_current_fatigue')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_success_stagnation_with_deload(
     mock_get_db_conn, mock_calc_fatigue, mock_detect_plateau, mock_gen_deload, client
 ):
@@ -135,10 +135,10 @@ def test_get_plateau_analysis_success_stagnation_with_deload(
         recent_fatigue_score=40.0
     )
 
-@patch('engine.app.generate_deload_protocol')
-@patch('engine.app.detect_plateau')
-@patch('engine.app.calculate_current_fatigue')
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.generate_deload_protocol')
+@patch('engine.blueprints.analytics.detect_plateau')
+@patch('engine.blueprints.analytics.calculate_current_fatigue')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_success_regression_with_deload(
     mock_get_db_conn, mock_calc_fatigue, mock_detect_plateau, mock_gen_deload, client
 ):
@@ -178,7 +178,7 @@ def test_get_plateau_analysis_success_regression_with_deload(
         recent_fatigue_score=60.0
     )
 
-@patch('engine.app.get_db_connection') # Only need to mock DB for this one
+@patch('engine.blueprints.analytics.get_db_connection') # Only need to mock DB for this one
 def test_get_plateau_analysis_insufficient_data(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -213,7 +213,7 @@ def test_get_plateau_analysis_forbidden_wrong_user(client):
     )
     assert response.status_code == 403
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_exercise_not_found(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -229,7 +229,7 @@ def test_get_plateau_analysis_exercise_not_found(mock_get_db_conn, client):
     assert response.status_code == 404
     assert f"Exercise with ID {MOCK_EXERCISE_ID} not found" in response.get_json()['error']
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_exercise_no_main_target_muscle_group(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -245,7 +245,7 @@ def test_get_plateau_analysis_exercise_no_main_target_muscle_group(mock_get_db_c
     assert response.status_code == 404
     assert "is missing 'main_target_muscle_group'" in response.get_json()['error']
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_db_error_exercise_fetch(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -262,7 +262,7 @@ def test_get_plateau_analysis_db_error_exercise_fetch(mock_get_db_conn, client):
     assert response.status_code == 500
     assert "Database operation failed" in response.get_json()['error']
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_db_error_1rm_history_fetch(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -287,7 +287,7 @@ def test_get_plateau_analysis_db_error_1rm_history_fetch(mock_get_db_conn, clien
     assert "Database operation failed" in response.get_json()['error']
 
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_get_plateau_analysis_db_error_fatigue_calc_related_fetch(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -331,7 +331,7 @@ def test_get_plateau_analysis_db_error_fatigue_calc_related_fetch(mock_get_db_co
     assert "Database operation failed" in response.get_json()['error']
 
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_1rm_evolution_success(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -367,7 +367,7 @@ def test_1rm_evolution_unauthorized(client):
     assert response.status_code == 401
 
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_volume_heatmap_success(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -392,7 +392,7 @@ def test_volume_heatmap_success(mock_get_db_conn, client):
     assert data[0]['muscle_group'] == 'chest'
 
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_key_metrics_success(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -420,7 +420,7 @@ def test_key_metrics_success(mock_get_db_conn, client):
     assert data['most_frequent_exercise']['name'] == 'Test Squat'
     assert data['most_frequent_exercise']['frequency'] == 15
 
-@patch('engine.app.get_db_connection')
+@patch('engine.blueprints.analytics.get_db_connection')
 def test_key_metrics_no_frequent_exercise(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
