@@ -1,5 +1,6 @@
 import pytest
 import uuid
+import json
 from unittest.mock import patch, MagicMock
 
 # Import the Flask app from engine.app
@@ -390,7 +391,6 @@ def test_update_workout_plan_without_structure_change_preserves_metrics(mock_get
     # Assert that metrics calculation and storage logic was NOT invoked with a new days_payload
     # This means no DELETE FROM plan_days and no INSERT/UPSERT to plan_metrics based on new calculations.
     delete_plan_days_called = False
-    plan_metrics_recalculated = False
     for call_args in mock_cursor.execute.call_args_list:
         sql_query = str(call_args.args[0]) # Ensure it's a string for searching
         if "DELETE FROM plan_days WHERE plan_id = %s;" == sql_query.strip() and call_args.args[1] == (MOCK_PLAN_ID,):

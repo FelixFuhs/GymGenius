@@ -1,6 +1,6 @@
 import uuid
 
-from engine.app import app
+from engine.blueprints import analytics as analytics_bp
 
 
 class FakeCursor:
@@ -64,8 +64,9 @@ def fake_fatigue(*args, **kwargs):
 
 
 def call_route(client, monkeypatch, *, user=True, exercise=True):
-    monkeypatch.setattr(app, "get_db_connection", lambda: FakeConn(user, exercise))
-    monkeypatch.setattr(app, "calculate_current_fatigue", fake_fatigue)
+    monkeypatch.setattr(analytics_bp, "get_db_connection", lambda: FakeConn(user, exercise))
+    monkeypatch.setattr(analytics_bp, "release_db_connection", lambda conn: None)
+    monkeypatch.setattr(analytics_bp, "calculate_current_fatigue", fake_fatigue)
     user_id = uuid.uuid4()
     exercise_id = uuid.uuid4()
     resp = client.get(

@@ -1,7 +1,77 @@
 import pytest
-import json
-from datetime import datetime, timedelta, timezone
-from unittest.mock import patch # For overriding datetime.now if needed for expiry tests
+from datetime import datetime, timezone
+from unittest.mock import patch  # For overriding datetime.now if needed for expiry tests
+import jwt
+from engine.blueprints import auth as auth_bp
+from engine.app import app
+
+
+class FakeAuthCursor:
+    def __init__(self, conn):
+        self.conn = conn
+        self.result = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        pass
+
+    def execute(self, query, params=None):
+        q = query.lower()
+        if "select id from users" in q:
+            email = params[0].lower()
+            user = self.conn.users.get(email)
+            self.result = {"id": user["id"]} if user else None
+        elif "insert into users" in q:
+            user_id, email, pw_hash = params
+            self.conn.users[email.lower()] = {
+                "id": user_id,
+                "email": email,
+                "password_hash": pw_hash,
+            }
+            self.result = {
+                "id": user_id,
+                "email": email,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        elif "select id, password_hash from users" in q:
+            email = params[0].lower()
+            user = self.conn.users.get(email)
+            self.result = {
+                "id": user["id"],
+                "password_hash": user["password_hash"],
+            } if user else None
+        elif "insert into user_refresh_tokens" in q:
+            user_id, token = params
+            self.conn.refresh_tokens[token] = user_id
+            self.result = None
+        elif "select token from user_refresh_tokens" in q:
+            user_id, token = params
+            self.result = {"token": token} if self.conn.refresh_tokens.get(token) == user_id else None
+        else:
+            self.result = None
+
+    def fetchone(self):
+        return self.result
+
+    def fetchall(self):
+        return []
+
+
+class FakeAuthConn:
+    def __init__(self):
+        self.users = {}
+        self.refresh_tokens = {}
+
+    def cursor(self, cursor_factory=None):
+        return FakeAuthCursor(self)
+
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
 
 # Assuming conftest.py provides a 'client' fixture and 'app' fixture
 # Also assuming a way to create users, e.g., a utility function or direct DB interaction for setup.
@@ -19,6 +89,16 @@ def login_user(client, email, password):
         'email': email,
         'password': password
     })
+
+
+@pytest.fixture(autouse=True)
+def mock_auth_db(monkeypatch):
+    """Provide a fake database layer for auth endpoints."""
+    conn = FakeAuthConn()
+    app.config['JWT_SECRET_KEY'] = 'test-secret-key'
+    monkeypatch.setattr(auth_bp, 'get_db_connection', lambda: conn)
+    monkeypatch.setattr(auth_bp, 'release_db_connection', lambda _conn: None)
+    yield conn
 
 @pytest.fixture(scope='function')
 def test_user(client):
