@@ -6,10 +6,19 @@ from ..app import (
     logger,
 )
 # Corrected imports for progression and learning_models
-from engine.progression import detect_plateau, generate_deload_protocol, update_user_rir_bias, PlateauStatus
-from engine.learning_models import calculate_current_fatigue, DEFAULT_RECOVERY_TAU_MAP, SessionRecord
+from engine.progression import (
+    detect_plateau,
+    generate_deload_protocol,
+    PlateauStatus,
+)
+from engine.learning_models import (
+    update_user_rir_bias,
+    calculate_current_fatigue,
+    DEFAULT_RECOVERY_TAU_MAP,
+    SessionRecord,
+)
 
-from predictions import extended_epley_1rm
+from engine.predictions import extended_epley_1rm
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
