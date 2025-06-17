@@ -6,3 +6,4 @@ PyJWT
 
 rq
 redis
+psycopg2-binary
