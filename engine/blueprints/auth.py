@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from ..app import get_db_connection, jwt_required, logger
+from ..app import get_db_connection, release_db_connection, jwt_required, logger
 import psycopg2
 import psycopg2.extras
 import uuid
@@ -61,7 +61,7 @@ def register_user():
         return jsonify(error="An unexpected error occurred during registration"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @auth_bp.route('/v1/auth/login', methods=['POST'])
 def login_user():
@@ -92,8 +92,22 @@ def login_user():
                 }
                 access_token = jwt.encode(token_payload, current_app.config['JWT_SECRET_KEY'], algorithm="HS256")
 
+                # Generate Refresh Token
+                refresh_token_payload = {
+                    'user_id': str(user_record['id']),
+                    'exp': datetime.now(timezone.utc) + current_app.config['JWT_REFRESH_TOKEN_EXPIRES']
+                }
+                refresh_token = jwt.encode(refresh_token_payload, current_app.config['JWT_SECRET_KEY'], algorithm="HS256")
+
+                # Store refresh token in the database
+                cur.execute(
+                    "INSERT INTO user_refresh_tokens (user_id, token) VALUES (%s, %s)",
+                    (user_record['id'], refresh_token)
+                )
+                conn.commit()
+
                 logger.info(f"User logged in successfully: {email}")
-                return jsonify(access_token=access_token), 200
+                return jsonify(access_token=access_token, refresh_token=refresh_token), 200
             else:
                 logger.warning(f"Login attempt failed for email (invalid password): {email}")
                 return jsonify(error="Invalid credentials"), 401
@@ -106,7 +120,79 @@ def login_user():
         return jsonify(error="An unexpected error occurred during login"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
+
+@auth_bp.route('/v1/auth/refresh', methods=['POST'])
+def refresh_token():
+    data = request.get_json()
+    if not data or not data.get('refresh_token'):
+        return jsonify(error="Refresh token is required"), 400
+
+    refresh_token_from_request = data['refresh_token']
+    conn = None
+    try:
+        # Decode the refresh token to check expiry and get user_id
+        payload = jwt.decode(
+            refresh_token_from_request,
+            current_app.config['JWT_SECRET_KEY'],
+            algorithms=["HS256"]
+        )
+        user_id = payload['user_id']
+
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Check if the refresh token exists in the database for the user
+            cur.execute(
+                "SELECT token FROM user_refresh_tokens WHERE user_id = %s AND token = %s",
+                (user_id, refresh_token_from_request)
+            )
+            stored_token = cur.fetchone()
+
+            if not stored_token:
+                logger.warning(f"Refresh token not found in DB or mismatch for user_id: {user_id}")
+                # It's good practice to invalidate all refresh tokens for this user if a potentially compromised token is used.
+                # cur.execute("DELETE FROM user_refresh_tokens WHERE user_id = %s", (user_id,))
+                # conn.commit()
+                return jsonify(error="Invalid or expired refresh token"), 401
+
+            # Token is valid and found in DB, issue a new access token
+            access_token_payload = {
+                'user_id': user_id,
+                'exp': datetime.now(timezone.utc) + current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
+            }
+            new_access_token = jwt.encode(
+                access_token_payload,
+                current_app.config['JWT_SECRET_KEY'],
+                algorithm="HS256"
+            )
+            logger.info(f"Access token refreshed for user_id: {user_id}")
+            return jsonify(access_token=new_access_token), 200
+
+    except jwt.ExpiredSignatureError:
+        logger.warning("Expired refresh token presented.")
+        # Optionally, remove the expired token from DB
+        # payload = jwt.decode(refresh_token_from_request, algorithms=["HS256"], options={"verify_signature": False, "verify_exp": False}) # decode without verification to get user_id if needed for cleanup
+        # if conn and payload and 'user_id' in payload:
+        #     with conn.cursor() as cur: # Re-use or get new cursor
+        #         cur.execute("DELETE FROM user_refresh_tokens WHERE token = %s", (refresh_token_from_request,))
+        #         conn.commit()
+        return jsonify(error="Refresh token has expired"), 401
+    except jwt.InvalidTokenError as e:
+        logger.error(f"Invalid refresh token: {e}")
+        return jsonify(error="Invalid refresh token"), 401
+    except psycopg2.Error as e:
+        logger.error(f"Database error during token refresh: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify(error="Database operation failed during token refresh"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error during token refresh: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return jsonify(error="An unexpected error occurred during token refresh"), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
 
 # --- User Profile Management APIs (P1-BE-009) ---
 @auth_bp.route('/v1/users/<uuid:user_id>/profile', methods=['GET'])
@@ -147,7 +233,7 @@ def get_user_profile(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @auth_bp.route('/v1/users/<uuid:user_id>/profile', methods=['PUT'])
 @jwt_required
@@ -238,6 +324,6 @@ def update_user_profile(user_id):
         return jsonify(error="An unexpected error occurred during profile update"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 

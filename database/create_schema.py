@@ -68,6 +68,15 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- User Refresh Tokens Table
+CREATE TABLE IF NOT EXISTS user_refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Exercises Table
 CREATE TABLE IF NOT EXISTS exercises (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -127,7 +136,8 @@ CREATE TABLE IF NOT EXISTS plan_exercises (
 CREATE TABLE IF NOT EXISTS plan_metrics (
     plan_id UUID PRIMARY KEY REFERENCES workout_plans(id) ON DELETE CASCADE,
     total_volume INTEGER DEFAULT 0,
-    muscle_group_frequency JSONB DEFAULT '{}'
+    muscle_group_frequency JSONB DEFAULT '{}',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Workouts Table (Log of actual workout sessions)
@@ -210,6 +220,8 @@ CREATE INDEX IF NOT EXISTS idx_1rm_history_user_exercise_date ON estimated_1rm_h
 CREATE INDEX IF NOT EXISTS idx_muscle_recovery_user_muscle_group ON muscle_recovery_patterns(user_id, muscle_group);
 CREATE INDEX IF NOT EXISTS idx_plateau_events_user_exercise ON plateau_events(user_id, exercise_id);
 CREATE INDEX IF NOT EXISTS idx_exercises_main_target_muscle_group ON exercises(main_target_muscle_group); -- Index for the new column
+CREATE INDEX IF NOT EXISTS idx_user_refresh_tokens_user_id ON user_refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_refresh_tokens_token ON user_refresh_tokens(token); -- Explicit index for the unique token
 
 -- Trigger function to update 'updated_at' columns
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
@@ -228,6 +240,11 @@ EXECUTE FUNCTION trigger_set_timestamp();
 
 CREATE TRIGGER set_timestamp_workout_plans
 BEFORE UPDATE ON workout_plans
+FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp();
+
+CREATE TRIGGER set_timestamp_plan_metrics
+BEFORE UPDATE ON plan_metrics
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 """
