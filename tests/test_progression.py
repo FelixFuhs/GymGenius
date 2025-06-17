@@ -76,35 +76,39 @@ class TestProgressionUtils(unittest.TestCase):
         self.assertIsInstance(proto, list)
         self.assertGreaterEqual(len(proto), 1)
         self.assertIn("week_number", proto[0])
-        self.assertIn("intensity_modifier", proto[0])
-        self.assertIn("volume_modifier", proto[0])
-        self.assertIn("frequency_modifier", proto[0]) # Assuming this key exists
+        self.assertIn("intensity_multiplier", proto[0])
+        self.assertIn("volume_multiplier", proto[0])
+        self.assertIn("frequency_multiplier", proto[0])  # Assuming this key exists
         self.assertIn("notes", proto[0])
 
     def test_generate_deload_protocol_mild_stagnation_low_fatigue(self):
         protocol = generate_deload_protocol(plateau_severity=0.3, recent_fatigue_score=20, deload_duration_weeks=1)
         self.assertEqual(len(protocol), 1) # 1 week duration
         # Expect moderate reduction for mild stagnation, low fatigue might mean less aggressive deload
-        self.assertTrue(0.85 <= protocol[0]["intensity_modifier"] < 0.95) # e.g. 0.9
-        self.assertTrue(0.75 <= protocol[0]["volume_modifier"] < 0.9)    # e.g. 0.8
+        self.assertTrue(0.85 <= protocol[0]["intensity_multiplier"] < 0.95)  # e.g. 0.9
+        self.assertTrue(0.75 <= protocol[0]["volume_multiplier"] < 0.9)    # e.g. 0.8
         # Frequency might not change or reduce slightly
-        self.assertTrue(0.8 <= protocol[0]["frequency_modifier"] <= 1.0)
+        self.assertTrue(0.8 <= protocol[0]["frequency_multiplier"] <= 1.0)
 
     def test_generate_deload_protocol_severe_regression_high_fatigue(self):
         protocol = generate_deload_protocol(plateau_severity=0.8, recent_fatigue_score=70, deload_duration_weeks=2)
         self.assertEqual(len(protocol), 2) # 2 weeks duration
         # Expect significant reductions for severe regression and high fatigue
         week1 = protocol[0]
-        self.assertTrue(0.70 <= week1["intensity_modifier"] < 0.85) # e.g. 0.75-0.8
-        self.assertTrue(0.50 <= week1["volume_modifier"] < 0.70)    # e.g. 0.6
+        self.assertTrue(0.70 <= week1["intensity_multiplier"] < 0.85)  # e.g. 0.75-0.8
+        self.assertTrue(0.50 <= week1["volume_multiplier"] < 0.70)    # e.g. 0.6
         # Frequency likely reduced
-        self.assertTrue(0.5 <= week1["frequency_modifier"] < 1.0)
+        self.assertTrue(0.5 <= week1["frequency_multiplier"] < 1.0)
 
         # Week 2 might be slightly less aggressive than week 1 or similar
         if len(protocol) > 1:
             week2 = protocol[1]
-            self.assertTrue(week1["intensity_modifier"] <= week2["intensity_modifier"] <= week1["intensity_modifier"] + 0.1) # Ramp up slightly or stay
-            self.assertTrue(week1["volume_modifier"] <= week2["volume_modifier"] <= week1["volume_modifier"] + 0.1)
+            self.assertTrue(
+                week1["intensity_multiplier"] <= week2["intensity_multiplier"] <= week1["intensity_multiplier"] + 0.1
+            )  # Ramp up slightly or stay
+            self.assertTrue(
+                week1["volume_multiplier"] <= week2["volume_multiplier"] <= week1["volume_multiplier"] + 0.1
+            )
 
     def test_generate_deload_protocol_default_values(self):
         # Test with default parameters to ensure it runs and produces a sensible output
@@ -114,8 +118,8 @@ class TestProgressionUtils(unittest.TestCase):
         # Check if default severity (0.5) and fatigue (50) produce expected ballpark modifiers
         # These values depend on the internal logic of generate_deload_protocol
         # Example expectations for severity=0.5, fatigue=50:
-        self.assertTrue(0.80 <= protocol[0]["intensity_modifier"] <= 0.90)
-        self.assertTrue(0.60 <= protocol[0]["volume_modifier"] <= 0.80)
+        self.assertTrue(0.80 <= protocol[0]["intensity_multiplier"] <= 0.90)
+        self.assertTrue(0.60 <= protocol[0]["volume_multiplier"] <= 0.80)
 
 
     def test_confidence_score_bounds(self):
