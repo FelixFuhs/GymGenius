@@ -49,6 +49,7 @@ else:
 SQL_COMMANDS = """
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
