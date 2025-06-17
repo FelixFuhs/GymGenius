@@ -43,19 +43,31 @@ git clone https://github.com/your-org/gymgenius.git
 cd gymgenius
 
 # 1.1 Configure environment variables
-cp .env.example .env  # then fill in JWT and Postgres settings
+cp .env.example .env  # then fill in JWT and Postgres settings (see Environment Variables section)
 
-# 2 Spin up full stack (API + DB + ML worker + Web)
+# 2 Spin up full stack (API + DB + Web)
 make dev            # alias for `docker compose up --build`
 
-# 3 Visit the app
+# 3 Set up the database (Run these in a separate terminal after 'make dev' has started the DB)
+# Ensure the 'db' service is running before executing these:
+docker compose exec engine python database/create_schema.py
+docker compose exec engine python database/seed_data.py # For initial exercise list, etc.
+
+# 4 Visit the app
 open http://localhost:8000
 ```
 
-> **Prerequisites**: Docker ≥ 24, Python 3.11, Make, GNU Bash (macOS/Linux) or WSL 2 (Windows).
+> **Prerequisites**: Docker ≥ 24, Python 3.11, Make, GNU Bash (macOS/Linux) or WSL 2 (Windows), Redis (for background worker functionality).
 
-To process background training jobs separately, run the worker:
+To process background training jobs, such as updating user analytics or running machine learning model updates, GymGenius uses a separate worker process. This worker relies on Redis for task queuing.
 
+**Important:** Ensure you have a Redis server running and accessible to the `engine` service for the worker to function correctly. (Instructions for adding Redis to the local `docker-compose` setup will be part of the setup improvements - Step 2 of the plan).
+
+Once Redis is available, run the worker in a separate terminal:
+```bash
+docker compose exec engine python -m engine.worker
+```
+Alternatively, if you are running the engine service outside of Docker locally (e.g. for debugging) and have your Python environment set up, you can run:
 ```bash
 python -m engine.worker
 ```

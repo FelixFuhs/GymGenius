@@ -11,13 +11,15 @@ flowchart LR
     end
     subgraph Docker Compose Network
         B(Flask API & Engine<br/>Python 3.11)
+        R[Redis Cache/Queue]
     end
     subgraph Data Layer
-        E[(PostgreSQL 13)]
+        E[(PostgreSQL 16)]
     end
 
     A -- REST/JSON --> B
     B -- SQL --> E
+    B -- RQ Jobs --> R
 ```
 
 ## 2 Service Registry (machine-readable)
@@ -37,11 +39,12 @@ flowchart LR
       "path": "engine",
       "lang": "python",
       "port": 5000,
-      "depends_on": ["postgres"]
+      "depends_on": ["postgres", "redis"]
     }
   ],
   "datastores": [
-    { "name": "postgres", "type": "sql", "image": "postgres:13" }
+    { "name": "postgres", "type": "sql", "image": "postgres:16-alpine" },
+    { "name": "redis", "type": "key-value", "image": "redis:alpine" }
   ]
 }
 ```
