@@ -18,7 +18,7 @@ from engine.learning_models import (
     SessionRecord,
 )
 
-from engine.predictions import extended_epley_1rm, round_to_available_plates, calculate_confidence_score
+from engine.predictions import extended_epley_1rm, round_to_available_plates, calculate_confidence_score, estimate_1rm_with_rir_bias
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
@@ -251,38 +251,64 @@ def recommend_set_parameters_route(user_id, exercise_id):
             if not main_target_muscle_group:
                  return jsonify(error=f"Exercise '{exercise_name}' is missing 'main_target_muscle_group'."), 500
 
-            cur.execute("""
-                SELECT estimated_1rm FROM estimated_1rm_history
-                WHERE user_id = %s AND exercise_id = %s
-                ORDER BY calculated_at DESC
-                LIMIT 1;
-            """, (user_id_str, exercise_id_str))
+            # Fetch 1RM history, including source data for potential recalculation
+            cur.execute(
+                "SELECT estimated_1rm, source_weight, source_reps, source_rir "
+                "FROM estimated_1rm_history "
+                "WHERE user_id = %s AND exercise_id = %s "
+                "ORDER BY calculated_at DESC LIMIT 1;",
+                (user_id_str, exercise_id_str)
+            )
             e1rm_data = cur.fetchone()
-            estimated_1rm = None
-            e1rm_source = None
-            if e1rm_data:
-                estimated_1rm = float(e1rm_data['estimated_1rm'])
-                e1rm_source = "history"
-            else:
-                # No history, try to use smart defaults
-                exercise_key = exercise_name.lower().replace(' ', '_') # Normalize exercise name for lookup
-                if exercise_key in EXERCISE_DEFAULT_1RM:
-                    if user_experience_level in EXERCISE_DEFAULT_1RM[exercise_key]:
-                        estimated_1rm = EXERCISE_DEFAULT_1RM[exercise_key][user_experience_level]
-                        e1rm_source = f"{user_experience_level}_default_for_{exercise_key}"
-                    else:
-                        # Exercise is known, but experience level isn't a category in its defaults
-                        # Fallback to 'intermediate' for that exercise if available, else generic fallback
-                        if 'intermediate' in EXERCISE_DEFAULT_1RM[exercise_key]:
-                            estimated_1rm = EXERCISE_DEFAULT_1RM[exercise_key]['intermediate']
-                            e1rm_source = f"intermediate_default_for_{exercise_key}"
-                        else: # Should not happen if defaults are structured well
-                            estimated_1rm = FALLBACK_DEFAULT_1RM
-                            e1rm_source = "fallback_default_no_level_match"
 
-                if estimated_1rm is None: # If still None, use the generic fallback
+            estimated_1rm = None
+            e1rm_source = "default" # Default e1rm_source before specific logic
+
+            if e1rm_data:
+                source_weight_val = e1rm_data.get('source_weight')
+                source_reps_val = e1rm_data.get('source_reps')
+                source_rir_val = e1rm_data.get('source_rir')
+
+                if source_weight_val is not None and source_reps_val is not None and source_rir_val is not None:
+                    try:
+                        estimated_1rm = estimate_1rm_with_rir_bias(
+                            float(source_weight_val),
+                            int(source_reps_val),
+                            int(source_rir_val),
+                            user_rir_bias
+                        )
+                        e1rm_source = "history_recalculated_w_bias"
+                    except ValueError: # Catch potential errors from int/float conversion if data is bad
+                        estimated_1rm = float(e1rm_data['estimated_1rm'])
+                        e1rm_source = "history_recalc_conversion_failed"
+                    except Exception: # Catch any other error from estimate_1rm_with_rir_bias
+                        estimated_1rm = float(e1rm_data['estimated_1rm'])
+                        e1rm_source = "history_recalc_failed"
+                else:
+                    estimated_1rm = float(e1rm_data['estimated_1rm'])
+                    e1rm_source = "history_no_source_for_bias"
+
+            if estimated_1rm is None: # If no history, or if history processing failed to set estimated_1rm
+                # Fallback to smart default logic
+                exercise_key = exercise_name.lower().replace(' ', '_')
+
+                default_levels = EXERCISE_DEFAULT_1RM.get(exercise_key)
+                if default_levels:
+                    estimated_1rm = default_levels.get(user_experience_level)
+                    if estimated_1rm is not None:
+                        e1rm_source = f"{user_experience_level}_default_for_{exercise_key}" # Made source more specific like before
+                    else:
+                        estimated_1rm = default_levels.get('intermediate')
+                        if estimated_1rm is not None:
+                            e1rm_source = f"intermediate_default_for_{exercise_key}" # Made source more specific
+                        else: # Should not happen if defaults are structured well (e.g. intermediate always present)
+                            estimated_1rm = FALLBACK_DEFAULT_1RM
+                            e1rm_source = "fallback_default_no_intermediate_match"
+
+                if estimated_1rm is None:
                     estimated_1rm = FALLBACK_DEFAULT_1RM
                     e1rm_source = "fallback_default_exercise_unknown"
+
 
             user_recovery_multiplier = 1.0
             if isinstance(recovery_multipliers_data, dict): # Check if dict
