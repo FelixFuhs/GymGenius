@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from ..app import get_db_connection, jwt_required, logger
+from ..app import get_db_connection, release_db_connection, jwt_required, logger
 import psycopg2
 import psycopg2.extras
 import uuid
@@ -64,7 +64,7 @@ def list_exercises():
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @workouts_bp.route('/v1/exercises/<uuid:exercise_id>', methods=['GET'])
 def get_exercise_details(exercise_id):
@@ -90,7 +90,7 @@ def get_exercise_details(exercise_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Basic CRUD APIs for Workout Logging (P1-BE-011) ---
 @workouts_bp.route('/v1/users/<uuid:user_id>/workouts', methods=['POST'])
@@ -153,7 +153,7 @@ def create_workout(user_id):
         return jsonify(error="An unexpected error occurred creating workout"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @workouts_bp.route('/v1/users/<uuid:user_id>/workouts', methods=['GET'])
 @jwt_required
@@ -207,7 +207,7 @@ def get_workouts_for_user(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @workouts_bp.route('/v1/workouts/<uuid:workout_id>', methods=['GET'])
 @jwt_required
@@ -253,7 +253,7 @@ def get_single_workout(workout_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @workouts_bp.route('/v1/workouts/<uuid:workout_id>/sets', methods=['POST'])
 @jwt_required
@@ -336,5 +336,5 @@ def log_set_to_workout(workout_id):
         return jsonify(error="An unexpected error occurred logging set"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 

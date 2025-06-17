@@ -1,15 +1,14 @@
 from flask import Blueprint, request, jsonify
 from ..app import (
     get_db_connection,
+    release_db_connection,
     jwt_required,
     logger,
-    detect_plateau,
-    generate_deload_protocol,
-    update_user_rir_bias,
-    calculate_current_fatigue,
-    DEFAULT_RECOVERY_TAU_MAP,
-    SessionRecord,
 )
+# Corrected imports for progression and learning_models
+from engine.progression import detect_plateau, generate_deload_protocol, update_user_rir_bias, PlateauStatus
+from engine.learning_models import calculate_current_fatigue, DEFAULT_RECOVERY_TAU_MAP, SessionRecord
+
 from predictions import extended_epley_1rm
 import psycopg2
 import psycopg2.extras
@@ -102,7 +101,7 @@ def rir_bias_update_route(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @analytics_bp.route('/v1/user/<uuid:user_id>/fatigue-status', methods=['GET'])
 def fatigue_status_route(user_id):
@@ -183,7 +182,7 @@ def fatigue_status_route(user_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @analytics_bp.route('/v1/user/<uuid:user_id>/exercise/<uuid:exercise_id>/recommend-set-parameters', methods=['GET'])
 def recommend_set_parameters_route(user_id, exercise_id):
@@ -312,7 +311,7 @@ def recommend_set_parameters_route(user_id, exercise_id):
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Workout Plan Builder Endpoints ---
 @analytics_bp.route('/v1/system/trigger-training-pipeline', methods=['POST'])
@@ -512,7 +511,7 @@ def get_plateau_analysis(user_id, exercise_id):
         return jsonify(error="An unexpected error occurred during analysis."), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 
 @analytics_bp.route('/v1/users/<uuid:user_id>/analytics/1rm-evolution', methods=['GET'])
@@ -559,7 +558,7 @@ def get_1rm_evolution(user_id):
         return jsonify(error="Database error during analytics fetch."), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 
 @analytics_bp.route('/v1/users/<uuid:user_id>/analytics/volume-heatmap', methods=['GET'])
@@ -610,7 +609,7 @@ def get_volume_heatmap(user_id):
         return jsonify(error="Database error during analytics fetch."), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 
 @analytics_bp.route('/v1/users/<uuid:user_id>/analytics/key-metrics', methods=['GET'])
@@ -650,12 +649,35 @@ def get_key_metrics(user_id):
             avg_rpe_row = cur.fetchone()
             avg_rpe = float(avg_rpe_row["avg"] or 0)
 
+            # Calculate Most Frequent Exercise
+            cur.execute(
+                """
+                SELECT e.name AS exercise_name, COUNT(ws.exercise_id) AS frequency
+                FROM workout_sets ws
+                JOIN workouts w ON ws.workout_id = w.id
+                JOIN exercises e ON ws.exercise_id = e.id
+                WHERE w.user_id = %s
+                GROUP BY e.name
+                ORDER BY frequency DESC
+                LIMIT 1;
+                """,
+                (str(user_id),),
+            )
+            most_frequent_exercise_row = cur.fetchone()
+            most_frequent_exercise = None
+            if most_frequent_exercise_row:
+                most_frequent_exercise = {
+                    "name": most_frequent_exercise_row["exercise_name"],
+                    "frequency": int(most_frequent_exercise_row["frequency"]),
+                }
+
         return (
             jsonify(
                 {
                     "total_workouts": total_workouts,
                     "total_volume": total_volume,
-                    "avg_session_rpe": avg_rpe,
+                    "avg_session_rpe": round(avg_rpe, 2) if avg_rpe else 0, # Ensure rounding for avg
+                    "most_frequent_exercise": most_frequent_exercise,
                 }
             ),
             200,
@@ -668,5 +690,5 @@ def get_key_metrics(user_id):
         return jsonify(error="Database error during analytics fetch."), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 

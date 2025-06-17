@@ -245,6 +245,175 @@ def test_update_workout_plan_success(mock_get_db_conn, client):
     assert response.get_json()['name'] == 'Updated Plan Name'
 
 @patch('engine.app.get_db_connection')
+def test_update_workout_plan_with_structure_change_updates_metrics(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+    # Mock fetching owner
+    mock_owner_check = {'user_id': uuid.UUID(MOCK_USER_ID)}
+    # Mock exercise details for metric calculation
+    mock_exercise_detail_leg = {'main_target_muscle_group': 'Legs'}
+    mock_exercise_detail_chest = {'main_target_muscle_group': 'Chest'}
+
+    # Mock return values for various execute calls:
+    # 1. Ownership check
+    # 2. Updated plan data (after workout_plans table update)
+    # 3. Exercise detail for 'Legs' exercise (during metrics calculation)
+    # 4. Exercise detail for 'Chest' exercise (during metrics calculation)
+    # 5. Final fetch of updated plan for response (SELECT * from workout_plans)
+    # 6. Fetch plan_days for response
+    # 7. Fetch plan_exercises for day 1
+    # 8. Fetch plan_exercises for day 2 (if any)
+    # 9. Fetch metrics for response
+    updated_plan_base_data = {'id': MOCK_PLAN_ID, 'user_id': MOCK_USER_ID, 'name': 'Updated Plan Structure'}
+
+    mock_cursor.fetchone.side_effect = [
+        mock_owner_check,          # Initial ownership check
+        updated_plan_base_data,    # Result of UPDATE workout_plans ... RETURNING *
+        mock_exercise_detail_leg,  # For metrics: exercise_id_1 (Squat)
+        mock_exercise_detail_chest,# For metrics: exercise_id_2 (Bench Press)
+        updated_plan_base_data,    # For rebuilding response: SELECT * from workout_plans
+        {'total_volume': 7, 'muscle_group_frequency': {'Legs': 1, 'Chest': 1}} # For rebuilding response: SELECT from plan_metrics
+    ]
+    # Mock fetchall for plan days and exercises when rebuilding response
+    mock_cursor.fetchall.side_effect = [
+        [ # Plan days for response
+            {'id': 'new_day_id_1', 'plan_id': MOCK_PLAN_ID, 'day_number': 1, 'name': 'New Day 1'},
+        ],
+        [ # Plan exercises for new_day_id_1 for response
+            {'exercise_id': 'exercise_id_1', 'exercise_name': 'Squat', 'sets': 4},
+            {'exercise_id': 'exercise_id_2', 'exercise_name': 'Bench Press', 'sets': 3}
+        ]
+    ]
+
+
+    token = generate_jwt_token(MOCK_USER_ID)
+    updated_plan_payload = {
+        'name': 'Updated Plan Structure', # Optional: can also update name
+        'days': [
+            {
+                'day_number': 1,
+                'name': 'New Day 1',
+                'exercises': [
+                    {'exercise_id': 'exercise_id_1', 'sets': 4, 'order_index': 0, 'reps': 5}, # e.g., Squat
+                    {'exercise_id': 'exercise_id_2', 'sets': 3, 'order_index': 1, 'reps': 5}  # e.g., Bench Press
+                ]
+            }
+            # Potentially more days
+        ]
+    }
+
+    response = client.put(
+        f'/v1/plans/{MOCK_PLAN_ID}',
+        headers={'Authorization': f'Bearer {token}'},
+        json=updated_plan_payload
+    )
+
+    assert response.status_code == 200
+    response_data = response.get_json()
+    assert response_data['name'] == 'Updated Plan Structure'
+    assert response_data['total_volume'] == 7
+    assert response_data['muscle_group_frequency']['Legs'] == 1
+    assert response_data['muscle_group_frequency']['Chest'] == 1
+
+    # Verify that plan_metrics upsert was called with correct calculated values
+    plan_metrics_upsert_called = False
+    for call_args in mock_cursor.execute.call_args_list:
+        sql_query = call_args.args[0]
+        if "INSERT INTO plan_metrics" in sql_query and "ON CONFLICT (plan_id) DO UPDATE" in sql_query:
+            plan_metrics_upsert_called = True
+            # args passed to execute: (sql, params)
+            params = call_args.args[1]
+            assert params[0] == MOCK_PLAN_ID  # plan_id
+            assert params[1] == 7             # total_volume
+            assert params[2].adapted == json.dumps({'Legs': 1, 'Chest': 1}) # muscle_group_frequency
+            break
+    assert plan_metrics_upsert_called, "Plan metrics upsert was not called"
+
+    # Verify that existing plan_days were deleted
+    delete_plan_days_called = any("DELETE FROM plan_days WHERE plan_id = %s;" in str(c.args[0]) and c.args[1] == (MOCK_PLAN_ID,) for c in mock_cursor.execute.call_args_list)
+    assert delete_plan_days_called, "DELETE FROM plan_days was not called"
+
+@patch('engine.app.get_db_connection')
+def test_update_workout_plan_without_structure_change_preserves_metrics(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+    # Mock fetching owner
+    mock_owner_check = {'user_id': uuid.UUID(MOCK_USER_ID)}
+    # Mock data for the plan being updated (name only)
+    updated_plan_data = {'id': MOCK_PLAN_ID, 'user_id': MOCK_USER_ID, 'name': 'Only Name Updated'}
+
+    # Side effects for fetchone:
+    # 1. Ownership check
+    # 2. Result of UPDATE workout_plans RETURNING *
+    # 3. (If response rebuilds metrics) SELECT from plan_metrics
+    # For this test, we are asserting metrics are NOT recalculated from days payload.
+    # So, the plan details returned might or might not include metrics based on prior state.
+    # The key is that _calculate_and_store_plan_metrics is NOT called with new days_payload.
+
+    # If the endpoint's response always includes metrics, we need to provide them.
+    # Assume the plan had some metrics previously.
+    existing_metrics = {'total_volume': 10, 'muscle_group_frequency': {'Back': 2}}
+
+    mock_cursor.fetchone.side_effect = [
+        mock_owner_check,
+        updated_plan_data, # After UPDATE workout_plans
+        existing_metrics # When fetching metrics for the response
+    ]
+    # If full plan details are refetched for response (days and exercises)
+    mock_cursor.fetchall.side_effect = [
+        [], # No plan days (or mock them if needed for full response validation)
+    ]
+
+
+    token = generate_jwt_token(MOCK_USER_ID)
+    update_payload = {
+        'name': 'Only Name Updated'
+        # 'days' array is NOT included in this payload
+    }
+
+    response = client.put(
+        f'/v1/plans/{MOCK_PLAN_ID}',
+        headers={'Authorization': f'Bearer {token}'},
+        json=update_payload
+    )
+
+    assert response.status_code == 200
+    response_data = response.get_json()
+    assert response_data['name'] == 'Only Name Updated'
+
+    # Assert that metrics calculation and storage logic was NOT invoked with a new days_payload
+    # This means no DELETE FROM plan_days and no INSERT/UPSERT to plan_metrics based on new calculations.
+    delete_plan_days_called = False
+    plan_metrics_recalculated = False
+    for call_args in mock_cursor.execute.call_args_list:
+        sql_query = str(call_args.args[0]) # Ensure it's a string for searching
+        if "DELETE FROM plan_days WHERE plan_id = %s;" == sql_query.strip() and call_args.args[1] == (MOCK_PLAN_ID,):
+            delete_plan_days_called = True
+        # Check if the specific UPSERT for metrics was called (distinguish from initial creation if any)
+        # This check is tricky if the helper is always called.
+        # The key is that the _calculate_and_store_plan_metrics helper is not called with a NEW days_payload from request.
+        # The current implementation of update_workout_plan only processes days IF 'days' in data.
+        # So, we mainly check that plan_days are not deleted.
+
+    assert not delete_plan_days_called, "DELETE FROM plan_days was called, indicating structure change was processed."
+
+    # To be very sure metrics weren't recalculated from a non-existent days_payload,
+    # one might need to inspect calls to _calculate_and_store_plan_metrics if it were a mockable object,
+    # or ensure the UPSERT to plan_metrics wasn't made with values derived from an empty/default days_payload.
+    # The absence of `DELETE FROM plan_days` is a strong indicator.
+    # The response should still contain the old metrics.
+    if existing_metrics: # If we mocked that the plan had metrics
+        assert response_data.get('total_volume') == existing_metrics['total_volume']
+        assert response_data.get('muscle_group_frequency') == existing_metrics['muscle_group_frequency']
+
+
+@patch('engine.app.get_db_connection')
 def test_delete_workout_plan_success(mock_get_db_conn, client):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()

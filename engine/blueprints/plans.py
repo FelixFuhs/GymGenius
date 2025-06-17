@@ -1,10 +1,57 @@
 from flask import Blueprint, request, jsonify
-from ..app import get_db_connection, jwt_required, logger
+from ..app import get_db_connection, release_db_connection, jwt_required, logger
 import psycopg2
 import psycopg2.extras
 import uuid
 
 plans_bp = Blueprint('plans', __name__)
+
+def _calculate_and_store_plan_metrics(cur, plan_id, days_payload):
+    """
+    Helper function to calculate total volume and muscle group frequency
+    and store/update it in the plan_metrics table.
+    Assumes cursor (cur) is passed from an active transaction.
+    """
+    total_volume = 0
+    freq_tracker = {}
+
+    for day_struct in days_payload: # Renamed 'day' to 'day_struct' to avoid conflict if used in outer scope
+        day_number = day_struct.get('day_number') # Used for frequency tracking
+        # Assuming plan_days are already created or handled by the caller for POST/PUT
+        # This helper focuses on iterating exercises within the provided structure
+        for ex in day_struct.get('exercises', []):
+            exercise_id = ex.get('exercise_id')
+            sets = int(ex.get('sets', 0))
+            if not exercise_id:
+                continue
+
+            # Fetch main_target_muscle_group for the exercise
+            cur.execute(
+                "SELECT main_target_muscle_group FROM exercises WHERE id = %s;",
+                (exercise_id,)
+            )
+            ex_details = cur.fetchone()
+            mg = ex_details.get('main_target_muscle_group') if ex_details else None
+
+            total_volume += sets
+            if mg and day_number is not None: # Ensure day_number is part of context for frequency
+                freq_tracker.setdefault(mg, set()).add(day_number)
+
+    freq_counts = {k: len(v) for k, v in freq_tracker.items()}
+
+    # Upsert into plan_metrics
+    cur.execute(
+        """
+        INSERT INTO plan_metrics (plan_id, total_volume, muscle_group_frequency, updated_at)
+        VALUES (%s, %s, %s, NOW())
+        ON CONFLICT (plan_id) DO UPDATE SET
+            total_volume = EXCLUDED.total_volume,
+            muscle_group_frequency = EXCLUDED.muscle_group_frequency,
+            updated_at = NOW();
+        """,
+        (plan_id, total_volume, psycopg2.extras.Json(freq_counts))
+    )
+    return total_volume, freq_counts
 
 @plans_bp.route('/v1/users/<uuid:user_id>/plans', methods=['POST'])
 @jwt_required
@@ -93,15 +140,12 @@ def create_workout_plan(user_id):
                     if mg and day_number is not None:
                         freq_tracker.setdefault(mg, set()).add(day_number)
 
-            freq_counts = {k: len(v) for k, v in freq_tracker.items()}
-            cur.execute(
-                "INSERT INTO plan_metrics (plan_id, total_volume, muscle_group_frequency) VALUES (%s, %s, %s);",
-                (plan_id, total_volume, psycopg2.extras.Json(freq_counts)),
-            )
+            # Use the helper function to calculate and store metrics
+            total_volume, freq_counts = _calculate_and_store_plan_metrics(cur, plan_id, days_payload)
 
-            conn.commit()
-            new_plan['total_volume'] = total_volume
-            new_plan['muscle_group_frequency'] = freq_counts
+            conn.commit() # Commit all changes including metrics
+            new_plan['total_volume'] = total_volume # Add to response
+            new_plan['muscle_group_frequency'] = freq_counts # Add to response
             logger.info(
                 f"Workout plan '{plan_name}' (ID: {plan_id}) created successfully for user: {user_id}"
             )
@@ -119,7 +163,7 @@ def create_workout_plan(user_id):
         return jsonify(error="An unexpected error occurred creating workout plan"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/users/<uuid:user_id>/plans', methods=['GET'])
 @jwt_required
@@ -149,7 +193,7 @@ def get_workout_plans_for_user(user_id):
         return jsonify(error="An unexpected error occurred fetching workout plans"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/plans/<uuid:plan_id>', methods=['GET'])
 @jwt_required
@@ -203,7 +247,7 @@ def get_workout_plan_details(plan_id):
         return jsonify(error="An unexpected error occurred fetching plan details"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/plans/<uuid:plan_id>', methods=['PUT'])
 @jwt_required
@@ -262,13 +306,107 @@ def update_workout_plan(plan_id):
             if not update_fields_parts:
                 return jsonify(error="No valid fields provided for update"), 400
 
-            update_fields_parts.append("updated_at = NOW()")
-            query = f"UPDATE workout_plans SET {', '.join(update_fields_parts)} WHERE id = %s RETURNING *;"
-            update_values.append(str(plan_id))
+            # Update top-level plan fields if any were provided
+            if update_fields_parts:
+                update_fields_parts.append("updated_at = NOW()") # Ensure updated_at is set for workout_plans
+                query = f"UPDATE workout_plans SET {', '.join(update_fields_parts)} WHERE id = %s RETURNING *;"
+                update_values_list = update_values + [str(plan_id)] # Ensure plan_id is last for query
+                cur.execute(query, tuple(update_values_list))
+                updated_plan = cur.fetchone() # This will be the base for our response
+            else:
+                # If no top-level fields changed, fetch the current plan to return later
+                cur.execute("SELECT * FROM workout_plans WHERE id = %s;", (str(plan_id),))
+                updated_plan = cur.fetchone()
 
-            cur.execute(query, tuple(update_values))
-            updated_plan = cur.fetchone()
-            conn.commit()
+
+            # Handle updates to plan structure (days and exercises)
+            if 'days' in data:
+                days_payload = data.get('days', [])
+
+                # 1. Delete existing plan days and their exercises (CASCADE should handle exercises)
+                cur.execute("DELETE FROM plan_days WHERE plan_id = %s;", (str(plan_id),))
+
+                # 2. Create new plan days and exercises from payload
+                for day_struct in days_payload:
+                    day_number = day_struct.get('day_number')
+                    day_name = day_struct.get('name')
+                    new_day_id = str(uuid.uuid4()) # New ID for the plan day
+
+                    if day_number is not None: # Ensure day_number is provided
+                        cur.execute(
+                            """
+                            INSERT INTO plan_days (id, plan_id, day_number, name, created_at, updated_at)
+                            VALUES (%s, %s, %s, %s, NOW(), NOW());
+                            """,
+                            (new_day_id, str(plan_id), day_number, day_name)
+                        )
+
+                        for ex_struct in day_struct.get('exercises', []):
+                            exercise_id = ex_struct.get('exercise_id')
+                            if not exercise_id: # Skip if no exercise_id
+                                continue
+
+                            # Minimal required fields for plan_exercises
+                            sets = int(ex_struct.get('sets', 0))
+                            order_index = int(ex_struct.get('order_index', 0))
+
+                            # Include all optional fields from plan_exercises
+                            rep_range_low = ex_struct.get('rep_range_low')
+                            rep_range_high = ex_struct.get('rep_range_high')
+                            target_rir = ex_struct.get('target_rir')
+                            rest_seconds = ex_struct.get('rest_seconds')
+                            notes = ex_struct.get('notes')
+
+                            cur.execute(
+                                """
+                                INSERT INTO plan_exercises (
+                                    id, plan_day_id, exercise_id, order_index, sets,
+                                    rep_range_low, rep_range_high, target_rir, rest_seconds, notes,
+                                    created_at, updated_at
+                                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW());
+                                """,
+                                (str(uuid.uuid4()), new_day_id, exercise_id, order_index, sets,
+                                 rep_range_low, rep_range_high, target_rir, rest_seconds, notes)
+                            )
+
+                # 3. Recalculate and store/update metrics
+                total_volume, freq_counts = _calculate_and_store_plan_metrics(cur, str(plan_id), days_payload)
+                if updated_plan: # Add metrics to the response object if it exists
+                    updated_plan['total_volume'] = total_volume
+                    updated_plan['muscle_group_frequency'] = freq_counts
+
+            conn.commit() # Commit all changes (plan fields, structure, metrics)
+
+            if not updated_plan: # Should only happen if plan_id was invalid from start and no updates made
+                return jsonify(error="Workout plan not found or no updates made"), 404
+
+            # If only structure was updated, metrics might be the only new thing in `updated_plan`
+            # We might want to fetch the full plan details again if we want to return the complete updated plan structure
+            # For now, returning the workout_plans record and any calculated metrics.
+            # Fetching full plan details to ensure the response is complete after structural changes
+            if 'days' in data: # If structure changed, refetch full plan for accurate response
+                cur.execute("SELECT * FROM workout_plans WHERE id = %s;", (str(plan_id),))
+                updated_plan_base = cur.fetchone()
+
+                cur.execute("SELECT * FROM plan_days WHERE plan_id = %s ORDER BY day_number ASC;", (str(plan_id),))
+                plan_days_list = cur.fetchall()
+                for day_item in plan_days_list:
+                    cur.execute(
+                        "SELECT pe.*, e.name as exercise_name FROM plan_exercises pe JOIN exercises e ON pe.exercise_id = e.id WHERE pe.plan_day_id = %s ORDER BY pe.order_index ASC;",
+                        (str(day_item['id']),)
+                    )
+                    day_item['exercises'] = cur.fetchall()
+                updated_plan_base['days'] = plan_days_list
+
+                # Re-fetch metrics to ensure they are part of the response if only structure changed initially
+                cur.execute("SELECT total_volume, muscle_group_frequency FROM plan_metrics WHERE plan_id = %s;", (str(plan_id),))
+                metrics_data = cur.fetchone()
+                if metrics_data:
+                    updated_plan_base['total_volume'] = metrics_data['total_volume']
+                    updated_plan_base['muscle_group_frequency'] = metrics_data['muscle_group_frequency']
+
+                updated_plan = updated_plan_base
+
 
             logger.info(f"Workout plan {plan_id} updated successfully by user {g.current_user_id}")
             return jsonify(updated_plan), 200
@@ -285,7 +423,7 @@ def update_workout_plan(plan_id):
         return jsonify(error="An unexpected error occurred updating plan"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/plans/<uuid:plan_id>', methods=['DELETE'])
 @jwt_required
@@ -332,7 +470,7 @@ def delete_workout_plan(plan_id):
         return jsonify(error="An unexpected error occurred deleting plan"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Plan Day Endpoints ---
 
@@ -403,7 +541,7 @@ def create_plan_day(plan_id):
         return jsonify(error="An unexpected error occurred creating plan day"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/plans/<uuid:plan_id>/days', methods=['GET'])
 @jwt_required
@@ -441,7 +579,7 @@ def get_plan_days(plan_id):
         return jsonify(error="An unexpected error occurred fetching plan days"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/plandays/<uuid:day_id>', methods=['PUT'])
 @jwt_required
@@ -528,7 +666,7 @@ def update_plan_day(day_id):
         return jsonify(error="An unexpected error occurred updating plan day"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/plandays/<uuid:day_id>', methods=['DELETE'])
 @jwt_required
@@ -580,7 +718,7 @@ def delete_plan_day(day_id):
         return jsonify(error="An unexpected error occurred deleting plan day"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 # --- Plan Exercise Endpoints ---
 
@@ -703,7 +841,7 @@ def create_plan_exercise(day_id):
         return jsonify(error="An unexpected error occurred creating plan exercise"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/plandays/<uuid:day_id>/exercises', methods=['GET'])
 @jwt_required
@@ -754,7 +892,7 @@ def get_plan_exercises_for_day(day_id):
         return jsonify(error="An unexpected error occurred fetching plan exercises"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/planexercises/<uuid:plan_exercise_id>', methods=['PUT'])
 @jwt_required
@@ -872,7 +1010,7 @@ def update_plan_exercise(plan_exercise_id):
         return jsonify(error="An unexpected error occurred updating plan exercise"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 @plans_bp.route('/v1/planexercises/<uuid:plan_exercise_id>', methods=['DELETE'])
 @jwt_required
@@ -926,6 +1064,6 @@ def delete_plan_exercise(plan_exercise_id):
         return jsonify(error="An unexpected error occurred deleting plan exercise"), 500
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 

@@ -400,9 +400,10 @@ def test_key_metrics_success(mock_get_db_conn, client):
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
 
     mock_cursor.fetchone.side_effect = [
-        {'count': 5},
-        {'volume': 1000.0},
-        {'avg': 7.5}
+        {'count': 5},  # Mock for total_workouts
+        {'volume': 1000.0},  # Mock for total_volume
+        {'avg': 7.5},  # Mock for avg_session_rpe
+        {'exercise_name': 'Test Squat', 'frequency': 15}  # Mock for most_frequent_exercise
     ]
 
     token = generate_jwt_token(MOCK_USER_ID)
@@ -414,7 +415,37 @@ def test_key_metrics_success(mock_get_db_conn, client):
     data = resp.get_json()
     assert data['total_workouts'] == 5
     assert data['total_volume'] == 1000.0
-    assert data['avg_session_rpe'] == 7.5
+    assert data['avg_session_rpe'] == 7.5 # Backend rounds to 2dp, or 0 if None
+    assert data['most_frequent_exercise'] is not None
+    assert data['most_frequent_exercise']['name'] == 'Test Squat'
+    assert data['most_frequent_exercise']['frequency'] == 15
+
+@patch('engine.app.get_db_connection')
+def test_key_metrics_no_frequent_exercise(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+    mock_cursor.fetchone.side_effect = [
+        {'count': 0},
+        {'volume': 0.0},
+        {'avg': None}, # Or {'avg': 0.0} depending on how AVG behaves on no rows
+        None # No frequent exercise found
+    ]
+
+    token = generate_jwt_token(MOCK_USER_ID)
+    resp = client.get(
+        f'/v1/users/{MOCK_USER_ID}/analytics/key-metrics',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data['total_workouts'] == 0
+    assert data['total_volume'] == 0.0
+    assert data['avg_session_rpe'] == 0 # As per current backend logic for None avg
+    assert data['most_frequent_exercise'] is None
+
 
 if __name__ == '__main__':
     pytest.main()
