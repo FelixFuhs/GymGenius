@@ -411,6 +411,29 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
     }
 }
 
+/* Make table scrollable on small screens */
+@media screen and (max-width: 767px) {
+    .set-logging-section {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+
+    .set-tracker {
+        min-width: 600px; /* Ensure table has a minimum width to trigger scroll */
+        /* Or a width that's wider than typical mobile screens, e.g., 150% */
+    }
+
+    /* Optional: Adjust padding or margins within the table for smaller screens if needed */
+    .set-tracker th, .set-tracker td {
+        padding: 10px 5px; /* Slightly reduce padding */
+    }
+
+    .set-input {
+        max-width: 60px; /* Adjust input width if necessary */
+    }
+}
+
+
 /* Footer styling */
 footer {
     text-align: center;

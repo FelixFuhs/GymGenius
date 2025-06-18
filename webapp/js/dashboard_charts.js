@@ -85,6 +85,59 @@ window.currentRecoveryHeatmap = null;
 // const mockWeeklyVolumeData = [ ... ];
 // const mockKeyMetricsData = { ... };
 
+// Helper function for responsive chart options
+function getResponsiveChartOptions(baseOptions, chartType = 'default') {
+    const isSmallScreen = window.innerWidth < 768;
+    const smallScreenOptions = {
+        plugins: {
+            title: {
+                font: { size: isSmallScreen ? 12 : (baseOptions.plugins?.title?.font?.size || 16) }
+            },
+            legend: {
+                labels: { font: { size: isSmallScreen ? 10 : (baseOptions.plugins?.legend?.labels?.font?.size || 12) } },
+                position: (chartType === 'volume' && isSmallScreen) ? 'bottom' : (baseOptions.plugins?.legend?.position || 'top')
+            }
+        },
+        scales: {
+            x: {
+                title: { font: { size: isSmallScreen ? 10 : (baseOptions.scales?.x?.title?.font?.size || 14) } },
+                ticks: { font: { size: isSmallScreen ? 8 : (baseOptions.scales?.x?.ticks?.font?.size || 12) } }
+            },
+            y: {
+                title: { font: { size: isSmallScreen ? 10 : (baseOptions.scales?.y?.title?.font?.size || 14) } },
+                ticks: { font: { size: isSmallScreen ? 8 : (baseOptions.scales?.y?.ticks?.font?.size || 12) } }
+            }
+        }
+    };
+
+    // Deep merge naive implementation (can be improved with a library if needed)
+    const mergedOptions = JSON.parse(JSON.stringify(baseOptions)); // Clone base options
+
+    if (isSmallScreen) {
+        if (mergedOptions.plugins.title) mergedOptions.plugins.title.font.size = smallScreenOptions.plugins.title.font.size;
+        else if(mergedOptions.plugins) mergedOptions.plugins.title = smallScreenOptions.plugins.title;
+
+
+        if (mergedOptions.plugins.legend) {
+            if(mergedOptions.plugins.legend.labels) mergedOptions.plugins.legend.labels.font.size = smallScreenOptions.plugins.legend.labels.font.size;
+            else if(mergedOptions.plugins.legend) mergedOptions.plugins.legend.labels = smallScreenOptions.plugins.legend.labels;
+            mergedOptions.plugins.legend.position = smallScreenOptions.plugins.legend.position;
+        } else if(mergedOptions.plugins) {
+             mergedOptions.plugins.legend = smallScreenOptions.plugins.legend;
+        }
+
+
+        if (mergedOptions.scales?.x?.title?.font) mergedOptions.scales.x.title.font.size = smallScreenOptions.scales.x.title.font.size;
+        if (mergedOptions.scales?.x?.ticks?.font) mergedOptions.scales.x.ticks.font.size = smallScreenOptions.scales.x.ticks.font.size;
+        if (mergedOptions.scales?.y?.title?.font) mergedOptions.scales.y.title.font.size = smallScreenOptions.scales.y.title.font.size;
+        if (mergedOptions.scales?.y?.ticks?.font) mergedOptions.scales.y.ticks.font.size = smallScreenOptions.scales.y.ticks.font.size;
+    }
+    mergedOptions.responsive = true;
+    mergedOptions.maintainAspectRatio = false;
+
+    return mergedOptions;
+}
+
 
 function render1RMEvolutionChart(exerciseId, exerciseData) {
     console.log(`Rendering 1RM Evolution Chart for exercise ID: ${exerciseId} with new data.`);
@@ -135,6 +188,85 @@ function render1RMEvolutionChart(exerciseId, exerciseData) {
 
     if (window.current1RMChart) { window.current1RMChart.destroy(); }
     try {
+        const baseChartOptions = { // Extracted base options
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'month', tooltipFormat: 'MMM dd, yyyy', displayFormats: { month: 'MMM yyyy'}},
+                    title: {
+                        display: true,
+                        text: 'Date',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
+                        color: '#495057'
+                    },
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        borderColor: '#dee2e6',
+                        color: '#e9ecef' // Lighter grid lines
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Estimated 1RM (kg)',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
+                        color: '#495057'
+                    },
+                    beginAtZero: false,
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#6c757d',
+                        padding: 5
+                    },
+                    grid: {
+                        borderColor: '#dee2e6',
+                        color: '#e9ecef' // Lighter grid lines
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: `1RM Evolution for ${exerciseName}`,
+                    font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
+                    color: '#343a40',
+                    padding: { top: 10, bottom: 20 }
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#495057',
+                        boxWidth: 20,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    titleColor: '#343a40',
+                    bodyColor: '#495057',
+                    borderColor: '#dee2e6',
+                    borderWidth: 1,
+                    titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
+                    bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+                    padding: 10,
+                    cornerRadius: 4,
+                    displayColors: true
+                }
+            }
+        };
+
+        const responsiveOptions = getResponsiveChartOptions(baseChartOptions);
+        // Update title text dynamically as it depends on exerciseName
+        responsiveOptions.plugins.title.text = `1RM Evolution for ${exerciseName}`;
+
+
         const datasets = [{
             label: `${exerciseName} e1RM (kg)`,
             data: dataPoints,
@@ -162,79 +294,7 @@ function render1RMEvolutionChart(exerciseId, exerciseData) {
                 labels: labels,
                 datasets: datasets
             },
-            options: { // Options remain largely the same as they are styling/behavior related
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'month', tooltipFormat: 'MMM dd, yyyy', displayFormats: { month: 'MMM yyyy'}},
-                        title: {
-                            display: true,
-                            text: 'Date',
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
-                            color: '#495057'
-                        },
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#6c757d'
-                        },
-                        grid: {
-                            borderColor: '#dee2e6',
-                            color: '#e9ecef' // Lighter grid lines
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Estimated 1RM (kg)',
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
-                            color: '#495057'
-                        },
-                        beginAtZero: false,
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#6c757d',
-                            padding: 5
-                        },
-                        grid: {
-                            borderColor: '#dee2e6',
-                            color: '#e9ecef' // Lighter grid lines
-                        }
-                    }
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: `1RM Evolution for ${exerciseName}`,
-                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
-                        color: '#343a40',
-                        padding: { top: 10, bottom: 20 }
-                    },
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#495057',
-                            boxWidth: 20,
-                            padding: 15
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#ffffff',
-                        titleColor: '#343a40',
-                        bodyColor: '#495057',
-                        borderColor: '#dee2e6',
-                        borderWidth: 1,
-                        titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
-                        bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
-                        padding: 10,
-                        cornerRadius: 4,
-                        displayColors: true
-                    }
-                }
-            }
+            options: responsiveOptions
         });
         console.log(`1RM Evolution Chart for ${exerciseName} rendered successfully.`);
     } catch (error) { console.error(`Error rendering 1RM Evolution Chart for ${exerciseName}:`, error); }
@@ -302,7 +362,7 @@ async function fetchAndRender1RMEvolutionData(exerciseId) {
     const ctx = canvas.getContext('2d');
 
     if (statusDiv) {
-        statusDiv.textContent = 'Loading 1RM data...';
+        statusDiv.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading 1RM data...</div>';
         statusDiv.style.display = 'flex';
         canvas.style.display = 'none';
         if (window.current1RMChart) { // Destroy previous chart instance if exists
@@ -451,88 +511,92 @@ function renderVolumeDistributionChart(processedChartData, annotationCfg) {
     if (statusDiv) statusDiv.style.display = 'none';
     canvas.style.display = 'block';
 
-    window.currentVolumeChart = new Chart(ctx, {
-        type: 'bar',
-        data: processedChartData,
-        options: { // Options remain largely the same
-                responsive: true,
-                maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Weekly Volume by Muscle Group',
-                    font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
-                    color: '#343a40',
-                    padding: { top: 10, bottom: 20 }
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: '#ffffff',
-                    titleColor: '#343a40',
-                    bodyColor: '#495057',
-                    borderColor: '#dee2e6',
-                    borderWidth: 1,
-                    titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
-                    bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
-                    padding: 10,
-                    cornerRadius: 4,
-                    displayColors: true
-                },
-                legend: {
-                    position: 'top',
-                    labels: {
-                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                        color: '#495057',
-                        boxWidth: 20,
-                        padding: 15
-                    }
-                },
-                annotation: { // Annotation plugin configuration
-                    annotations: annotationCfg // Pass the generated annotations
+    const baseChartOptions = { // Extracted base options
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Weekly Volume by Muscle Group',
+                font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
+                color: '#343a40',
+                padding: { top: 10, bottom: 20 }
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: '#ffffff',
+                titleColor: '#343a40',
+                bodyColor: '#495057',
+                borderColor: '#dee2e6',
+                borderWidth: 1,
+                titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
+                bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+                padding: 10,
+                cornerRadius: 4,
+                displayColors: true
+            },
+            legend: {
+                position: 'top',
+                labels: {
+                    font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                    color: '#495057',
+                    boxWidth: 20,
+                    padding: 15
                 }
             },
-            scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Week (Start Date)',
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
-                            color: '#495057'
-                        },
-                        stacked: true, // Enable stacking
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#6c757d'
-                        },
-                        grid: {
-                            borderColor: '#dee2e6',
-                            color: '#e9ecef'
-                        }
+            annotation: { // Annotation plugin configuration
+                annotations: annotationCfg // Pass the generated annotations
+            }
+        },
+        scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Week (Start Date)',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
+                        color: '#495057'
                     },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Total Volume (Sets x Reps x Weight)', // Clarified Y-axis title
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
-                            color: '#495057'
-                        },
-                        beginAtZero: true,
-                        stacked: true, // Enable stacking
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#6c757d',
-                            padding: 5
-                        },
-                        grid: {
-                            borderColor: '#dee2e6',
-                            color: '#e9ecef'
-                        }
+                    stacked: true, // Enable stacking
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        borderColor: '#dee2e6',
+                        color: '#e9ecef'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Total Volume (Sets x Reps x Weight)', // Clarified Y-axis title
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
+                        color: '#495057'
+                    },
+                    beginAtZero: true,
+                    stacked: true, // Enable stacking
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#6c757d',
+                        padding: 5
+                    },
+                    grid: {
+                        borderColor: '#dee2e6',
+                        color: '#e9ecef'
                     }
                 }
             }
-        });
-        console.log('Volume Distribution Chart rendered successfully with new data.');
+        };
+
+    const responsiveOptions = getResponsiveChartOptions(baseChartOptions, 'volume');
+
+    window.currentVolumeChart = new Chart(ctx, {
+        type: 'bar',
+        data: processedChartData,
+        options: responsiveOptions
+    });
+    console.log('Volume Distribution Chart rendered successfully with new data.');
     // Error handling specific to chart rendering itself, if any, can be added here.
 }
 
@@ -542,13 +606,13 @@ async function fetchAndRenderVolumeData() {
 
     if (!canvas) { // Should not happen if HTML is correct
         console.error("volumeDistributionChart canvas element not found!");
-        if(statusDiv) statusDiv.textContent = "Chart canvas not found.";
+        if(statusDiv) statusDiv.textContent = "Chart canvas not found."; // No spinner here, it's a fundamental error
         return;
     }
     const ctx = canvas.getContext('2d');
 
     if (statusDiv) {
-        statusDiv.textContent = 'Loading volume data...';
+        statusDiv.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading volume data...</div>';
         statusDiv.style.display = 'flex';
         canvas.style.display = 'none';
         if (window.currentVolumeChart) {
@@ -737,6 +801,82 @@ function renderMTITrendsChart(mtiData) {
     if (window.currentMTIChart) { window.currentMTIChart.destroy(); window.currentMTIChart = null;}
 
     try {
+        const baseChartOptions = { // Extracted base options
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'week', tooltipFormat: 'MMM dd, yyyy', displayFormats: { week: 'MMM dd' } },
+                    title: {
+                        display: true,
+                        text: 'Date',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
+                        color: '#495057'
+                    },
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        borderColor: '#dee2e6',
+                        color: '#e9ecef'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'MTI Score',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
+                        color: '#495057'
+                    },
+                    beginAtZero: false, // Or true if MTI score starts from 0
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#6c757d',
+                        padding: 5
+                    },
+                    grid: {
+                        borderColor: '#dee2e6',
+                        color: '#e9ecef'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Mechanical Tension Index (MTI) Trends',
+                    font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
+                    color: '#343a40',
+                    padding: { top: 10, bottom: 20 }
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#495057',
+                        boxWidth: 20,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    titleColor: '#343a40',
+                    bodyColor: '#495057',
+                    borderColor: '#dee2e6',
+                    borderWidth: 1,
+                    titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
+                    bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+                    padding: 10,
+                    cornerRadius: 4,
+                    displayColors: true
+                }
+            }
+        };
+
+        const responsiveOptions = getResponsiveChartOptions(baseChartOptions);
+
         window.currentMTIChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -750,79 +890,7 @@ function renderMTITrendsChart(mtiData) {
                     fill: true
                 }]
             },
-            options: { // Options remain largely the same
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'week', tooltipFormat: 'MMM dd, yyyy', displayFormats: { week: 'MMM dd' } },
-                        title: {
-                            display: true,
-                            text: 'Date',
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
-                            color: '#495057'
-                        },
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#6c757d'
-                        },
-                        grid: {
-                            borderColor: '#dee2e6',
-                            color: '#e9ecef'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'MTI Score',
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' },
-                            color: '#495057'
-                        },
-                        beginAtZero: false, // Or true if MTI score starts from 0
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#6c757d',
-                            padding: 5
-                        },
-                        grid: {
-                            borderColor: '#dee2e6',
-                            color: '#e9ecef'
-                        }
-                    }
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Mechanical Tension Index (MTI) Trends',
-                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
-                        color: '#343a40',
-                        padding: { top: 10, bottom: 20 }
-                    },
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#495057',
-                            boxWidth: 20,
-                            padding: 15
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#ffffff',
-                        titleColor: '#343a40',
-                        bodyColor: '#495057',
-                        borderColor: '#dee2e6',
-                        borderWidth: 1,
-                        titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
-                        bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
-                        padding: 10,
-                        cornerRadius: 4,
-                        displayColors: true
-                    }
-                }
-            }
+            options: responsiveOptions
         });
         console.log('MTI Trends Chart rendered successfully with mock data.');
     } catch (error) {
@@ -899,7 +967,7 @@ async function fetchAndRenderMTITrendsData(exerciseId) {
     const ctx = canvas.getContext('2d');
 
     if (statusDiv) {
-        statusDiv.textContent = 'Loading MTI data...';
+        statusDiv.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading MTI data...</div>';
         statusDiv.style.display = 'flex';
         canvas.style.display = 'none';
         if (window.currentMTIChart) { window.currentMTIChart.destroy(); window.currentMTIChart = null; }
@@ -1035,10 +1103,10 @@ async function initStrengthGainsSummary() {
     const container = document.getElementById('strength-gains-cards-container');
 
     if (statusDiv) {
-        statusDiv.textContent = 'Loading strength gains...';
+        statusDiv.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading strength gains...</div>';
         statusDiv.style.display = 'flex';
     }
-    if (container) container.innerHTML = ''; // Clear old content
+    if (container) container.innerHTML = ''; // Clear old content, statusDiv will show loading
 
 
     const userId = getUserId();
@@ -1158,6 +1226,72 @@ function renderRecoveryPatternsHeatmap(exerciseName, processedMatrixData) {
     if (window.currentRecoveryHeatmap) { window.currentRecoveryHeatmap.destroy(); window.currentRecoveryHeatmap = null; }
 
     try {
+        const baseChartOptions = { // Extracted base options
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'category',
+                    labels: dayOfWeekLabels,
+                    title: {
+                        display: true, text: 'Day of Week of Session',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' }, color: '#495057'
+                    },
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#6c757d',
+                    },
+                    grid: { display: false }
+                },
+                y: {
+                    type: 'category',
+                    labels: currentYLabels,
+                    offset: true,
+                    title: {
+                        display: true, text: 'Rest Days Prior to Session',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' }, color: '#495057'
+                    },
+                    ticks: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#6c757d',
+                    },
+                    grid: { display: false }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true, text: `Recovery Patterns: Performance by Rest Days (${exerciseName})`,
+                    font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' }, color: '#343a40',
+                    padding: { top: 10, bottom: 20 }
+                },
+                legend: { display: false }, // Legend is not typically used for heatmaps
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    titleColor: '#343a40', bodyColor: '#495057', borderColor: '#dee2e6', borderWidth: 1,
+                    titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
+                    bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+                    padding: 10, cornerRadius: 4, displayColors: false,
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const item = tooltipItems[0].raw;
+                            return `Day: ${item.x}, Rest: ${item.y} days`;
+                        },
+                        label: function(tooltipItem) {
+                            const item = tooltipItem.raw;
+                            let label = `Avg. Performance: ${item.v ? item.v.toFixed(1) : 'N/A'}`;
+                            if (item.count) {
+                                label += ` (${item.count} sessions)`;
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        };
+
+        const responsiveOptions = getResponsiveChartOptions(baseChartOptions, 'heatmap');
+        // Update title text dynamically
+        responsiveOptions.plugins.title.text = `Recovery Patterns: Performance by Rest Days (${exerciseName})`;
+
+
         window.currentRecoveryHeatmap = new Chart(ctx, {
             type: 'matrix',
             data: {
@@ -1166,7 +1300,6 @@ function renderRecoveryPatternsHeatmap(exerciseName, processedMatrixData) {
                     data: processedMatrixData,
                     backgroundColor: (c) => {
                         const val = c.dataset.data[c.dataIndex]?.v;
-                        // Dynamically determine min/max from the dataset for more accurate coloring
                         const allValues = c.dataset.data.map(d => d.v).filter(v => v !== null && v !== undefined);
                         const minValue = Math.min(...allValues);
                         const maxValue = Math.max(...allValues);
@@ -1174,70 +1307,11 @@ function renderRecoveryPatternsHeatmap(exerciseName, processedMatrixData) {
                     },
                     borderColor: 'rgba(180, 180, 180, 0.7)',
                     borderWidth: 1,
-                    width: (c) => (c.chart.chartArea.width / dayOfWeekLabels.length) * 0.92, // dayOfWeekLabels is global
+                    width: (c) => (c.chart.chartArea.width / dayOfWeekLabels.length) * 0.92,
                     height: (c) => (c.chart.chartArea.height / currentYLabels.length) * 0.92,
                 }]
             },
-            options: { // Options remain largely the same
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'category',
-                        labels: dayOfWeekLabels,
-                        title: {
-                            display: true, text: 'Day of Week of Session',
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' }, color: '#495057'
-                        },
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#6c757d',
-                        },
-                        grid: { display: false }
-                    },
-                    y: {
-                        type: 'category',
-                        labels: currentYLabels,
-                        offset: true,
-                        title: {
-                            display: true, text: 'Rest Days Prior to Session',
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' }, color: '#495057'
-                        },
-                        ticks: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#6c757d',
-                        },
-                        grid: { display: false }
-                    }
-                },
-                plugins: {
-                    title: {
-                        display: true, text: `Recovery Patterns: Performance by Rest Days (${exerciseName})`,
-                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' }, color: '#343a40',
-                        padding: { top: 10, bottom: 20 }
-                    },
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#ffffff',
-                        titleColor: '#343a40', bodyColor: '#495057', borderColor: '#dee2e6', borderWidth: 1,
-                        titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
-                        bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
-                        padding: 10, cornerRadius: 4, displayColors: false,
-                        callbacks: {
-                            title: function(tooltipItems) {
-                                const item = tooltipItems[0].raw;
-                                return `Day: ${item.x}, Rest: ${item.y} days`;
-                            },
-                            label: function(tooltipItem) {
-                                const item = tooltipItem.raw;
-                                let label = `Avg. Performance: ${item.v ? item.v.toFixed(1) : 'N/A'}`; // Assuming v is performance_metric
-                                if (item.count) {
-                                    label += ` (${item.count} sessions)`;
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                }
-            }
+            options: responsiveOptions
         });
         console.log(`Recovery Patterns Heatmap for ${exerciseName} rendered successfully with live data.`);
     } catch (error) {
@@ -1262,7 +1336,7 @@ async function fetchAndRenderRecoveryHeatmapData(exerciseId, exerciseName) {
     const ctx = canvas.getContext('2d');
 
     if (statusDiv) {
-        statusDiv.textContent = `Loading recovery patterns for ${exerciseName}...`;
+        statusDiv.innerHTML = `<div class="loader-container"><span class="loader"></span> Loading recovery patterns for ${exerciseName}...</div>`;
         statusDiv.style.display = 'flex';
         canvas.style.display = 'none';
         if (window.currentRecoveryHeatmap) {
@@ -1432,10 +1506,10 @@ async function fetchAndRenderMesocycleData() {
     const container = document.getElementById('mesocycle-indicator-container');
 
     if (statusDiv) {
-        statusDiv.textContent = 'Loading mesocycle data...';
+        statusDiv.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading mesocycle data...</div>';
         statusDiv.style.display = 'flex';
     }
-    if (container) container.innerHTML = ''; // Clear old content
+    if (container) container.innerHTML = ''; // Clear old content, statusDiv shows loading
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/mesocycles/current`, { headers: getAuthHeaders() });
@@ -1494,7 +1568,7 @@ async function displayKeyMetrics() {
         metricsListElement.innerHTML = '<li>Login to see your key metrics.</li>';
         return;
     }
-    metricsListElement.innerHTML = '<li>Loading metrics...</li>';
+    metricsListElement.innerHTML = '<li><div class="loader-container"><span class="loader"></span> Loading metrics...</div></li>';
 
     try {
         const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/key-metrics`, { headers: getAuthHeaders() });
@@ -1612,7 +1686,7 @@ async function fetchAndDisplayPlateauStatus(event) {
         return;
     }
 
-    plateauStatusDisplay.innerHTML = `<p>Loading plateau status for exercise ID ${exerciseId}...</p>`;
+    plateauStatusDisplay.innerHTML = `<div class="loader-container"><span class="loader"></span> Loading plateau status for exercise ID ${exerciseId}...</div>`;
 
     try {
         const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/exercises/${exerciseId}/plateau-analysis`, {

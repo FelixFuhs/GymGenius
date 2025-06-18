@@ -45,6 +45,26 @@ section#plan-creation-area {
     /* min-width: 300px; already set */
 }
 
+/* Styles for the touch device message */
+#touch-device-message {
+    background-color: #fff3cd; /* Light yellow background */
+    color: #856404; /* Dark yellow text */
+    border: 1px solid #ffeeba; /* Yellow border */
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px; /* Space below the message */
+    text-align: center;
+}
+
+#touch-device-message p {
+    margin: 0;
+    font-size: 0.95em;
+}
+
+#touch-device-message strong {
+    color: #664d03; /* Slightly darker for emphasis */
+}
+
 div#right-panel {
     display: flex;
     flex-direction: column;

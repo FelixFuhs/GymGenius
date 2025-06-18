@@ -397,3 +397,59 @@ footer {
     background-color: #ffe0e0; /* Light red for error notifications */
     border-color: #c3c0c0;
 }
+
+/* Mobile notice for charts */
+.chart-mobile-notice {
+    display: none; /* Hidden by default */
+    padding: 10px;
+    background-color: #eef1f5; /* Light blue-grey background */
+    border: 1px solid #d6dde7;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #34495e; /* Darker blue-grey text */
+}
+
+.chart-mobile-notice p {
+    margin: 0;
+}
+
+.chart-mobile-notice strong {
+    color: #2c3e50; /* Even darker for emphasis */
+}
+
+@media screen and (max-width: 767px) {
+    .chart-mobile-notice {
+        display: block; /* Show on small screens */
+    }
+
+    #dashboard-main {
+        grid-template-columns: 1fr; /* Single column on small screens */
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .dashboard-section {
+        padding: 15px;
+    }
+
+    .dashboard-section h2 {
+        font-size: 1.2em; /* Smaller headings for sections */
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .dashboard-section select {
+        min-width: 100%; /* Full width for selectors */
+        margin-bottom: 15px;
+    }
+
+    .chart-container {
+        min-height: 250px; /* Reduced height for smaller screens */
+    }
+
+    .cards-container {
+        grid-template-columns: 1fr; /* Single column for cards */
+    }
+}

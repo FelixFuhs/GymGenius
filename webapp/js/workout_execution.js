@@ -129,17 +129,20 @@ function setAIRecommendationLoadingState(isLoading) {
     const repRangeDisplay = document.querySelector('.ai-recommendation-card .rep-range');
     const confidenceFill = document.querySelector('.ai-recommendation-card .confidence-fill');
     const whyButton = document.querySelector('.ai-recommendation-card .why-button');
+    const aiCard = document.querySelector('.ai-recommendation-card'); // Get the card itself to manage a general loader
 
-    if (!weightDisplay || !repRangeDisplay || !confidenceFill || !whyButton) return;
+    if (!aiCard || !weightDisplay || !repRangeDisplay || !confidenceFill || !whyButton) return;
 
     if (isLoading) {
-        weightDisplay.textContent = "Loading...";
+        // Option 1: Show a loader overlay on the card (more complex, needs CSS for overlay)
+        // Option 2: Simpler, replace content with loader
+        weightDisplay.innerHTML = '<span class="loader" style="width:20px; height:20px; border-width:3px;"></span>';
         repRangeDisplay.textContent = "Calculating...";
         confidenceFill.style.width = `0%`;
-        confidenceFill.textContent = `Loading...`;
+        confidenceFill.textContent = ``; // Clear text from bar
         whyButton.disabled = true;
     } else {
-        // Content will be updated by updateAIRecommendationPanel
+        // Content will be updated by updateAIRecommendationPanel after data is fetched
         whyButton.disabled = false;
     }
 }
@@ -192,13 +195,15 @@ function setupEventListeners() {
 
     // Event listener for the set logging form
     const setLoggingForm = document.getElementById('setLoggingForm'); // Assuming your form has this ID
-    if (setLoggingForm) {
+    const logSetButton = setLoggingForm ? setLoggingForm.querySelector('button[type="submit"]') : null;
+
+    if (setLoggingForm && logSetButton) {
         setLoggingForm.addEventListener('submit', async function(event) {
             event.preventDefault(); // Prevent default form submission
 
-            const weightInput = document.getElementById('weightInput'); // Assuming ID for weight input
-            const repsInput = document.getElementById('repsInput');   // Assuming ID for reps input
-            const rirInput = document.getElementById('rirInput');     // Assuming ID for RIR input
+            const weightInput = document.getElementById('weightInput');
+            const repsInput = document.getElementById('repsInput');
+            const rirInput = document.getElementById('rirInput');
 
             if (!weightInput || !repsInput || !rirInput) {
                 console.error("Set logging form input elements not found.");
@@ -210,10 +215,24 @@ function setupEventListeners() {
             const reps = repsInput.value;
             const rir = rirInput.value;
 
-            await logSet(weight, reps, rir);
+            const originalButtonText = logSetButton.textContent;
+            logSetButton.disabled = true;
+            logSetButton.innerHTML = '<span class="loader"></span> Logging...';
+
+            try {
+                await logSet(weight, reps, rir); // logSet itself handles alerts on error
+            } catch (error) {
+                // logSet should ideally handle its own UI updates on error,
+                // but if not, or for further specific error handling here:
+                console.error("Error during logSet call from form:", error);
+                // Potentially update a general status div on the form if one exists
+            } finally {
+                logSetButton.disabled = false;
+                logSetButton.textContent = originalButtonText;
+            }
         });
     } else {
-        console.warn("Set logging form #setLoggingForm not found.");
+        console.warn("Set logging form #setLoggingForm or its submit button not found.");
     }
 
     // Add other event listeners here (e.g., for timer buttons if not handled in startRestTimer)
@@ -275,13 +294,13 @@ async function fetchAndDisplayPreviousPerformance(exerciseId, userId) {
     }
 
     // Loading state
-    lastTimePerfEl.textContent = "Loading previous performance...";
-    improvementMetricEl.textContent = "Calculating...";
+    lastTimePerfEl.innerHTML = '<div class="loader-container" style="min-height: 50px; padding: 10px;"><span class="loader" style="width:20px; height:20px; border-width:3px;"></span> Loading...</div>';
+    improvementMetricEl.textContent = ""; // Clear it, or show a mini-loader too
     improvementMetricEl.classList.remove('negative'); // Reset styling
 
     if (!exerciseId) { // userId is implicitly handled by auth token for this specific endpoint as per prompt
         console.warn("Exercise ID is missing for previous performance.");
-        lastTimePerfEl.textContent = "Select an exercise.";
+        lastTimePerfEl.textContent = "Exercise not specified.";
         improvementMetricEl.textContent = "--";
         return;
     }

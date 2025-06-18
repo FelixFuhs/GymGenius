@@ -26,10 +26,35 @@ function getAuthHeaders() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Plan Builder script loaded');
 
+    // Function to detect touch devices
+    function isTouchDevice() {
+        return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+    }
+
+    // Display message for touch devices
+    if (isTouchDevice()) {
+        const planCreationArea = document.getElementById('plan-creation-area'); // Or another suitable parent
+        if (planCreationArea) {
+            const touchMessage = document.createElement('div');
+            touchMessage.id = 'touch-device-message';
+            touchMessage.innerHTML = '<p><strong>Note:</strong> For the best experience with drag-and-drop plan editing, we recommend using a desktop or laptop. Touchscreen drag-and-drop may have limitations.</p>';
+            // Prepend to planCreationArea or insert before a specific element
+            if (planCreationArea.firstChild) {
+                planCreationArea.insertBefore(touchMessage, planCreationArea.firstChild);
+            } else {
+                planCreationArea.appendChild(touchMessage);
+            }
+        }
+    }
+
     // Fetch exercises from API
     function fetchExercises() {
+        const exerciseListContainer = document.getElementById('exercise-list-container'); // Assuming parent container
+        if (exerciseListContainer) {
+            exerciseListContainer.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading exercises...</div>';
+        }
+
         // Assuming /v1/exercises does not require auth based on backend review.
-        // If it did, it would be: fetch(`${API_BASE_URL}/v1/exercises`, { headers: getAuthHeaders() })
         return fetch(`${API_BASE_URL}/v1/exercises`)
             .then(response => {
                 if (!response.ok) {
@@ -40,12 +65,20 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => data.data || []) // The exercises are in a "data" property
             .catch(err => {
                 console.error('Failed to fetch exercises:', err);
-                alert('Failed to load exercises. Please try again later.');
+                if (exerciseListContainer) {
+                    exerciseListContainer.innerHTML = '<p style="color: red;">Failed to load exercises. Please try again later.</p>';
+                }
+                // alert('Failed to load exercises. Please try again later.'); // Alert might be too intrusive
                 return [];
+            })
+            .finally(() => {
+                // If the container was replaced by an error message, this won't run for it, which is fine.
+                // If successful, displayExercises will populate the actual exerciseListElement.
+                // If exerciseListContainer itself was the target for exercises, ensure displayExercises clears the loader.
             });
     }
 
-    const exerciseListElement = document.getElementById('exercise-list');
+    const exerciseListElement = document.getElementById('exercise-list'); // This is the UL inside the container
     const dropZoneElement = document.getElementById('drop-zone');
     const volumeListElement = document.getElementById('volume-list');
     const frequencyListElement = document.getElementById('frequency-list');
@@ -298,8 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
             name: planName,
             // Assuming a single-day plan structure for now for simplicity in UI
             // Backend expects 'days_per_week', 'plan_length_weeks', 'goal_focus' - using defaults or nulls
-            days_per_week: 1,
-            plan_length_weeks: 1,
+            days_per_week: 1, // Defaulting to 1 for UI simplicity
+            plan_length_weeks: 1, // Defaulting to 1
             goal_focus: 0.5, // Default to balanced
             days: [
                 {
@@ -324,6 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const endpoint = currentLoadedPlanId
             ? `${API_BASE_URL}/v1/plans/${currentLoadedPlanId}`
             : `${API_BASE_URL}/v1/users/${userId}/plans`;
+
+        const originalSaveButtonText = savePlanButton.textContent;
+        savePlanButton.disabled = true;
+        savePlanButton.innerHTML = `<span class="loader"></span> ${method === 'POST' ? 'Saving...' : 'Updating...'}`;
 
         try {
             const response = await fetch(endpoint, {
@@ -372,20 +409,27 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error saving plan:', error);
             alert(`Error saving plan: ${error.message}`);
             if (planSaveFeedbackDiv) planSaveFeedbackDiv.style.display = 'none';
+        } finally {
+            savePlanButton.disabled = false;
+            savePlanButton.textContent = originalSaveButtonText;
+            updateSaveButtonText(); // Ensure it reflects 'Update Plan' if a new plan was just saved
         }
     }
 
     async function loadUserPlans() {
         const userId = getUserId();
         if (!userId) {
-            // alert('User not logged in. Please login to view saved plans.');
-            // Optionally clear the list if user logs out or similar
             if(userPlansListElement) userPlansListElement.innerHTML = '<li>Login to see your plans.</li>';
             return;
         }
 
         if (!userPlansListElement) return;
-        userPlansListElement.innerHTML = '<li>Loading plans...</li>';
+
+        const originalLoadButtonText = loadPlansButton.textContent;
+        loadPlansButton.disabled = true;
+        loadPlansButton.innerHTML = '<span class="loader"></span> Loading Plans...';
+        userPlansListElement.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading plans...</div>';
+
 
         try {
             const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/plans`, {
@@ -395,11 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const plans = await response.json();
-            renderUserPlans(plans);
+            renderUserPlans(plans); // This will clear the loader if successful
         } catch (error) {
             console.error('Error loading plans:', error);
-            userPlansListElement.innerHTML = '<li>Failed to load plans.</li>';
-            alert(`Error loading plans: ${error.message}`);
+            userPlansListElement.innerHTML = '<li>Failed to load plans. Please try again.</li>';
+            // alert(`Error loading plans: ${error.message}`); // Alert might be too intrusive
+        } finally {
+            loadPlansButton.disabled = false;
+            loadPlansButton.textContent = originalLoadButtonText;
         }
     }
 
@@ -416,27 +463,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const listItem = document.createElement('li');
             listItem.textContent = plan.name;
 
-            const loadButton = document.createElement('button');
-            loadButton.textContent = 'Load';
-            loadButton.onclick = () => fetchAndLoadPlanDetails(plan.id);
-            listItem.appendChild(loadButton);
+            const loadButtonElement = document.createElement('button');
+            loadButtonElement.textContent = 'Load';
+            loadButtonElement.onclick = (e) => {
+                // Prevent multiple clicks while loading
+                if (loadButtonElement.disabled) return;
+                fetchAndLoadPlanDetails(plan.id, loadButtonElement);
+            };
+            listItem.appendChild(loadButtonElement);
 
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = 'Delete';
-            deleteButton.onclick = () => deletePlan(plan.id);
-            listItem.appendChild(deleteButton);
+            const deleteButtonElement = document.createElement('button');
+            deleteButtonElement.textContent = 'Delete';
+            deleteButtonElement.onclick = (e) => {
+                 if (deleteButtonElement.disabled) return;
+                deletePlan(plan.id, deleteButtonElement);
+            };
+            listItem.appendChild(deleteButtonElement);
 
             userPlansListElement.appendChild(listItem);
         });
     }
 
-    async function fetchAndLoadPlanDetails(planId) {
+    async function fetchAndLoadPlanDetails(planId, buttonElement) {
         const userId = getUserId();
-         if (!userId) { // Should not happen if loadUserPlans worked, but good check
+         if (!userId) {
             alert('User context lost. Please login again.');
             return;
         }
         console.log(`Fetching details for plan ID: ${planId}`);
+
+        const originalButtonText = buttonElement ? buttonElement.textContent : '';
+        if (buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<span class="loader"></span>';
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}/v1/plans/${planId}`, {
                 headers: getAuthHeaders()
@@ -480,10 +541,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error fetching plan details:', error);
             alert(`Error loading plan details: ${error.message}`);
+        } finally {
+            if (buttonElement) {
+                buttonElement.disabled = false;
+                buttonElement.textContent = originalButtonText;
+            }
         }
     }
 
-    async function deletePlan(planId) {
+    async function deletePlan(planId, buttonElement) {
         const userId = getUserId();
         if (!userId) {
             alert('User not logged in.');
@@ -493,6 +559,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         console.log(`Attempting to delete plan ID: ${planId}`);
+
+        const originalButtonText = buttonElement ? buttonElement.textContent : '';
+        if (buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<span class="loader"></span>';
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}/v1/plans/${planId}`, {
                 method: 'DELETE',
@@ -502,24 +575,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json().catch(() => ({ message: 'Failed to delete plan. Unknown error.' }));
                 throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
             }
-            // No content expected for 204, but if response.json() is called it can error.
-            // For 204, response.text() is safer if we need to check anything or just assume success.
-             if (response.status === 204) {
+
+            if (response.status === 204) { // Standard for successful DELETE with no content
                 alert('Plan deleted successfully.');
-                if (currentLoadedPlanId === planId) { // If the deleted plan was loaded
-                    clearPlan(); // Clear the UI
-                } else {
-                    loadUserPlans(); // Refresh list if a different plan was deleted
+                if (currentLoadedPlanId === planId) {
+                    clearPlan();
                 }
-            } else {
-                // Handle cases where DELETE might return content (though typically it's 204)
-                const result = await response.json();
-                alert('Plan deleted successfully (with response).');
-                console.log('Delete response:', result);
+                loadUserPlans(); // Refresh list regardless
+            } else { // Should not happen with a 204, but as a fallback
+                const result = await response.json().catch(()=>null); // Try to parse, but don't fail if no content
+                alert(result?.message || 'Plan deleted (status not 204).');
+                console.log('Delete response (unexpected):', result);
+                loadUserPlans();
             }
         } catch (error) {
             console.error('Error deleting plan:', error);
             alert(`Error deleting plan: ${error.message}`);
+        } finally {
+            if (buttonElement) {
+                buttonElement.disabled = false;
+                buttonElement.textContent = originalButtonText;
+            }
         }
     }
 
@@ -554,9 +630,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearPlanButton) clearPlanButton.addEventListener('click', clearPlan);
 
     // Initial setup
+    const exerciseListContainer = document.getElementById('exercise-list-container');
+    exerciseListContainer.innerHTML = '<div class="loader-container"><span class="loader"></span> Loading exercises...</div>';
     fetchExercises().then(exercises => {
-        availableExercises = exercises; // Store for later use (e.g., getting exercise details by ID)
-        displayExercises(exercises); // Display them in the draggable list
+        availableExercises = exercises;
+        if (exercises && exercises.length > 0) {
+            displayExercises(exercises);
+        } else if (exerciseListContainer.innerHTML.includes('loader-container')) { // Check if loader is still there
+             exerciseListContainer.innerHTML = '<p>No exercises found or failed to load.</p>';
+        }
     });
     // displayPlanTemplates(); // Removed
     renderPlan(); // To show the initial "Drag and drop" message or current plan

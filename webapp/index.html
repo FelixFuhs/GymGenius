@@ -11,18 +11,28 @@
     <header>
         <h1>GymGenius</h1>
     </header>
+    <div id="global-loader" class="hidden">
+        <div class="loader"></div>
+    </div>
     <main id="app-root">
         <!-- Content will be loaded here by JavaScript -->
-        <p>Loading...</p>
+        <!-- Initial loading text/spinner will be managed by app.js -->
     </main>
     <footer>
         <nav>
-            <!-- Navigation links will be dynamically updated by js/app.js -->
-            <a href="#login">Login</a>
-            <a href="plan_builder.html">Plan Builder</a>
-            <a href="analytics_dashboard.html">Analytics</a>
-            <a href="workout_execution.html">Workout Log (Alpha)</a> <!-- Temporary link -->
-            <a id="feedback-link" href="#" target="_blank" rel="noopener">Beta Feedback</a>
+            <div class="hamburger-menu">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <div class="nav-links">
+                <!-- Navigation links will be dynamically updated by js/app.js -->
+                <a href="#login">Login</a>
+                <a href="plan_builder.html">Plan Builder</a>
+                <a href="analytics_dashboard.html">Analytics</a>
+                <a href="workout_execution.html">Workout Log (Alpha)</a> <!-- Temporary link -->
+                <a id="feedback-link" href="#" target="_blank" rel="noopener">Beta Feedback</a>
+            </div>
         </nav>
     </footer>
     <div id="onboarding-modal" class="modal">
