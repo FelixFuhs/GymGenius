@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255),
     birth_date DATE,
     gender VARCHAR(20),
+    sex TEXT, -- New column for sex
+    equipment_type TEXT DEFAULT 'barbell', -- New column for equipment type
     goal_slider DECIMAL(3,2) DEFAULT 0.5,
     experience_level VARCHAR(20) DEFAULT 'intermediate',
     unit_system VARCHAR(10) DEFAULT 'metric',
@@ -172,7 +174,17 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     completed_at TIMESTAMP WITH TIME ZONE,
     form_rating INTEGER CHECK (form_rating BETWEEN 1 AND 5),
     notes TEXT,
+    mti INTEGER, -- New column for MTI
     UNIQUE(workout_id, exercise_id, set_number)
+);
+
+-- Mesocycles Table
+CREATE TABLE IF NOT EXISTS mesocycles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    phase TEXT NOT NULL, -- e.g., 'accumulation', 'intensification', 'deload'
+    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    week_number INTEGER NOT NULL DEFAULT 1
 );
 
 -- Estimated 1RM History Table
@@ -223,6 +235,7 @@ CREATE INDEX IF NOT EXISTS idx_plateau_events_user_exercise ON plateau_events(us
 CREATE INDEX IF NOT EXISTS idx_exercises_main_target_muscle_group ON exercises(main_target_muscle_group); -- Index for the new column
 CREATE INDEX IF NOT EXISTS idx_user_refresh_tokens_user_id ON user_refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_refresh_tokens_token ON user_refresh_tokens(token); -- Explicit index for the unique token
+CREATE INDEX IF NOT EXISTS idx_mesocycles_user_id_start_date ON mesocycles(user_id, start_date DESC); -- Index for mesocycles table
 
 -- Trigger function to update 'updated_at' columns
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
