@@ -29,3 +29,5 @@ EXERCISE_DEFAULT_1RM = {
     }
     # ... other exercises
 }
+
+PLATEAU_EVENT_NOTIFICATION_COOLDOWN_WEEKS = 3

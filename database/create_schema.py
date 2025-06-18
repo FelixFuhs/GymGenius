@@ -215,7 +215,9 @@ CREATE TABLE IF NOT EXISTS plateau_events (
     detected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     plateau_duration_days INTEGER,
     protocol_applied VARCHAR(50),
-    resolved_at TIMESTAMP WITH TIME ZONE
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    acknowledged_at TIMESTAMP WITH TIME ZONE NULL,
+    details TEXT NULL
 );
 
 -- Volume Summaries Table
