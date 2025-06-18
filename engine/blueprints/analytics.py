@@ -622,9 +622,10 @@ def trigger_training_pipeline_route():
 
     try:
         from . import tasks  # Imported here to avoid circular dependency on startup
-        job = tasks.queue.enqueue(tasks.nightly_user_model_update,
-                                  task_name=task_name,
-                                  force_run=force_run)
+        job = tasks.enqueue_nightly_user_model_update(
+            task_name=task_name,
+            force_run=force_run,
+        )
         logger.info(f"Enqueued training pipeline job {job.id}")
         return jsonify({
             "message": "Training pipeline enqueued",
