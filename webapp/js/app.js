@@ -271,12 +271,29 @@ class WorkoutFlow {
 // Instantiate WorkoutFlow globally or make it accessible
 window.workoutFlowManager = new WorkoutFlow();
 
+// --- Global Loader Functions ---
+function showGlobalLoader() {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.remove('hidden');
+    }
+}
+
+function hideGlobalLoader() {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.add('hidden');
+    }
+}
 
 // --- Navigation ---
 const protectedRoutes = ['#workouts', '#logset', '#exercises', '#profile']; // Add other protected routes
 
 document.addEventListener('DOMContentLoaded', () => {
+    showGlobalLoader(); // Show loader as soon as DOM is ready
     const appRoot = document.getElementById('app-root');
+    appRoot.innerHTML = ''; // Clear any static content like "Loading..." paragraph
+
     const routes = {
         '#login': LoginPage,
         '#signup': SignupPage, // Added SignupPage
@@ -306,12 +323,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const pageFunction = routes[path.split('?')[0]] || NotFoundPage; // Use updated path
         appRoot.innerHTML = ''; // Clear previous content
-        appRoot.appendChild(pageFunction());
+        try {
+            appRoot.appendChild(pageFunction());
+        } catch (e) {
+            console.error("Error rendering page:", e);
+            appRoot.appendChild(NotFoundPage()); // Fallback to NotFoundPage on error
+        }
         updateFooterNav(); // Update nav links based on auth state
+        hideGlobalLoader(); // Hide loader after page content is set
     }
 
-    window.addEventListener('hashchange', navigate);
-    navigate();
+    window.addEventListener('hashchange', () => {
+        showGlobalLoader(); // Show loader on hash change
+        navigate();
+    });
+    navigate(); // Initial navigation
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
@@ -320,6 +346,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (window.QuickStart) {
         window.QuickStart.checkFirstTime();
+    }
+
+    // Hamburger menu functionality
+    const hamburgerMenu = document.querySelector('.hamburger-menu');
+    const navLinks = document.querySelector('.nav-links');
+
+    if (hamburgerMenu && navLinks) {
+        hamburgerMenu.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
     }
 });
 
@@ -344,10 +380,16 @@ function LoginPage() {
     `;
 
     const errorDiv = page.querySelector('#login-error');
-    page.querySelector('#login-form').addEventListener('submit', (e) => {
+    const loginForm = page.querySelector('#login-form');
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+
+    loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         errorDiv.style.display = 'none'; // Hide previous errors
         errorDiv.textContent = '';
+        const originalButtonText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="loader"></span> Logging in...';
 
         const email = e.target.email.value;
         const password = e.target.password.value;
@@ -380,6 +422,10 @@ function LoginPage() {
             console.error('Login API call failed:', error);
             errorDiv.textContent = 'An error occurred during login. Please try again.';
             errorDiv.style.display = 'block';
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
         });
     });
     return page;
@@ -413,11 +459,16 @@ function SignupPage() {
 
     const errorDiv = page.querySelector('#signup-error');
     const messageDiv = page.querySelector('#signup-message');
+    const signupForm = page.querySelector('#signup-form');
+    const submitButton = signupForm.querySelector('button[type="submit"]');
 
-    page.querySelector('#signup-form').addEventListener('submit', (e) => {
+    signupForm.addEventListener('submit', (e) => {
         e.preventDefault();
         errorDiv.style.display = 'none'; errorDiv.textContent = '';
         messageDiv.style.display = 'none'; messageDiv.textContent = '';
+        const originalButtonText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="loader"></span> Signing up...';
 
         const email = e.target.email.value;
         const password = e.target.password.value;
@@ -451,6 +502,10 @@ function SignupPage() {
             console.error('Signup API call failed:', error);
             errorDiv.textContent = 'An error occurred during signup. Please try again.';
             errorDiv.style.display = 'block';
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
         });
     });
     return page;
@@ -463,7 +518,7 @@ function WorkoutListPage() {
     page.id = 'workout-list';
     page.innerHTML = `
         <h2>My Workouts</h2>
-        <div id="workout-list-container">Loading workouts...</div>
+        <div id="workout-list-container"><div class="loader-container"><span class="loader"></span> Loading workouts...</div></div>
         <div id="workout-list-error" class="error-message" style="display:none;"></div>
         <button onclick="window.location.hash='#exercises'">Start New Workout (Browse Exercises)</button>
     `;
@@ -522,7 +577,7 @@ function ExerciseListPage() {
     page.className = 'page active';
     page.innerHTML = `
         <h2>Browse Exercises</h2>
-        <div id="exercise-list-container">Loading exercises...</div>
+        <div id="exercise-list-container"><div class="loader-container"><span class="loader"></span> Loading exercises...</div></div>
         <div id="exercise-list-error" class="error-message" style="display:none;"></div>
     `;
 
@@ -636,6 +691,9 @@ function LogSetPage() {
     const aiRecommendationDiv = page.querySelector('#ai-recommendation');
     const messageDiv = page.querySelector('#logset-message');
     const formErrorDiv = page.querySelector('#logset-error');
+    const logSetForm = page.querySelector('#log-set-form');
+    const submitSetButton = logSetForm.querySelector('button[type="submit"]');
+
 
     updateSetNumberDisplay(currentSetNumber); // Initial display
 
@@ -709,11 +767,15 @@ function LogSetPage() {
     }
 
 
-    page.querySelector('#log-set-form').addEventListener('submit', async (e) => {
+    logSetForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         messageDiv.style.display = 'none'; messageDiv.textContent = '';
         formErrorDiv.style.display = 'none'; formErrorDiv.textContent = '';
+        const originalButtonText = submitSetButton.textContent;
+        submitSetButton.disabled = true;
+        submitSetButton.innerHTML = '<span class="loader"></span> Logging Set...';
 
+        let workoutJustCreated = false;
         if (!currentWorkoutId) {
             try {
                 console.log("No active workout ID, creating a new one for user:", currentUserId);
@@ -727,11 +789,14 @@ function LogSetPage() {
                     throw new Error(workoutData.error || 'Failed to create workout session.');
                 }
                 currentWorkoutId = workoutData.id;
+                workoutJustCreated = true; // Mark that a workout was just created
                 console.log('New workout session created:', currentWorkoutId);
             } catch (err) {
                 console.error('Error creating workout session:', err);
                 formErrorDiv.textContent = `Error starting workout: ${err.message}`;
                 formErrorDiv.style.display = 'block';
+                submitSetButton.disabled = false;
+                submitSetButton.textContent = originalButtonText;
                 return;
             }
         }
@@ -752,7 +817,6 @@ function LogSetPage() {
         .then(response => response.json().then(data => ({ status: response.status, body: data })))
         .then(({ status, body }) => {
             if (status === 201) {
-                // messageDiv.textContent = `Set ${currentSetNumber} logged successfully! Next is Set #${currentSetNumber + 1}.`;
                 messageDiv.textContent = `Set ${currentSetNumber} logged successfully!`;
                 messageDiv.style.display = 'block';
                 currentSetNumber++; // Increment for the next set
@@ -771,6 +835,15 @@ function LogSetPage() {
             console.error('Error logging set:', error);
             formErrorDiv.textContent = 'An error occurred while logging the set.';
             formErrorDiv.style.display = 'block';
+            if (workoutJustCreated) { // If workout was created in this attempt but set log failed
+                // Consider if you want to "rollback" or delete the empty workout.
+                // For now, we'll leave it, but this is a point for future improvement.
+                console.warn(`Workout ${currentWorkoutId} was created, but the first set failed to log. The workout remains.`);
+            }
+        })
+        .finally(() => {
+            submitSetButton.disabled = false;
+            submitSetButton.textContent = originalButtonText;
         });
     });
     return page;

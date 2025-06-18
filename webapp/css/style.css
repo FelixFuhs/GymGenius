@@ -42,6 +42,25 @@ footer nav a:hover {
     text-decoration: underline;
 }
 
+.hamburger-menu {
+    display: none; /* Hidden by default */
+    cursor: pointer;
+    padding: 10px;
+}
+
+.hamburger-menu .bar {
+    width: 25px;
+    height: 3px;
+    background-color: white;
+    margin: 5px 0;
+    transition: 0.4s;
+}
+
+.nav-links {
+    display: flex; /* On larger screens, display links in a row */
+    align-items: center;
+}
+
 /* Placeholder for pages */
 .page {
     display: none; /* Hidden by default, shown by JS */
@@ -49,6 +68,100 @@ footer nav a:hover {
 
 .page.active {
     display: block;
+}
+
+/* Loader Styles */
+.loader {
+    border: 4px solid #f3f3f3; /* Light grey */
+    border-top: 4px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    display: inline-block; /* For local spinners */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#global-loader {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white overlay */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000; /* Ensure it's on top of everything */
+}
+
+#global-loader .loader { /* Specific styling for the spinner within global loader */
+    width: 50px; /* Larger spinner */
+    height: 50px;
+    border-width: 5px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Container for local loaders within content areas */
+.loader-container {
+    display: flex;
+    flex-direction: column; /* Stack loader and text vertically */
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    min-height: 100px; /* Ensure it's visible */
+    text-align: center;
+    color: #666; /* Text color for loading message */
+}
+
+.loader-container .loader {
+    margin-bottom: 10px; /* Space between loader and text */
+}
+
+/* Spinner within a button */
+button .loader {
+    width: 15px; /* Smaller loader for buttons */
+    height: 15px;
+    border-width: 2px;
+    margin-right: 8px; /* Space between loader and button text */
+    vertical-align: middle; /* Align with text */
+}
+
+/* Responsive adjustments for navigation */
+@media screen and (max-width: 768px) {
+    footer nav {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start; /* Align hamburger to the left */
+    }
+
+    .hamburger-menu {
+        display: block; /* Show hamburger icon */
+    }
+
+    .nav-links {
+        display: none; /* Hide nav links by default on small screens */
+        flex-direction: column;
+        width: 100%;
+        text-align: center; /* Center links in hamburger menu */
+    }
+
+    .nav-links.active {
+        display: flex; /* Show nav links when active */
+    }
+
+    footer nav a {
+        margin: 10px 0; /* Adjust margin for vertical layout */
+        display: block; /* Make links take full width for easier clicking */
+        width: 100%;
+    }
 }
 
 h2 {
