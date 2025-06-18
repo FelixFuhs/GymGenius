@@ -236,6 +236,23 @@ __all__ = [
     "PlateauStatus",
 ]
 
+def adjust_next_set(prev_actual_rir: int,
+                    target_rir: int,
+                    # prev_actual_reps: int, # Not used in logic
+                    # rep_low: int,           # Not used in logic
+                    # rep_high: int,          # Not used in logic
+                    prev_weight: float) -> float:
+    """
+    Adjusts the weight for the next set based on the RIR difference
+    from the previous set.
+    """
+    diff = prev_actual_rir - target_rir
+    if diff <= -2:  # User too close to failure / overshot (actual RIR was much lower than target)
+        return round(prev_weight * 0.95, 2) # Decrease weight
+    elif diff >= 2: # User found it too easy (actual RIR was much higher than target)
+        return round(prev_weight * 1.05, 2) # Increase weight
+    return prev_weight # No change
+
 
 if __name__ == '__main__':
     # --- Test detect_plateau ---

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from engine.constants import SEX_MULTIPLIERS # Import SEX_MULTIPLIERS
 from ..app import (
     get_db_connection,
     release_db_connection,
@@ -10,7 +11,10 @@ from engine.progression import (
     detect_plateau,
     generate_deload_protocol,
     PlateauStatus,
+    adjust_next_set, # Import adjust_next_set
+    detect_plateau, # Already imported, ensure it's used from here
 )
+from engine.mesocycles import get_or_create_current_mesocycle, PHASE_ACCUMULATION, PHASE_INTENSIFICATION, PHASE_DELOAD # Mesocycle imports
 from engine.learning_models import (
     update_user_rir_bias,
     calculate_current_fatigue,
@@ -21,7 +25,7 @@ from engine.learning_models import (
 from engine.predictions import extended_epley_1rm, round_to_available_plates, calculate_confidence_score, estimate_1rm_with_rir_bias
 import psycopg2
 import psycopg2.extras
-from datetime import datetime
+from datetime import datetime, date # Added date import
 
 # --- Constants for Smart 1RM Defaults ---
 EXERCISE_DEFAULT_1RM = {
@@ -31,6 +35,7 @@ EXERCISE_DEFAULT_1RM = {
     'deadlift': {'beginner': 60.0, 'intermediate': 100.0, 'advanced': 140.0},
     'overhead_press': {'beginner': 30.0, 'intermediate': 50.0, 'advanced': 70.0},
     # Add more exercises as needed. Key by exercise name (lowercase, spaces replaced with underscore)
+    "other": {"beginner": 20.0, "intermediate": 40.0, "advanced": 60.0}, # Added 'other' category
 }
 
 FALLBACK_DEFAULT_1RM = 30.0 # Generic fallback if no specific default is found
@@ -205,26 +210,34 @@ def fatigue_status_route(user_id):
         if conn:
             release_db_connection(conn)
 
-@analytics_bp.route('/v1/user/<uuid:user_id>/exercise/<uuid:exercise_id>/recommend-set-parameters', methods=['GET'])
+@analytics_bp.route('/v1/user/<uuid:user_id>/exercise/<uuid:exercise_id>/recommend-set-parameters', methods=['GET', 'POST']) # Added POST
 def recommend_set_parameters_route(user_id, exercise_id):
     user_id_str = str(user_id)
     exercise_id_str = str(exercise_id)
+
+    previous_set_metrics = None
+    if request.method == 'POST':
+        request_data = request.get_json(silent=True) or {}
+        previous_set_metrics = request_data.get('previous_set_metrics')
+    # For GET requests, previous_set_metrics remains None, or could be read from query params if designed so.
 
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT goal_slider, rir_bias, recovery_multipliers, experience_level, equipment_settings FROM users WHERE id = %s;", (user_id_str,))
-            user_data_db = cur.fetchone() # Renamed
+            # Fetch 'sex' and 'equipment_type' along with other user data
+            cur.execute("SELECT goal_slider, rir_bias, recovery_multipliers, experience_level, equipment_settings, sex, equipment_type FROM users WHERE id = %s;", (user_id_str,))
+            user_data_db = cur.fetchone()
             if not user_data_db:
                 return jsonify(error="User not found"), 404
 
             goal_slider = float(user_data_db['goal_slider'])
-            user_rir_bias = float(user_data_db.get('rir_bias', 0.0)) # Added .get with default
-            user_experience_level = user_data_db.get('experience_level', 'intermediate').lower() # Default to intermediate
-            recovery_multipliers_data = user_data_db.get('recovery_multipliers') or {} # Renamed
+            user_rir_bias = float(user_data_db.get('rir_bias', 0.0))
+            user_experience_level = user_data_db.get('experience_level', 'intermediate').lower()
+            recovery_multipliers_data = user_data_db.get('recovery_multipliers') or {}
+            user_equipment_type = user_data_db.get('equipment_type', 'barbell').lower() # Get equipment_type
 
-            equipment_settings = user_data_db.get('equipment_settings')
+            equipment_settings = user_data_db.get('equipment_settings') # Still needed for plates/barbell weight
             if not isinstance(equipment_settings, dict):
                 equipment_settings = {}
 
@@ -291,24 +304,117 @@ def recommend_set_parameters_route(user_id, exercise_id):
             if estimated_1rm is None: # If no history, or if history processing failed to set estimated_1rm
                 # Fallback to smart default logic
                 exercise_key = exercise_name.lower().replace(' ', '_')
+                used_other_category = False
 
                 default_levels = EXERCISE_DEFAULT_1RM.get(exercise_key)
-                if default_levels:
+                if not default_levels: # Exercise name not directly in defaults
+                    default_levels = EXERCISE_DEFAULT_1RM.get("other", {}) # Fallback to 'other'
+                    e1rm_source = "other_category_default" # Initial source if 'other' is used
+                    used_other_category = True
+
+                if default_levels: # Either specific exercise or 'other' category defaults
                     estimated_1rm = default_levels.get(user_experience_level)
                     if estimated_1rm is not None:
-                        e1rm_source = f"{user_experience_level}_default_for_{exercise_key}" # Made source more specific like before
-                    else:
+                        if not used_other_category: # Specific exercise found
+                           e1rm_source = f"{user_experience_level}_default_for_{exercise_key}"
+                        else: # 'other' category used for this experience level
+                           e1rm_source = f"{user_experience_level}_default_for_other_category"
+                    else: # Experience level not in the chosen category, try 'intermediate'
                         estimated_1rm = default_levels.get('intermediate')
                         if estimated_1rm is not None:
-                            e1rm_source = f"intermediate_default_for_{exercise_key}" # Made source more specific
-                        else: # Should not happen if defaults are structured well (e.g. intermediate always present)
-                            estimated_1rm = FALLBACK_DEFAULT_1RM
-                            e1rm_source = "fallback_default_no_intermediate_match"
+                            if not used_other_category:
+                                e1rm_source = f"intermediate_default_for_{exercise_key}"
+                            else:
+                                e1rm_source = f"intermediate_default_for_other_category"
+                        # If still None, it will hit the global fallback next.
+                        # No need to set e1rm_source to "fallback_default_no_intermediate_match" here,
+                        # as the next block handles it more globally.
 
+                # Global fallback if no default found yet (neither specific, nor 'other', nor their intermediates)
                 if estimated_1rm is None:
                     estimated_1rm = FALLBACK_DEFAULT_1RM
-                    e1rm_source = "fallback_default_exercise_unknown"
+                    e1rm_source = "global_fallback_default" # More descriptive global fallback source
 
+                # Apply sex multiplier if estimated_1rm was derived from defaults
+                if "default" in e1rm_source: # Check if source indicates a default was used
+                    user_sex = user_data_db.get('sex')
+                    if user_sex and user_sex.lower() in SEX_MULTIPLIERS:
+                        sex_multiplier = SEX_MULTIPLIERS[user_sex.lower()]
+                    else: # Handles None, empty string, or values not in SEX_MULTIPLIERS explicitly
+                        sex_multiplier = SEX_MULTIPLIERS['unknown']
+
+                    if estimated_1rm is not None: # Ensure estimated_1rm is not None before multiplication
+                        estimated_1rm *= sex_multiplier
+                        e1rm_source += f"_sex_adj_{user_sex or 'unknown'}" # Updated source string
+
+            # Plateau Detection & Deload Logic
+            plateau_analysis_details = {'plateau_detected': False, 'deload_applied': False}
+            MIN_HISTORY_FOR_PLATEAU_CHECK = 5 # Need at least this many records to check for a plateau
+            PLATEAU_CHECK_WINDOW = 15 # Look at the last N records for plateau
+
+            cur.execute(
+                "SELECT estimated_1rm FROM estimated_1rm_history "
+                "WHERE user_id = %s AND exercise_id = %s "
+                "ORDER BY calculated_at ASC LIMIT %s;", # Oldest first for detect_plateau
+                (user_id_str, exercise_id_str, PLATEAU_CHECK_WINDOW)
+            )
+            e1rm_history_for_plateau = cur.fetchall()
+
+            if len(e1rm_history_for_plateau) >= MIN_HISTORY_FOR_PLATEAU_CHECK:
+                e1rm_values = [float(r['estimated_1rm']) for r in e1rm_history_for_plateau]
+                # Using min_duration=3 for plateau detection as per requirement
+                plateau_status = detect_plateau(e1rm_values, min_duration=3)
+
+                plateau_analysis_details.update({
+                    'plateau_detected': plateau_status['plateauing'],
+                    'status': plateau_status['status'].value if plateau_status.get('status') else None,
+                    'slope': plateau_status.get('slope'),
+                    'duration_evaluated': plateau_status.get('duration') # Duration from detect_plateau
+                })
+
+                # Requirement: "If plateau = True for >= 3 sessions"
+                # detect_plateau's 'duration' is the number of points confirming the trend.
+                # If min_duration=3 is used in detect_plateau, then plateau_status['plateauing'] being True implies this.
+                if plateau_status['plateauing']: # Relies on min_duration=3 in detect_plateau call
+                    if estimated_1rm is not None: # Ensure there's an e1RM to adjust
+                        original_e1rm_before_deload = estimated_1rm
+                        estimated_1rm *= 0.90 # Apply 10% deload to e1RM
+                        plateau_analysis_details['deload_applied'] = True
+                        plateau_analysis_details['original_e1rm'] = original_e1rm_before_deload
+                        plateau_analysis_details['deloaded_e1rm'] = estimated_1rm
+                        e1rm_source += "_plateau_deload"
+                    else: # estimated_1rm is None, cannot apply deload
+                        plateau_analysis_details['deload_applied'] = False
+                        plateau_analysis_details['reason_no_deload'] = "e1RM was None initially"
+            else: # Insufficient history for plateau check
+                plateau_analysis_details['reason_no_plateau_check'] = "Insufficient history"
+
+            # Mesocycle Phase Adjustment (applied to e1RM after plateau, before goal % and fatigue)
+            today = date.today()
+            meso_details_dict = get_or_create_current_mesocycle(cur, user_id_str, today)
+            current_phase = meso_details_dict['phase']
+            current_meso_week = meso_details_dict['week_number']
+
+            load_modifier = 1.0
+            meso_source_append = ""
+            if current_phase == PHASE_INTENSIFICATION:
+                load_modifier = 1.02
+                meso_source_append = "_meso_intensification"
+            elif current_phase == PHASE_DELOAD:
+                load_modifier = 0.90
+                meso_source_append = "_meso_deload"
+            # else accumulation, load_modifier = 1.0, no source change needed unless explicitly desired
+
+            if estimated_1rm is not None and load_modifier != 1.0:
+                estimated_1rm *= load_modifier
+                e1rm_source += meso_source_append
+
+            response_mesocycle_details = {
+                "phase": current_phase,
+                "week_in_phase": current_meso_week,
+                "load_modifier_applied": load_modifier,
+                "mesocycle_id": meso_details_dict.get('id') # Pass ID for reference
+            }
 
             user_recovery_multiplier = 1.0
             if isinstance(recovery_multipliers_data, dict): # Check if dict
@@ -364,6 +470,46 @@ def recommend_set_parameters_route(user_id, exercise_id):
 
             base_recommended_weight = estimated_1rm * load_percentage_of_1rm
 
+            # Intra-session adaptation logic
+            intra_session_adjustment_info = {"type": "none", "original_calculated_weight": round(base_recommended_weight,2)}
+
+            if previous_set_metrics:
+                prev_actual_rir = previous_set_metrics.get('prev_actual_rir')
+                prev_target_rir = previous_set_metrics.get('prev_target_rir')
+                prev_weight_lifted = previous_set_metrics.get('prev_weight_lifted')
+
+                if prev_actual_rir is not None and prev_target_rir is not None and prev_weight_lifted is not None:
+                    try:
+                        prev_actual_rir = int(prev_actual_rir)
+                        prev_target_rir = int(prev_target_rir)
+                        prev_weight_lifted = float(prev_weight_lifted)
+
+                        # The weight to adjust is the one from the previous set
+                        adjusted_weight_from_prev = adjust_next_set(
+                            prev_actual_rir, prev_target_rir, prev_weight_lifted
+                        )
+
+                        adjustment_type = "none"
+                        if adjusted_weight_from_prev < prev_weight_lifted:
+                            adjustment_type = "decreased"
+                        elif adjusted_weight_from_prev > prev_weight_lifted:
+                            adjustment_type = "increased"
+
+                        intra_session_adjustment_info = {
+                            "type": adjustment_type,
+                            "from_weight": prev_weight_lifted,
+                            "to_weight_before_fatigue": adjusted_weight_from_prev,
+                            "adjustment_applied_to_base": True
+                        }
+                        # This adjusted weight becomes the new "base" before fatigue, effectively overriding e1RM based calculation for this set
+                        base_recommended_weight = adjusted_weight_from_prev
+                        e1rm_source += "_intra_adjusted" # Append to source
+
+                    except ValueError:
+                        logger.warning(f"Invalid previous_set_metrics format for user {user_id_str}, exercise {exercise_id_str}")
+                        intra_session_adjustment_info["error"] = "Invalid metric types"
+
+
             fatigue_reduction_per_10_points = 0.01
             fatigue_points_for_reduction = 10.0
             # Ensure current_fatigue is float for division
@@ -372,20 +518,30 @@ def recommend_set_parameters_route(user_id, exercise_id):
 
             weight_reduction_due_to_fatigue = base_recommended_weight * fatigue_adjustment_factor
             adjusted_weight = base_recommended_weight - weight_reduction_due_to_fatigue
+            intra_session_adjustment_info["weight_after_fatigue"] = round(adjusted_weight,2)
+
 
             final_rounded_weight = round_to_available_plates(
-                adjusted_weight,
-                user_available_plates,
-                user_barbell_weight
+                target_weight_kg=adjusted_weight,
+                available_plates_kg=user_available_plates,
+                barbell_weight_kg=user_barbell_weight,
+                equipment_type=user_equipment_type # Pass equipment_type
             )
 
             goal_slider_desc = "hypertrophy" if goal_slider < 0.34 else "strength" if goal_slider > 0.66 else "blend"
             explanation = (
                 f"Est. 1RM ({e1rm_source}): {estimated_1rm:.1f}kg. "
                 f"Goal ('{goal_slider_desc}', slider: {goal_slider:.2f}): target {load_percentage_of_1rm*100:.0f}% of 1RM. "
-                f"Base weight: {base_recommended_weight:.1f}kg. "
+                f"Base weight: {base_recommended_weight:.1f}kg (after potential intra-session adj.). "
                 f"Fatigue on '{main_target_muscle_group}' ({current_fatigue:.1f} pts): applied -{weight_reduction_due_to_fatigue:.1f}kg reduction. "
             )
+
+            if intra_session_adjustment_info["type"] != "none":
+                explanation += (
+                    f"Intra-session adjustment: {intra_session_adjustment_info['type']} "
+                    f"from {intra_session_adjustment_info.get('from_weight', 'N/A'):.1f}kg "
+                    f"to {intra_session_adjustment_info.get('to_weight_before_fatigue', 'N/A'):.1f}kg (before fatigue). "
+                )
 
             # Add RIR bias information to explanation
             if abs(user_rir_bias) > 0.05: # Only add if bias is significant
@@ -419,9 +575,12 @@ def recommend_set_parameters_route(user_id, exercise_id):
                 "target_reps_low": rep_low,
                 "target_reps_high": rep_high,
                 "target_rir": target_rir_to_display, # This is the RIR the user should aim for based on their perception
-                "system_target_actual_rir": system_actual_target_rir, # For clarity
-                "user_rir_bias_applied": round(user_rir_bias, 2), # For clarity, rounded
-                "confidence_score": confidence_score, # New field (can be None)
+                "system_target_actual_rir": system_actual_target_rir,
+                "user_rir_bias_applied": round(user_rir_bias, 2),
+                "confidence_score": confidence_score,
+                "intra_session_adjustment_details": intra_session_adjustment_info,
+                "plateau_analysis_details": plateau_analysis_details,
+                "mesocycle_details": response_mesocycle_details, # Added mesocycle details
                 "explanation": explanation
             }), 200
 

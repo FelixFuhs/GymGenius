@@ -5,6 +5,7 @@ import psycopg2.extras
 import uuid
 import math
 from datetime import datetime, timezone
+from engine.predictions import calculate_mti # Import calculate_mti
 
 workouts_bp = Blueprint('workouts', __name__)
 
@@ -306,18 +307,21 @@ def log_set_to_workout(workout_id):
                      return jsonify(error="Invalid 'completed_at' format. Use ISO 8601 format."), 400
 
             set_id = str(uuid.uuid4())
+            _effective_reps, mti_score = calculate_mti(actual_weight, actual_reps, actual_rir)
+
             cur.execute(
                 """
                 INSERT INTO workout_sets (
                     id, workout_id, exercise_id, set_number,
                     actual_weight, actual_reps, actual_rir,
-                    rest_before_seconds, completed_at, notes, created_at, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    rest_before_seconds, completed_at, notes, mti, -- Added mti column
+                    created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()) -- Added %s for mti
                 RETURNING *;
                 """,
                 (set_id, str(workout_id), exercise_id, set_number,
                  actual_weight, actual_reps, actual_rir,
-                 rest_before_seconds, completed_at_dt, set_notes)
+                 rest_before_seconds, completed_at_dt, set_notes, mti_score) # Added mti_score to params
             )
             new_set = cur.fetchone()
             conn.commit()
