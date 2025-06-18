@@ -27,6 +27,7 @@
                 <label for="exerciseSelector1RM">Select Exercise:</label>
                 <select id="exerciseSelector1RM"></select>
             </div>
+            <div id="chart1RMStatus" class="chart-status-message" style="display: none;"></div> <!-- New status div, initially hidden -->
             <div class="chart-container">
                 <canvas id="1rmEvolutionChart"></canvas>
             </div>
@@ -45,6 +46,7 @@
 
         <section id="volume-heatmap-section" class="dashboard-section">
             <h2>Weekly Volume Distribution</h2> <!-- Changed title -->
+            <div id="chartVolumeStatus" class="chart-status-message" style="display: none;"></div> <!-- New status div -->
             <div class="chart-container"> <!-- Added chart-container for consistent sizing -->
                 <canvas id="volumeDistributionChart"></canvas> <!-- Changed div to canvas and updated ID -->
             </div>
@@ -52,6 +54,7 @@
 
         <section id="mti-trends-section" class="dashboard-section">
             <h2>Mechanical Tension Index (MTI) Trends</h2>
+            <div id="chartMTIStatus" class="chart-status-message" style="display: none;"></div> <!-- New status div -->
             <div class="chart-container">
                 <canvas id="mtiTrendsChart"></canvas>
             </div>
@@ -61,15 +64,17 @@
             <h2>Recovery Patterns</h2>
             <div> <!-- Optional: Add selectors for exercise if data can be filtered -->
                 <label for="exerciseSelectorRecovery">Select Exercise:</label>
-                <select id="exerciseSelectorRecovery"></select>
+                <select id="exerciseSelectorRecovery"></select> <!-- Existing selector -->
             </div>
+            <div id="chartRecoveryHeatmapStatus" class="chart-status-message" style="display: none;"></div> <!-- New status div -->
             <div class="chart-container">
-                <canvas id="recoveryPatternsHeatmap"></canvas>
+                <canvas id="recoveryPatternsHeatmap"></canvas> <!-- Existing canvas -->
             </div>
         </section>
 
         <section id="mesocycle-indicator-section" class="dashboard-section">
             <h2>Current Mesocycle</h2>
+            <div id="mesocycleIndicatorStatus" class="chart-status-message" style="display: none;"></div> <!-- New status div -->
             <div id="mesocycle-indicator-container">
                 <!-- Visual indicator will be built here by JavaScript -->
             </div>
@@ -77,6 +82,7 @@
 
         <section id="strength-gains-section" class="dashboard-section">
             <h2>Strength Gains Summary</h2>
+            <div id="strengthGainsStatus" class="chart-status-message" style="display: none;"></div> <!-- New status div -->
             <div id="strength-gains-cards-container" class="cards-container">
                 <!-- Cards will be dynamically inserted here by JavaScript -->
             </div>

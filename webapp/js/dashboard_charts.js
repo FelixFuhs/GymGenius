@@ -22,7 +22,8 @@ function getAuthHeaders() {
 
 // Global store for fetched data to avoid re-fetching for selectors
 let allExercises = []; // To store exercise names and IDs
-let current1RMEvolutionData = {}; // Store all 1RM data fetched
+// let current1RMEvolutionData = {}; // Store all 1RM data fetched - REPLACED by on-demand fetching
+let currentSelectedExercise1RMData = null; // Holds data for the currently displayed 1RM chart
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Dashboard charts script loaded and DOM fully parsed.');
@@ -85,30 +86,51 @@ window.currentRecoveryHeatmap = null;
 // const mockKeyMetricsData = { ... };
 
 
-function render1RMEvolutionChart(exerciseId) { // Changed to exerciseId (UUID)
-    console.log(`Rendering 1RM Evolution Chart for exercise ID: ${exerciseId}`);
-    const ctx = document.getElementById('1rmEvolutionChart').getContext('2d');
-    if (!ctx) { console.error('1rmEvolutionChart canvas element not found for rendering!'); return; }
+function render1RMEvolutionChart(exerciseId, exerciseData) {
+    console.log(`Rendering 1RM Evolution Chart for exercise ID: ${exerciseId} with new data.`);
+    const canvas = document.getElementById('1rmEvolutionChart');
+    const statusDiv = document.getElementById('chart1RMStatus');
+    if (!canvas) { console.error('1rmEvolutionChart canvas element not found for rendering!'); return; }
+    const ctx = canvas.getContext('2d');
 
-    const exerciseData = current1RMEvolutionData[exerciseId];
     const selectedExercise = allExercises.find(ex => ex.id === exerciseId);
     const exerciseName = selectedExercise ? selectedExercise.name : `Exercise ID ${exerciseId}`;
 
+    // This specific message is for when API call was successful but returned no records for this exercise
     if (!exerciseData || exerciseData.length === 0) {
-        console.warn(`No 1RM data found for exercise: ${exerciseName} (ID: ${exerciseId})`);
+        console.warn(`No 1RM data points found for exercise: ${exerciseName} (ID: ${exerciseId}) after successful fetch.`);
         if (window.current1RMChart) { window.current1RMChart.destroy(); window.current1RMChart = null; }
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.font = "16px Arial"; ctx.textAlign = "center";
-        ctx.fillText(`No 1RM data available for ${exerciseName}.`, ctx.canvas.width / 2, ctx.canvas.height / 2);
+
+        if (statusDiv) {
+            statusDiv.textContent = `No 1RM data yet for ${exerciseName}. Complete some workouts to see progress!`;
+            statusDiv.style.display = 'flex'; // Show status
+            canvas.style.display = 'none';   // Hide canvas
+        } else { // Fallback to canvas text if statusDiv is not there
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+            ctx.fillText(`No 1RM data available for ${exerciseName}.`, canvas.width / 2, canvas.height / 2);
+        }
         return;
     }
-    const labels = exerciseData.map(dp => dp.date); // Dates should be in 'YYYY-MM-DD'
-    const dataPoints = exerciseData.map(dp => dp.estimated_1rm);
+
+    // If we have data, ensure canvas is visible and status is hidden
+    if (statusDiv) statusDiv.style.display = 'none';
+    canvas.style.display = 'block';
+
+    // Data mapping: adapt to actual API response structure. Assuming { date: 'YYYY-MM-DD', value: XXX } or { date: 'YYYY-MM-DD', estimated_1rm: XXX }
+    const labels = exerciseData.map(dp => dp.date);
+    const dataPoints = exerciseData.map(dp => dp.estimated_1rm !== undefined ? dp.estimated_1rm : dp.value);
+
 
     // Trendline calculation
     let trendlineData = [];
     if (dataPoints.length >= 2) {
-        trendlineData = calculateTrendline(exerciseData);
+        // Pass the correct structure to calculateTrendline, it expects {date, estimated_1rm}
+        const dataForTrendline = exerciseData.map(dp => ({
+            date: dp.date,
+            estimated_1rm: dp.estimated_1rm !== undefined ? dp.estimated_1rm : dp.value
+        }));
+        trendlineData = calculateTrendline(dataForTrendline);
     }
 
     if (window.current1RMChart) { window.current1RMChart.destroy(); }
@@ -140,7 +162,7 @@ function render1RMEvolutionChart(exerciseId) { // Changed to exerciseId (UUID)
                 labels: labels,
                 datasets: datasets
             },
-            options: {
+            options: { // Options remain largely the same as they are styling/behavior related
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
@@ -231,43 +253,106 @@ async function init1RMEvolutionChart() {
         return;
     }
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/1rm-evolution`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        current1RMEvolutionData = await response.json(); // Store globally for this page
-
+    // Populate the exercise selector using the global 'allExercises' list
+    if (allExercises && allExercises.length > 0) {
         selector.innerHTML = ''; // Clear previous options
-        const exerciseIdsWithData = Object.keys(current1RMEvolutionData);
+        allExercises.forEach(exercise => {
+            const option = document.createElement('option');
+            option.value = exercise.id;
+            option.textContent = exercise.name;
+            selector.appendChild(option);
+        });
 
-        if (allExercises.length > 0 && exerciseIdsWithData.length > 0) {
-            exerciseIdsWithData.forEach(exerciseId => {
-                const exerciseDetails = allExercises.find(ex => ex.id === exerciseId);
-                if (exerciseDetails) {
-                    const option = document.createElement('option');
-                    option.value = exerciseId; // Use ID as value
-                    option.textContent = exerciseDetails.name;
-                    selector.appendChild(option);
-                }
-            });
+        // Add event listener to fetch data when selection changes
+        selector.addEventListener('change', (event) => {
+            fetchAndRender1RMEvolutionData(event.target.value);
+        });
 
-            selector.addEventListener('change', (event) => render1RMEvolutionChart(event.target.value));
-
-            if (exerciseIdsWithData.length > 0) {
-                const initialExerciseId = exerciseIdsWithData[0];
-                selector.value = initialExerciseId;
-                render1RMEvolutionChart(initialExerciseId);
-            } else {
-                 throw new Error("No 1RM evolution data returned from backend.");
-            }
+        // Initial load for the first exercise in the list
+        if (allExercises.length > 0) {
+            const initialExerciseId = allExercises[0].id;
+            selector.value = initialExerciseId;
+            fetchAndRender1RMEvolutionData(initialExerciseId);
         } else {
-             throw new Error("No exercises with 1RM data found, or exercise list not loaded.");
+             // Handle case where allExercises is empty (though unlikely if fetched in DOMContentLoaded)
+            const statusDiv = document.getElementById('chart1RMStatus');
+            const canvas = document.getElementById('1rmEvolutionChart');
+            if (statusDiv) {
+                statusDiv.textContent = "Exercise list not available.";
+                statusDiv.style.display = 'flex';
+                if(canvas) canvas.style.display = 'none';
+            }
+            console.warn("No exercises available to populate 1RM chart selector.");
         }
+    } else {
+        const statusDiv = document.getElementById('chart1RMStatus');
+        const canvas = document.getElementById('1rmEvolutionChart');
+        if (statusDiv) {
+            statusDiv.textContent = "Exercises not loaded. Cannot display 1RM chart.";
+            statusDiv.style.display = 'flex';
+            if(canvas) canvas.style.display = 'none';
+        }
+        console.error("allExercises is empty, cannot initialize 1RM Evolution Chart selector.");
+    }
+}
+
+async function fetchAndRender1RMEvolutionData(exerciseId) {
+    const statusDiv = document.getElementById('chart1RMStatus');
+    const canvas = document.getElementById('1rmEvolutionChart');
+    const ctx = canvas.getContext('2d');
+
+    if (statusDiv) {
+        statusDiv.textContent = 'Loading 1RM data...';
+        statusDiv.style.display = 'flex';
+        canvas.style.display = 'none';
+        if (window.current1RMChart) { // Destroy previous chart instance if exists
+            window.current1RMChart.destroy();
+            window.current1RMChart = null;
+        }
+    } else { // Fallback to canvas text
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText("Loading 1RM data...", canvas.width / 2, canvas.height / 2);
+    }
+
+    const userId = getUserId(); // Needed if your API is user-specific and not just exerciseId
+    if (!userId && exerciseId) { // Assuming exerciseId implies a user context or public exercise data
+        // If userId is strictly required by the new endpoint, handle this.
+        // For now, proceeding as if endpoint only needs exerciseId or auth token handles user.
+    }
+
+    try {
+        // const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/1rm-evolution`, { headers: getAuthHeaders() }); // OLD
+        const response = await fetch(`${API_BASE_URL}/api/v1/analytics/progress/${exerciseId}`, { headers: getAuthHeaders() });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const progressData = await response.json();
+        // API is expected to return an array of { date: 'YYYY-MM-DD', value: XXX } or { date: 'YYYY-MM-DD', estimated_1rm: XXX }
+        // The problem description implies the key is `estimated_1rm`. If it's `value`, `render1RMEvolutionChart` will adapt.
+        currentSelectedExercise1RMData = progressData.data || progressData; // Adapt based on actual API response structure (e.g. if data is nested)
+
+        if (!currentSelectedExercise1RMData || currentSelectedExercise1RMData.length === 0) {
+             // Message handled by render1RMEvolutionChart for this specific case
+            render1RMEvolutionChart(exerciseId, []);
+        } else {
+            render1RMEvolutionChart(exerciseId, currentSelectedExercise1RMData);
+        }
+
     } catch (error) {
-        console.error("Failed to initialize 1RM Evolution Chart:", error);
-        const ctx = document.getElementById('1rmEvolutionChart').getContext('2d');
-        if (ctx) { ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.font = "16px Arial"; ctx.textAlign = "center"; ctx.fillText("Could not load 1RM data.", ctx.canvas.width / 2, ctx.canvas.height / 2); }
+        console.error(`Failed to fetch 1RM data for exercise ${exerciseId}:`, error);
+        if (statusDiv) {
+            statusDiv.textContent = `Failed to load progress data: ${error.message}. Please try again.`;
+            statusDiv.style.display = 'flex';
+            canvas.style.display = 'none';
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+            ctx.fillText("Failed to load data.", canvas.width / 2, canvas.height / 2);
+        }
     }
 }
 
@@ -327,75 +412,87 @@ function processWeeklyVolumeData(heatmapData) {
         };
     });
 
+    // Adapt to new API structure: week_start_date, muscle_group, total_volume
+    // Sort data by week to ensure labels are chronological
+    apiData.sort((a, b) => new Date(a.week_start_date) - new Date(b.week_start_date));
+
+    const weekLabels = [...new Set(apiData.map(item => item.week_start_date))];
+    const muscleGroups = [...new Set(apiData.map(item => item.muscle_group))];
+
+    const datasets = muscleGroups.map(mg => {
+        const dataForMuscleGroup = weekLabels.map(week => {
+            const weekData = apiData.find(item => item.week_start_date === week && item.muscle_group === mg);
+            return weekData ? weekData.total_volume : 0;
+        });
+        return {
+            label: mg,
+            data: dataForMuscleGroup,
+            backgroundColor: getMuscleGroupColor(mg),
+            borderColor: getMuscleGroupColor(mg).replace('0.7', '1'),
+            borderWidth: 1
+        };
+    });
+
     return { labels: weekLabels, datasets: datasets };
 }
 
-async function initVolumeDistributionChart() {
-    console.log('Initializing Volume Distribution Chart...');
-    const ctxElement = document.getElementById('volumeDistributionChart');
-    if (!ctxElement) { console.error('volumeDistributionChart canvas element not found!'); return; }
-    const ctx = ctxElement.getContext('2d');
+function renderVolumeDistributionChart(processedChartData, annotationCfg) {
+    const canvas = document.getElementById('volumeDistributionChart');
+    if (!canvas) { console.error('volumeDistributionChart canvas element not found!'); return; }
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('chartVolumeStatus');
 
-    const userId = getUserId();
-    if (!userId) {
-        console.warn("User ID not found. Cannot load volume heatmap data.");
-        ctx.font = "16px Arial"; ctx.textAlign = "center";
-        ctx.fillText("Login to see volume distribution.", ctxElement.width / 2, ctxElement.height / 2);
-        return;
+    if (window.currentVolumeChart) {
+        window.currentVolumeChart.destroy();
+        window.currentVolumeChart = null;
     }
 
-    if (window.currentVolumeChart) { window.currentVolumeChart.destroy(); }
+    // Ensure canvas is visible and status is hidden when rendering actual chart
+    if (statusDiv) statusDiv.style.display = 'none';
+    canvas.style.display = 'block';
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/volume-heatmap`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const heatmapData = await response.json();
-        const processedData = processWeeklyVolumeData(heatmapData);
-
-        window.currentVolumeChart = new Chart(ctx, {
-            type: 'bar',
-            data: processedData,
-            options: {
+    window.currentVolumeChart = new Chart(ctx, {
+        type: 'bar',
+        data: processedChartData,
+        options: { // Options remain largely the same
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Weekly Volume by Muscle Group',
-                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
-                        color: '#343a40',
-                        padding: { top: 10, bottom: 20 }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: '#ffffff',
-                        titleColor: '#343a40',
-                        bodyColor: '#495057',
-                        borderColor: '#dee2e6',
-                        borderWidth: 1,
-                        titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
-                        bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
-                        padding: 10,
-                        cornerRadius: 4,
-                        displayColors: true
-                    },
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                            color: '#495057',
-                            boxWidth: 20,
-                            padding: 15
-                        }
-                    },
-                    annotation: { // Annotation plugin configuration
-                        annotations: generateVolumeAnnotations(heatmapData, processedData.labels)
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Weekly Volume by Muscle Group',
+                    font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 16, weight: '600' },
+                    color: '#343a40',
+                    padding: { top: 10, bottom: 20 }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: '#ffffff',
+                    titleColor: '#343a40',
+                    bodyColor: '#495057',
+                    borderColor: '#dee2e6',
+                    borderWidth: 1,
+                    titleFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', weight: '600' },
+                    bodyFont: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+                    padding: 10,
+                    cornerRadius: 4,
+                    displayColors: true
+                },
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
+                        color: '#495057',
+                        boxWidth: 20,
+                        padding: 15
                     }
                 },
-                scales: {
+                annotation: { // Annotation plugin configuration
+                    annotations: annotationCfg // Pass the generated annotations
+                }
+            },
+            scales: {
                     x: {
                         title: {
                             display: true,
@@ -435,14 +532,94 @@ async function initVolumeDistributionChart() {
                 }
             }
         });
-        console.log('Volume Distribution Chart initialized successfully with backend data.');
+        console.log('Volume Distribution Chart rendered successfully with new data.');
+    // Error handling specific to chart rendering itself, if any, can be added here.
+}
+
+async function fetchAndRenderVolumeData() {
+    const statusDiv = document.getElementById('chartVolumeStatus');
+    const canvas = document.getElementById('volumeDistributionChart');
+
+    if (!canvas) { // Should not happen if HTML is correct
+        console.error("volumeDistributionChart canvas element not found!");
+        if(statusDiv) statusDiv.textContent = "Chart canvas not found.";
+        return;
+    }
+    const ctx = canvas.getContext('2d');
+
+    if (statusDiv) {
+        statusDiv.textContent = 'Loading volume data...';
+        statusDiv.style.display = 'flex';
+        canvas.style.display = 'none';
+        if (window.currentVolumeChart) {
+            window.currentVolumeChart.destroy();
+            window.currentVolumeChart = null;
+        }
+    } else { // Fallback to canvas text
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText("Loading volume data...", canvas.width / 2, canvas.height / 2);
+    }
+
+    const userId = getUserId(); // Not strictly needed if API infers user from token
+    if (!userId) { // Or if API requires it in URL, adjust fetch URL
+        console.warn("User ID not found. Backend might infer from token.");
+        // Potentially display message if user must be logged in and ID is missing
+    }
+
+    try {
+        // const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/volume-heatmap`, { headers: getAuthHeaders() }); // OLD endpoint
+        const response = await fetch(`${API_BASE_URL}/api/v1/analytics/volume`, { headers: getAuthHeaders() });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const apiResult = await response.json();
+        const volumeData = apiResult.data || apiResult; // Assuming data is in a 'data' property or is the direct response
+
+        if (!volumeData || volumeData.length === 0) {
+            if (statusDiv) {
+                statusDiv.textContent = "No volume data available yet. Start logging workouts!";
+                statusDiv.style.display = 'flex';
+                canvas.style.display = 'none';
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+                ctx.fillText("No volume data available yet.", canvas.width / 2, canvas.height / 2);
+            }
+            return;
+        }
+
+        const processedData = processWeeklyVolumeData(volumeData);
+        // For MEV/MAV/MRV, assuming they are not yet part of the new API response.
+        // generateVolumeAnnotations will use its internal mock data.
+        // When API provides this, pass the relevant part of 'volumeData' or 'apiResult' to generateVolumeAnnotations.
+        console.info("Weekly Volume Chart: MEV/MAV/MRV lines are illustrative and use mock data. Update when API provides this.");
+        const annotations = generateVolumeAnnotations(volumeData, processedData.labels); // Pass raw API data and labels for context
+
+        renderVolumeDistributionChart(processedData, annotations);
+
     } catch (error) {
-        console.error('Error initializing Volume Distribution Chart:', error);
-        ctx.font = "16px Arial"; ctx.textAlign = "center";
-        ctx.fillText("Could not load volume data.", ctxElement.width / 2, ctxElement.height / 2);
-        alert(`Could not load volume data: ${error.message}`);
+        console.error("Failed to fetch or render Weekly Volume chart:", error);
+        if (statusDiv) {
+            statusDiv.textContent = `Failed to load volume data: ${error.message}. Please try again.`;
+            statusDiv.style.display = 'flex';
+            canvas.style.display = 'none';
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+            ctx.fillText("Failed to load volume data.", canvas.width / 2, canvas.height / 2);
+        }
     }
 }
+
+async function initVolumeDistributionChart() {
+    console.log('Initializing Volume Distribution Chart with live data...');
+    await fetchAndRenderVolumeData();
+}
+
 
 // Mock MEV/MAV/MRV data - REPLACE with backend data when available
 const mockVolumeGuidelines = {
@@ -526,37 +703,39 @@ function generateVolumeAnnotations(heatmapData, weekLabels) {
 
 // --- MTI Trends Chart (New) ---
 
-// Mock data for MTI Trends - Replace with API call when backend endpoint is available
-// Expected structure: [{ date: 'YYYY-MM-DD', mti_score: value }, ...]
-const mockMTITrendsData = [
-    { date: '2023-01-01', mti_score: 1500 }, { date: '2023-01-08', mti_score: 1550 },
-    { date: '2023-01-15', mti_score: 1600 }, { date: '2023-01-22', mti_score: 1520 },
-    { date: '2023-01-29', mti_score: 1650 }, { date: '2023-02-05', mti_score: 1700 },
-    { date: '2023-02-12', mti_score: 1680 }, { date: '2023-02-19', mti_score: 1750 },
-    { date: '2023-02-26', mti_score: 1800 }, { date: '2023-03-05', mti_score: 1780 },
-    { date: '2023-03-12', mti_score: 1850 }, { date: '2023-03-19', mti_score: 1900 }
-];
-
-window.currentMTIChart = null;
+// window.currentMTIChart = null; // Already defined in global section
 
 function renderMTITrendsChart(mtiData) {
-    const ctxElement = document.getElementById('mtiTrendsChart');
-    if (!ctxElement) { console.error('mtiTrendsChart canvas element not found!'); return; }
-    const ctx = ctxElement.getContext('2d');
+    const canvas = document.getElementById('mtiTrendsChart');
+    const statusDiv = document.getElementById('chartMTIStatus');
+    if (!canvas) { console.error('mtiTrendsChart canvas element not found!'); return; }
+    const ctx = canvas.getContext('2d');
 
+    // This specific message is for when API call was successful but returned no records
     if (!mtiData || mtiData.length === 0) {
-        console.warn('No MTI data available to render.');
+        console.warn('No MTI data points found after successful fetch.');
         if (window.currentMTIChart) { window.currentMTIChart.destroy(); window.currentMTIChart = null; }
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.font = "16px Arial"; ctx.textAlign = "center";
-        ctx.fillText("No MTI data available.", ctx.canvas.width / 2, ctx.canvas.height / 2);
+
+        if (statusDiv) {
+            statusDiv.textContent = 'No MTI data available yet. Keep up the good work!';
+            statusDiv.style.display = 'flex'; // Show status
+            canvas.style.display = 'none';   // Hide canvas
+        } else { // Fallback to canvas text
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+            ctx.fillText("No MTI data available.", canvas.width / 2, canvas.height / 2);
+        }
         return;
     }
 
-    const labels = mtiData.map(dp => dp.date);
-    const dataPoints = mtiData.map(dp => dp.mti_score);
+    // If we have data, ensure canvas is visible and status is hidden
+    if (statusDiv) statusDiv.style.display = 'none';
+    canvas.style.display = 'block';
 
-    if (window.currentMTIChart) { window.currentMTIChart.destroy(); }
+    const labels = mtiData.map(dp => dp.date);
+    const dataPoints = mtiData.map(dp => dp.mti_score); // Assuming API returns 'mti_score'
+
+    if (window.currentMTIChart) { window.currentMTIChart.destroy(); window.currentMTIChart = null;}
 
     try {
         window.currentMTIChart = new Chart(ctx, {
@@ -566,13 +745,13 @@ function renderMTITrendsChart(mtiData) {
                 datasets: [{
                     label: 'MTI Score',
                     data: dataPoints,
-                    borderColor: 'rgb(153, 102, 255)', // Purple
-                    backgroundColor: 'rgba(153, 102, 255, 0.3)', // Lighter purple for area fill
-                    tension: 0.2, // Slight curve
-                    fill: true // Essential for area chart
+                    borderColor: 'rgb(153, 102, 255)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.3)',
+                    tension: 0.2,
+                    fill: true
                 }]
             },
-            options: {
+            options: { // Options remain largely the same
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
@@ -688,29 +867,34 @@ async function initMTITrendsChart() {
 
 // --- Strength Gains Summary (New) ---
 
-// Mock data for Strength Gains - Replace with API call when backend endpoint is available
-// Expected structure: [{ exerciseName: string, improvementPercentage: number, period: string, e1RMHistory?: {previous: number, current: number} }, ...]
-const mockStrengthGainsData = [
-    { exerciseName: 'Squat', improvementPercentage: 15.5, period: 'Last 3 Months', e1RMHistory: { previous: 100, current: 115.5 } },
-    { exerciseName: 'Bench Press', improvementPercentage: 10.2, period: 'Last 3 Months' },
-    { exerciseName: 'Deadlift', improvementPercentage: 8.0, period: 'Last 3 Months' },
-    { exerciseName: 'Overhead Press', improvementPercentage: 12.1, period: 'Last 6 Weeks' },
-    { exerciseName: 'Overall Strength', improvementPercentage: 12.0, period: 'Last 3 Months' },
-    { exerciseName: 'Bicep Curl', improvementPercentage: -2.5, period: 'Last Month' } // Example of a decrease
-];
+// Mock data for Strength Gains has been removed as it will be fetched from API.
+// Expected API structure: Array of objects like:
+// { exerciseName: string, improvementPercentage: number, period: string, e1RMHistory?: {previous: number, current: number} }
 
 function renderStrengthGainsCards(strengthGainsData) {
     const container = document.getElementById('strength-gains-cards-container');
+    const statusDiv = document.getElementById('strengthGainsStatus');
+
     if (!container) {
         console.error('strength-gains-cards-container element not found!');
+        if (statusDiv) statusDiv.textContent = 'Display container not found.';
         return;
     }
-    container.innerHTML = ''; // Clear previous content
+    container.innerHTML = ''; // Clear previous cards
 
+    // This message is for when API call was successful but returned no records
     if (!strengthGainsData || strengthGainsData.length === 0) {
-        container.innerHTML = '<p>No strength gains data available at the moment.</p>';
+        if (statusDiv) {
+            statusDiv.textContent = 'No strength gains data to display yet. Keep training!';
+            statusDiv.style.display = 'flex'; // Show status
+        } else { // Fallback if statusDiv is missing
+            container.innerHTML = '<p>No strength gains data to display yet.</p>';
+        }
         return;
     }
+
+    // If we have data, ensure status is hidden
+    if (statusDiv) statusDiv.style.display = 'none';
 
     strengthGainsData.forEach(gain => {
         const card = document.createElement('div');
@@ -736,11 +920,11 @@ function renderStrengthGainsCards(strengthGainsData) {
         card.appendChild(periodEl);
 
         // Optional: Add e1RM history if available
-        if (gain.e1RMHistory) {
+        if (gain.e1RMHistory && gain.e1RMHistory.previous !== undefined && gain.e1RMHistory.current !== undefined) {
             const historyEl = document.createElement('p');
-            historyEl.classList.add('e1rm-history'); // Add a class for potential styling
-            historyEl.style.fontSize = '0.8em'; // Basic styling
-            historyEl.style.color = '#888';
+            historyEl.classList.add('e1rm-history');
+            historyEl.style.fontSize = '0.8em';
+            historyEl.style.color = '#888'; // Consider moving to CSS
             historyEl.textContent = `(e1RM: ${gain.e1RMHistory.previous}kg → ${gain.e1RMHistory.current}kg)`;
             card.appendChild(historyEl);
         }
@@ -778,58 +962,34 @@ async function initStrengthGainsSummary() {
 
 // --- Recovery Patterns Heatmap (New) ---
 
-// Mock data for Recovery Patterns - Replace with API call
-const mockRecoveryPatternsData = {
-    // Data could be per exercise, this is a simplified global example or for a pre-selected exercise
-    exerciseName: 'Squat', // Example, could be dynamic based on selector
-    // x: Day of Week (0=Sun, 1=Mon,... 6=Sat), y: Rest Days Prior, v: Performance Score (1-10)
-    data: [
-        { dayOfWeek: 1, restDays: 1, performanceScore: 7, count: 5 }, // Mon, 1 rest day, score 7, 5 sessions
-        { dayOfWeek: 1, restDays: 2, performanceScore: 8, count: 3 },
-        { dayOfWeek: 1, restDays: 3, performanceScore: 7, count: 1 },
-        { dayOfWeek: 2, restDays: 1, performanceScore: 6, count: 2 }, // Tue
-        { dayOfWeek: 3, restDays: 1, performanceScore: 6, count: 4 }, // Wed
-        { dayOfWeek: 3, restDays: 2, performanceScore: 9, count: 6 },
-        { dayOfWeek: 3, restDays: 3, performanceScore: 8, count: 2 },
-        { dayOfWeek: 4, restDays: 1, performanceScore: 5, count: 1 }, // Thu
-        { dayOfWeek: 5, restDays: 1, performanceScore: 7, count: 2 }, // Fri
-        { dayOfWeek: 5, restDays: 2, performanceScore: 8, count: 4 },
-        { dayOfWeek: 5, restDays: 4, performanceScore: 9, count: 1 },
-        { dayOfWeek: 0, restDays: 1, performanceScore: 7, count: 3 }, // Sun
-        { dayOfWeek: 0, restDays: 2, performanceScore: 8, count: 2 },
-    ]
-};
+// Mock data for Recovery Patterns has been removed.
+// API is expected to return an array for a given exercise, e.g.:
+// [{ day_of_week_numeric: 1, rest_days_prior: 2, performance_metric: 8.5, session_count: 10 }, ...]
 
 const dayOfWeekLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-// Determine max rest days from data for Y-axis labels dynamically
-// Initialize with a default in case data is empty, though mock data ensures it's not.
-let maxRestDays = 0;
-if (mockRecoveryPatternsData.data && mockRecoveryPatternsData.data.length > 0) {
-    maxRestDays = mockRecoveryPatternsData.data.reduce((max, item) => Math.max(max, item.restDays), 0);
-}
-const restDaysLabels = Array.from({ length: maxRestDays + 1 }, (_, i) => i); // [0, 1, 2, ..., maxRestDays]
+// restDaysLabels will be generated dynamically based on fetched data.
 
-
-function processRecoveryDataForMatrix(recoveryDataRaw, selectedExerciseName) {
-    // This function assumes recoveryDataRaw is an object like mockRecoveryPatternsData
-    // and selectedExerciseName is used to pick which part of the data to process if it's structured per exercise.
-    // For the current mockRecoveryPatternsData, selectedExerciseName isn't strictly used for filtering
-    // as it only contains one exercise's data directly under the 'data' key.
-    // If mockRecoveryPatternsData was an array of objects, each for an exercise, filtering would be needed here.
-    const exerciseData = recoveryDataRaw.data;
-
-    return exerciseData.map(item => ({
-        x: dayOfWeekLabels[item.dayOfWeek],
-        y: item.restDays,
-        v: item.performanceScore,
-        count: item.count
+function processRecoveryDataForMatrix(apiData) {
+    if (!apiData || apiData.length === 0) {
+        return [];
+    }
+    // Assuming apiData is an array of objects like:
+    // { day_of_week_numeric: 1, rest_days_prior: 2, performance_metric: 8.5, session_count: 10 }
+    return apiData.map(item => ({
+        x: dayOfWeekLabels[item.day_of_week_numeric], // Ensure day_of_week_numeric is 0-6
+        y: item.rest_days_prior,
+        v: item.performance_metric, // This is the value for coloring
+        count: item.session_count
     }));
 }
 
-function getPerformanceColor(value, minValue = 1, maxValue = 10) {
+function getPerformanceColor(value, minValue = 1, maxValue = 10) { // Assuming performance_metric is 1-10
+    // Ensure value is within min/max for ratio calculation
+    if (value === null || value === undefined) return 'rgba(230, 230, 230, 0.5)'; // Grey for undefined/null data
     // Ensure value is within min/max for ratio calculation
     const clampedValue = Math.max(minValue, Math.min(value, maxValue));
-    const ratio = (clampedValue - minValue) / (maxValue - minValue);
+    const ratio = (maxValue - minValue === 0) ? 0.5 : (clampedValue - minValue) / (maxValue - minValue);
+
 
     // Simplified Green (high performance) to Red (low performance)
     // Green: (0, 255, 0), Yellow: (255, 255, 0), Red: (255, 0, 0)
@@ -844,27 +1004,37 @@ function getPerformanceColor(value, minValue = 1, maxValue = 10) {
     return `rgba(${r}, ${g}, 0, 0.75)`; // Opacity 0.75
 }
 
+function renderRecoveryPatternsHeatmap(exerciseName, processedMatrixData) {
+    const canvas = document.getElementById('recoveryPatternsHeatmap');
+    const statusDiv = document.getElementById('chartRecoveryHeatmapStatus');
+    if (!canvas) { console.error('recoveryPatternsHeatmap canvas element not found!'); return; }
+    const ctx = canvas.getContext('2d');
 
-function renderRecoveryPatternsHeatmap(exerciseName) {
-    const ctxElement = document.getElementById('recoveryPatternsHeatmap');
-    if (!ctxElement) { console.error('recoveryPatternsHeatmap canvas element not found!'); return; }
-    const ctx = ctxElement.getContext('2d');
+    if (!processedMatrixData || processedMatrixData.length === 0) {
+        console.warn(`No processed data to render heatmap for ${exerciseName}.`);
+        if (statusDiv) {
+            statusDiv.textContent = `No recovery pattern data available for ${exerciseName}.`;
+            statusDiv.style.display = 'flex';
+            canvas.style.display = 'none';
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+            ctx.fillText(`No data for ${exerciseName}.`, canvas.width / 2, canvas.height / 2);
+        }
+        if (window.currentRecoveryHeatmap) { window.currentRecoveryHeatmap.destroy(); window.currentRecoveryHeatmap = null; }
+        return;
+    }
 
-    // In a real app, you'd fetch or filter data for the given exerciseName.
-    // For now, we use the global mock data and assume it matches the exerciseName or is generic.
-    // The 'exerciseName' parameter is used for the chart title.
-    const processedData = processRecoveryDataForMatrix(mockRecoveryPatternsData, exerciseName);
+    if (statusDiv) statusDiv.style.display = 'none';
+    canvas.style.display = 'block';
 
-    // Dynamically generate Y-axis labels based on the actual max rest days in the *processed* data for the exercise.
-    // This ensures labels match the data being displayed if it changes per exercise.
     let currentMaxRestDays = 0;
-    if (processedData && processedData.length > 0) {
-        currentMaxRestDays = processedData.reduce((max, item) => Math.max(max, item.y), 0);
+    if (processedMatrixData && processedMatrixData.length > 0) {
+        currentMaxRestDays = processedMatrixData.reduce((max, item) => Math.max(max, item.y), 0);
     }
     const currentYLabels = Array.from({ length: currentMaxRestDays + 1 }, (_, i) => i);
 
-
-    if (window.currentRecoveryHeatmap) { window.currentRecoveryHeatmap.destroy(); }
+    if (window.currentRecoveryHeatmap) { window.currentRecoveryHeatmap.destroy(); window.currentRecoveryHeatmap = null; }
 
     try {
         window.currentRecoveryHeatmap = new Chart(ctx, {
@@ -872,18 +1042,22 @@ function renderRecoveryPatternsHeatmap(exerciseName) {
             data: {
                 datasets: [{
                     label: `Performance Score (Exercise: ${exerciseName})`,
-                    data: processedData,
+                    data: processedMatrixData,
                     backgroundColor: (c) => {
                         const val = c.dataset.data[c.dataIndex]?.v;
-                        return val !== undefined ? getPerformanceColor(val) : 'rgba(230, 230, 230, 0.5)'; // Grey for undefined
+                        // Dynamically determine min/max from the dataset for more accurate coloring
+                        const allValues = c.dataset.data.map(d => d.v).filter(v => v !== null && v !== undefined);
+                        const minValue = Math.min(...allValues);
+                        const maxValue = Math.max(...allValues);
+                        return getPerformanceColor(val, minValue, maxValue);
                     },
                     borderColor: 'rgba(180, 180, 180, 0.7)',
                     borderWidth: 1,
-                    width: (c) => (c.chart.chartArea.width / dayOfWeekLabels.length) * 0.92,
+                    width: (c) => (c.chart.chartArea.width / dayOfWeekLabels.length) * 0.92, // dayOfWeekLabels is global
                     height: (c) => (c.chart.chartArea.height / currentYLabels.length) * 0.92,
                 }]
             },
-            options: {
+            options: { // Options remain largely the same
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
@@ -933,7 +1107,7 @@ function renderRecoveryPatternsHeatmap(exerciseName) {
                             },
                             label: function(tooltipItem) {
                                 const item = tooltipItem.raw;
-                                let label = `Avg. Performance: ${item.v}/10`;
+                                let label = `Avg. Performance: ${item.v ? item.v.toFixed(1) : 'N/A'}`; // Assuming v is performance_metric
                                 if (item.count) {
                                     label += ` (${item.count} sessions)`;
                                 }
@@ -944,23 +1118,81 @@ function renderRecoveryPatternsHeatmap(exerciseName) {
                 }
             }
         });
-        console.log(`Recovery Patterns Heatmap for ${exerciseName} rendered successfully.`);
+        console.log(`Recovery Patterns Heatmap for ${exerciseName} rendered successfully with live data.`);
     } catch (error) {
         console.error(`Error rendering Recovery Patterns Heatmap for ${exerciseName}:`, error);
-        const ctxError = ctxElement.getContext('2d');
-        ctxError.clearRect(0, 0, ctxError.canvas.width, ctxError.canvas.height);
-        ctxError.font = "16px Arial"; ctxError.textAlign = "center";
-        ctxError.fillText("Could not render Recovery Heatmap.", ctxError.canvas.width / 2, ctxError.canvas.height / 2);
+        if (statusDiv && statusDiv.style.display === 'none') {
+            statusDiv.textContent = 'Error rendering Recovery Heatmap.';
+            statusDiv.style.display = 'flex';
+            canvas.style.display = 'none';
+        } else if (!statusDiv) {
+            const ctxError = canvas.getContext('2d');
+            ctxError.clearRect(0, 0, ctxError.canvas.width, ctxError.canvas.height);
+            ctxError.font = "16px Segoe UI"; ctxError.textAlign = "center";
+            ctxError.fillText("Could not render Recovery Heatmap.", ctxError.canvas.width / 2, ctxError.canvas.height / 2);
+        }
     }
 }
 
+async function fetchAndRenderRecoveryHeatmapData(exerciseId, exerciseName) {
+    const statusDiv = document.getElementById('chartRecoveryHeatmapStatus');
+    const canvas = document.getElementById('recoveryPatternsHeatmap');
+    if (!canvas) { console.error("recoveryPatternsHeatmap canvas element not found!"); return; }
+    const ctx = canvas.getContext('2d');
+
+    if (statusDiv) {
+        statusDiv.textContent = `Loading recovery patterns for ${exerciseName}...`;
+        statusDiv.style.display = 'flex';
+        canvas.style.display = 'none';
+        if (window.currentRecoveryHeatmap) {
+            window.currentRecoveryHeatmap.destroy();
+            window.currentRecoveryHeatmap = null;
+        }
+    } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText("Loading recovery patterns...", canvas.width / 2, canvas.height / 2);
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/analytics/recovery-patterns/${exerciseId}`, { headers: getAuthHeaders() });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const apiResult = await response.json();
+        const recoveryData = apiResult.data || apiResult; // Assuming data is in 'data' or is the direct response
+
+        if (!recoveryData || recoveryData.length === 0) {
+            renderRecoveryPatternsHeatmap(exerciseName, []); // Let render function handle empty message
+        } else {
+            const processedData = processRecoveryDataForMatrix(recoveryData);
+            renderRecoveryPatternsHeatmap(exerciseName, processedData);
+        }
+
+    } catch (error) {
+        console.error(`Failed to fetch recovery patterns for ${exerciseName} (ID: ${exerciseId}):`, error);
+        if (statusDiv) {
+            statusDiv.textContent = `Failed to load recovery data for ${exerciseName}: ${error.message}.`;
+            statusDiv.style.display = 'flex';
+            canvas.style.display = 'none';
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+            ctx.fillText("Failed to load recovery data.", canvas.width / 2, canvas.height / 2);
+        }
+    }
+}
 
 async function initRecoveryPatternsHeatmap() {
-    console.log('Initializing Recovery Patterns Heatmap...');
+    console.log('Initializing Recovery Patterns Heatmap with live data...');
     const selector = document.getElementById('exerciseSelectorRecovery');
     if (!selector) { console.error('exerciseSelectorRecovery element not found!'); return; }
 
     if (allExercises && allExercises.length > 0) {
+        selector.innerHTML = ''; // Clear previous options
         allExercises.forEach(exercise => {
             const option = document.createElement('option');
             option.value = exercise.id;
@@ -987,28 +1219,36 @@ async function initRecoveryPatternsHeatmap() {
 
 // --- Current Mesocycle Phase Indicator (New) ---
 
-// Mock data for Mesocycle Indicator - Replace with API call
-const mockMesocycleData = {
-    currentPhaseName: 'Intensification',
-    currentWeekInPhase: 2,
-    totalWeeksInPhase: 4,
-    phaseOrder: ['Accumulation', 'Intensification', 'Realization', 'Deload'],
-    currentMesocycleWeek: 6,
-    totalMesocycleWeeks: 12
-};
+// Mock data for Mesocycle Indicator has been removed.
+// Expected API structure from /api/v1/mesocycles/current:
+// { current_phase_name: "Intensification", current_week_in_phase: 2, total_weeks_in_phase: 4,
+//   phase_order: ["Accumulation", "Intensification", "Realization", "Deload"],
+//   current_mesocycle_week: 6, total_mesocycle_weeks: 12 }
 
-function renderMesocycleIndicator(mesocycleData) {
+function renderMesocycleIndicator(mesocycleData) { // mesocycleData expected to be camelCase here
     const container = document.getElementById('mesocycle-indicator-container');
+    const statusDiv = document.getElementById('mesocycleIndicatorStatus');
+
     if (!container) {
         console.error('mesocycle-indicator-container element not found!');
+        if (statusDiv) statusDiv.textContent = 'Display container not found for mesocycle data.';
         return;
     }
     container.innerHTML = ''; // Clear previous content
 
-    if (!mesocycleData) {
-        container.innerHTML = '<p>Mesocycle data is currently unavailable.</p>';
+    // This message is for when API call was successful but returned no active mesocycle
+    if (!mesocycleData || !mesocycleData.currentPhaseName) { // Check for a key field
+        if (statusDiv) {
+            statusDiv.textContent = 'No active mesocycle found or data is incomplete.';
+            statusDiv.style.display = 'flex'; // Show status
+        } else { // Fallback if statusDiv is missing
+            container.innerHTML = '<p>No active mesocycle found.</p>';
+        }
         return;
     }
+
+    // If we have data, ensure status is hidden
+    if (statusDiv) statusDiv.style.display = 'none';
 
     // Phase Name
     const phaseNameEl = document.createElement('h3');
@@ -1027,13 +1267,16 @@ function renderMesocycleIndicator(mesocycleData) {
     progressBarContainer.classList.add('progress-bar-container');
     const progressBarFill = document.createElement('div');
     progressBarFill.classList.add('progress-bar-fill');
-    const phaseProgressPercent = (mesocycleData.currentWeekInPhase / mesocycleData.totalWeeksInPhase) * 100;
+
+    // Ensure totalWeeksInPhase is positive to avoid division by zero or negative percentages
+    const totalWeeks = mesocycleData.totalWeeksInPhase > 0 ? mesocycleData.totalWeeksInPhase : 1;
+    const currentWeek = mesocycleData.currentWeekInPhase >= 0 ? mesocycleData.currentWeekInPhase : 0;
+    const phaseProgressPercent = (currentWeek / totalWeeks) * 100;
+
     progressBarFill.style.width = `${Math.min(phaseProgressPercent, 100)}%`;
-    // progressBarFill.textContent = `${Math.round(phaseProgressPercent)}%`; // Optional: text inside bar
     progressBarContainer.appendChild(progressBarFill);
     container.appendChild(progressBarContainer);
 
-    // Overall Mesocycle Context (Phase List)
     if (mesocycleData.phaseOrder && mesocycleData.phaseOrder.length > 0) {
         const phaseListEl = document.createElement('ul');
         phaseListEl.classList.add('phase-list');
@@ -1049,38 +1292,64 @@ function renderMesocycleIndicator(mesocycleData) {
         container.appendChild(phaseListEl);
     }
 
-    // Overall Mesocycle Week (Optional Text)
     const overviewText = document.createElement('p');
     overviewText.classList.add('mesocycle-overview');
     overviewText.textContent = `Overall: Week ${mesocycleData.currentMesocycleWeek} of ${mesocycleData.totalMesocycleWeeks} in the mesocycle.`;
     container.appendChild(overviewText);
 }
 
+async function fetchAndRenderMesocycleData() {
+    const statusDiv = document.getElementById('mesocycleIndicatorStatus');
+    const container = document.getElementById('mesocycle-indicator-container');
+
+    if (statusDiv) {
+        statusDiv.textContent = 'Loading mesocycle data...';
+        statusDiv.style.display = 'flex';
+    }
+    if (container) container.innerHTML = ''; // Clear old content
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/mesocycles/current`, { headers: getAuthHeaders() });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const apiResult = await response.json();
+        // API is expected to return an object with snake_case keys. Convert to camelCase for renderMesocycleIndicator.
+        // Example: { "current_phase_name": "Intensification", ... }
+        const mesocycleData = apiResult.data || apiResult;
+
+        if (!mesocycleData || Object.keys(mesocycleData).length === 0) {
+            renderMesocycleIndicator(null); // Let render function handle specific empty message
+        } else {
+            // Convert snake_case to camelCase
+            const formattedData = {
+                currentPhaseName: mesocycleData.current_phase_name,
+                currentWeekInPhase: mesocycleData.current_week_in_phase,
+                totalWeeksInPhase: mesocycleData.total_weeks_in_phase,
+                phaseOrder: mesocycleData.phase_order,
+                currentMesocycleWeek: mesocycleData.current_mesocycle_week,
+                totalMesocycleWeeks: mesocycleData.total_mesocycle_weeks
+            };
+            renderMesocycleIndicator(formattedData);
+        }
+
+    } catch (error) {
+        console.error("Failed to fetch Mesocycle data:", error);
+        if (statusDiv) {
+            statusDiv.textContent = `Failed to load mesocycle data: ${error.message}.`;
+            statusDiv.style.display = 'flex';
+        } else if (container) {
+            container.innerHTML = `<p>Failed to load mesocycle data: ${error.message}</p>`;
+        }
+    }
+}
+
 async function initMesocycleIndicator() {
-    console.log('Initializing Mesocycle Phase Indicator...');
-    const userId = getUserId();
-    // if (!userId) {
-    //     console.warn("User ID not found. Cannot load mesocycle data.");
-    //     renderMesocycleIndicator(null);
-    //     return;
-    // }
-
-    // TODO: Replace with actual API call to /v1/users/{userId}/mesocycle/current
-    // try {
-    //     const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/mesocycle/current`, { headers: getAuthHeaders() });
-    //     if (!response.ok) {
-    //         throw new Error(`HTTP error! status: ${response.status}`);
-    //     }
-    //     const mesoData = await response.json();
-    //     renderMesocycleIndicator(mesoData.data || null); // Assuming data is in a 'data' property
-    // } catch (error) {
-    //     console.error("Failed to fetch mesocycle data:", error);
-    //     renderMesocycleIndicator(null);
-    // }
-
-    // Using mock data for now:
-    console.log("Using mock data for Mesocycle Phase Indicator.");
-    renderMesocycleIndicator(mockMesocycleData);
+    console.log('Initializing Mesocycle Phase Indicator with live data...');
+    await fetchAndRenderMesocycleData();
 }
 
 

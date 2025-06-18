@@ -242,6 +242,22 @@ footer {
     margin-top: 8px;
 }
 
+/* Chart Status Message Styling (for loading/error/empty states) */
+.chart-status-message {
+    text-align: center;
+    padding: 30px 20px; /* More padding for visibility */
+    font-style: italic;
+    color: #6c757d; /* Standard grey text */
+    background-color: #f8f9fa; /* Light background */
+    border: 1px dashed #dee2e6; /* Dashed border */
+    border-radius: 4px;
+    margin: 10px auto; /* Centered with some margin */
+    min-height: 50px; /* Ensure it's visible even if text is short */
+    display: flex; /* For centering text vertically if needed */
+    align-items: center;
+    justify-content: center;
+}
+
 /* Mesocycle Phase Indicator Styling */
 #mesocycle-indicator-container {
     text-align: center;
