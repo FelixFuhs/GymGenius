@@ -79,6 +79,27 @@ window.currentVolumeChart = null;
 window.currentMTIChart = null;
 window.currentRecoveryHeatmap = null;
 
+// Skeleton loader helpers
+function showChartSkeleton(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const container = canvas.parentElement;
+    if (!container) return;
+    if (document.getElementById(`${canvasId}-skeleton`)) return;
+    const skel = document.createElement('div');
+    skel.id = `${canvasId}-skeleton`;
+    skel.className = 'chart-skeleton skeleton';
+    container.appendChild(skel);
+    canvas.style.display = 'none';
+}
+
+function hideChartSkeleton(canvasId) {
+    const skel = document.getElementById(`${canvasId}-skeleton`);
+    if (skel) skel.remove();
+    const canvas = document.getElementById(canvasId);
+    if (canvas) canvas.style.display = 'block';
+}
+
 // --- Removed Mock Data ---
 // const mock1RMEvolutionData = { ... };
 // const mockStrengthCurveData = { ... };
@@ -301,6 +322,8 @@ async function fetchAndRender1RMEvolutionData(exerciseId) {
     const canvas = document.getElementById('1rmEvolutionChart');
     const ctx = canvas.getContext('2d');
 
+    showChartSkeleton('1rmEvolutionChart');
+
     if (statusDiv) {
         statusDiv.textContent = 'Loading 1RM data...';
         statusDiv.style.display = 'flex';
@@ -354,6 +377,8 @@ async function fetchAndRender1RMEvolutionData(exerciseId) {
             ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
             ctx.fillText("Failed to load data.", canvas.width / 2, canvas.height / 2);
         }
+    } finally {
+        hideChartSkeleton('1rmEvolutionChart');
     }
 }
 
@@ -540,6 +565,8 @@ async function fetchAndRenderVolumeData() {
     const statusDiv = document.getElementById('chartVolumeStatus');
     const canvas = document.getElementById('volumeDistributionChart');
 
+    showChartSkeleton('volumeDistributionChart');
+
     if (!canvas) { // Should not happen if HTML is correct
         console.error("volumeDistributionChart canvas element not found!");
         if(statusDiv) statusDiv.textContent = "Chart canvas not found.";
@@ -611,6 +638,8 @@ async function fetchAndRenderVolumeData() {
             ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
             ctx.fillText("Failed to load volume data.", canvas.width / 2, canvas.height / 2);
         }
+    } finally {
+        hideChartSkeleton('volumeDistributionChart');
     }
 }
 
@@ -898,6 +927,8 @@ async function fetchAndRenderMTITrendsData(exerciseId) {
     if (!canvas) { console.error('mtiTrendsChart canvas not found'); return; }
     const ctx = canvas.getContext('2d');
 
+    showChartSkeleton('mtiTrendsChart');
+
     if (statusDiv) {
         statusDiv.textContent = 'Loading MTI data...';
         statusDiv.style.display = 'flex';
@@ -951,6 +982,8 @@ async function fetchAndRenderMTITrendsData(exerciseId) {
         }
         // Render with empty or mock data on error to clear loading state
         renderMTITrendsChart([]); // Or some placeholder mock data if preferred
+    } finally {
+        hideChartSkeleton('mtiTrendsChart');
     }
 }
 
