@@ -12,10 +12,9 @@ from engine.progression import (
     detect_plateau,
     generate_deload_protocol,
     PlateauStatus,
-    adjust_next_set, # Import adjust_next_set
-    detect_plateau, # Already imported, ensure it's used from here
+    adjust_next_set,
 )
-from engine.mesocycles import get_or_create_current_mesocycle, PHASE_ACCUMULATION, PHASE_INTENSIFICATION, PHASE_DELOAD # Mesocycle imports
+from engine.mesocycles import get_or_create_current_mesocycle, PHASE_INTENSIFICATION, PHASE_DELOAD
 from engine.learning_models import (
     update_user_rir_bias,
     calculate_current_fatigue,
@@ -330,7 +329,7 @@ def recommend_set_parameters_route(user_id, exercise_id):
                             if not used_other_category:
                                 e1rm_source = f"intermediate_default_for_{exercise_key}"
                             else:
-                                e1rm_source = f"intermediate_default_for_other_category"
+                                e1rm_source = "intermediate_default_for_other_category"
                         # If still None, it will hit the global fallback next.
                         # No need to set e1rm_source to "fallback_default_no_intermediate_match" here,
                         # as the next block handles it more globally.
@@ -1035,6 +1034,145 @@ def get_key_metrics(user_id):
             f"Database error during key metrics fetch for user {user_id}: {e}",
             exc_info=True,
         )
+        return jsonify(error="Database error during analytics fetch."), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+
+@analytics_bp.route('/v1/user/<uuid:user_id>/volume-summary', methods=['GET'])
+@jwt_required
+@limiter.limit("60 per hour")
+def get_volume_summary(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        logger.warning(
+            f"Forbidden attempt to access volume summary for user {user_id} by user {g.current_user_id}"
+        )
+        return jsonify(error="Forbidden. You can only access your own data."), 403
+
+    iso_week = request.args.get('week')
+    week_start = None
+    if iso_week:
+        try:
+            week_start = datetime.fromisoformat(iso_week).date()
+        except ValueError:
+            return jsonify(error="Invalid week format. Use ISO date YYYY-MM-DD"), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if week_start:
+                cur.execute(
+                    "SELECT muscle_group, total_volume FROM volume_summaries WHERE user_id = %s AND week = %s;",
+                    (str(user_id), week_start),
+                )
+                rows = cur.fetchall()
+                if not rows:
+                    cur.execute(
+                        """
+                        SELECT e.main_target_muscle_group, SUM(ws.actual_weight * ws.actual_reps) AS volume
+                        FROM workout_sets ws
+                        JOIN workouts w ON ws.workout_id = w.id
+                        JOIN exercises e ON ws.exercise_id = e.id
+                        WHERE w.user_id = %s
+                          AND ws.completed_at >= %s
+                          AND ws.completed_at < %s + INTERVAL '7 days'
+                          AND ws.actual_weight IS NOT NULL
+                          AND ws.actual_reps IS NOT NULL
+                        GROUP BY e.main_target_muscle_group;
+                        """,
+                        (str(user_id), week_start, week_start),
+                    )
+                    rows = cur.fetchall()
+                summary = [
+                    {
+                        "muscle_group": r.get("muscle_group") or r.get("main_target_muscle_group"),
+                        "volume": float(r["total_volume"] if "total_volume" in r else r["volume"] or 0),
+                    }
+                    for r in rows
+                ]
+                return jsonify({"week": iso_week, "data": summary}), 200
+            else:
+                cur.execute(
+                    """
+                    SELECT date_trunc('week', ws.completed_at) AS week,
+                           e.main_target_muscle_group AS muscle_group,
+                           SUM(ws.actual_weight * ws.actual_reps) AS volume
+                    FROM workout_sets ws
+                    JOIN workouts w ON ws.workout_id = w.id
+                    JOIN exercises e ON ws.exercise_id = e.id
+                    WHERE w.user_id = %s AND ws.completed_at IS NOT NULL
+                    GROUP BY week, muscle_group
+                    ORDER BY week DESC
+                    LIMIT 50;
+                    """,
+                    (str(user_id),),
+                )
+                rows = cur.fetchall()
+                summary = [
+                    {
+                        "week": r["week"].date().isoformat(),
+                        "muscle_group": r["muscle_group"],
+                        "volume": float(r["volume"] or 0),
+                    }
+                    for r in rows
+                ]
+                return jsonify(summary), 200
+    except psycopg2.Error as e:
+        logger.error(f"Database error during volume summary fetch for user {user_id}: {e}")
+        return jsonify(error="Database error during analytics fetch."), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+
+@analytics_bp.route('/v1/user/<uuid:user_id>/mti-history', methods=['GET'])
+@jwt_required
+@limiter.limit("60 per hour")
+def get_mti_history(user_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        logger.warning(
+            f"Forbidden attempt to access MTI history for user {user_id} by user {g.current_user_id}"
+        )
+        return jsonify(error="Forbidden. You can only access your own data."), 403
+
+    exercise_id = request.args.get('exercise')
+    days_range = request.args.get('range', '30')
+    if not exercise_id:
+        return jsonify(error="Missing 'exercise' query parameter"), 400
+    try:
+        days_range = int(days_range)
+    except ValueError:
+        return jsonify(error="Invalid 'range' query parameter"), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT ws.completed_at, ws.mti
+                FROM workout_sets ws
+                JOIN workouts w ON ws.workout_id = w.id
+                WHERE w.user_id = %s
+                  AND ws.exercise_id = %s
+                  AND ws.mti IS NOT NULL
+                  AND ws.completed_at >= NOW() - INTERVAL '%s days'
+                ORDER BY ws.completed_at ASC;
+                """,
+                (str(user_id), exercise_id, days_range),
+            )
+            rows = cur.fetchall()
+            history = [
+                {"date": r["completed_at"].date().isoformat(), "mti": int(r["mti"])}
+                for r in rows
+            ]
+        return jsonify(history), 200
+    except psycopg2.Error as e:
+        logger.error(f"Database error during MTI history fetch for user {user_id}: {e}")
         return jsonify(error="Database error during analytics fetch."), 500
     finally:
         if conn:

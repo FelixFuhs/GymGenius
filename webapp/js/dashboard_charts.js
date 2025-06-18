@@ -568,7 +568,7 @@ async function fetchAndRenderVolumeData() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/volume-heatmap`, { headers: getAuthHeaders() });
+        const response = await fetch(`${API_BASE_URL}/v1/user/${userId}/volume-summary`, { headers: getAuthHeaders() });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
@@ -916,41 +916,27 @@ async function fetchAndRenderMTITrendsData(exerciseId) {
         return;
     }
 
-    // TODO: Backend endpoint for MTI trends needs to be implemented.
-    // Assuming endpoint: /v1/users/${userId}/exercises/${exerciseId}/analytics/mti-trends
-    // Expected data: [{ date: 'YYYY-MM-DD', mti_score: Number }, ...]
-    console.warn(`MTI Trends: Using placeholder. Backend endpoint /v1/users/${userId}/exercises/${exerciseId}/analytics/mti-trends needs implementation.`);
     try {
-        // const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/exercises/${exerciseId}/analytics/mti-trends`, { headers: getAuthHeaders() });
-        // if (!response.ok) {
-        //     const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
-        //     throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        // }
-        // const mtiApiData = await response.json();
-        // renderMTITrendsChart(mtiApiData.data || mtiApiData);
-
-        // Using mock data as placeholder until endpoint is live
-        const mockMTITrendsData = [ // Example structure
-            { date: '2023-01-01', mti_score: 1200 }, { date: '2023-01-08', mti_score: 1250 },
-            { date: '2023-01-15', mti_score: 1220 }, { date: '2023-01-22', mti_score: 1300 },
-            { date: '2023-01-29', mti_score: 1350 }
-        ];
-        renderMTITrendsChart(mockMTITrendsData);
-
+        const response = await fetch(`${API_BASE_URL}/v1/user/${userId}/mti-history?exercise=${exerciseId}&range=90`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+        const mtiApiData = await response.json();
+        renderMTITrendsChart(mtiApiData);
 
     } catch (error) {
         console.error(`Failed to fetch MTI data for exercise ${exerciseId}:`, error);
         if (statusDiv) {
-            statusDiv.textContent = `Failed to load MTI data: ${error.message}. Displaying placeholder.`;
+            statusDiv.textContent = `Failed to load MTI data: ${error.message}`;
             statusDiv.style.display = 'flex';
             canvas.style.display = 'none';
         } else {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
-            ctx.fillText("Failed to load MTI data. Placeholder shown.", canvas.width / 2, canvas.height / 2);
+            ctx.fillText("Failed to load MTI data.", canvas.width / 2, canvas.height / 2);
         }
-        // Render with empty or mock data on error to clear loading state
-        renderMTITrendsChart([]); // Or some placeholder mock data if preferred
+        renderMTITrendsChart([]);
     }
 }
 
