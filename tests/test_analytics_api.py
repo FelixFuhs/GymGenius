@@ -449,3 +449,41 @@ def test_key_metrics_no_frequent_exercise(mock_get_db_conn, client):
 
 if __name__ == '__main__':
     pytest.main()
+
+@patch('engine.blueprints.analytics.get_db_connection')
+def test_volume_summary_success(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_cursor.fetchall.return_value = [
+        {'muscle_group': 'chest', 'total_volume': 500.0}
+    ]
+    token = generate_jwt_token(MOCK_USER_ID)
+    resp = client.get(
+        f'/v1/user/{MOCK_USER_ID}/volume-summary?week=2024-01-01',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data['week'] == '2024-01-01'
+    assert data['data'][0]['muscle_group'] == 'chest'
+
+
+@patch('engine.blueprints.analytics.get_db_connection')
+def test_mti_history_success(mock_get_db_conn, client):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_get_db_conn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_cursor.fetchall.return_value = [
+        {'completed_at': datetime.datetime(2024, 1, 1), 'mti': 120}
+    ]
+    token = generate_jwt_token(MOCK_USER_ID)
+    resp = client.get(
+        f'/v1/user/{MOCK_USER_ID}/mti-history?exercise={MOCK_EXERCISE_ID}&range=30',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data[0]['mti'] == 120

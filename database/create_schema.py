@@ -218,6 +218,16 @@ CREATE TABLE IF NOT EXISTS plateau_events (
     resolved_at TIMESTAMP WITH TIME ZONE
 );
 
+-- Volume Summaries Table
+CREATE TABLE IF NOT EXISTS volume_summaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    week DATE NOT NULL,
+    muscle_group VARCHAR(50) NOT NULL,
+    total_volume DECIMAL(10,2) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_exercises_created_by ON exercises(created_by);
 -- idx_exercises_name is implicitly created by UNIQUE constraint on name
@@ -236,6 +246,7 @@ CREATE INDEX IF NOT EXISTS idx_exercises_main_target_muscle_group ON exercises(m
 CREATE INDEX IF NOT EXISTS idx_user_refresh_tokens_user_id ON user_refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_refresh_tokens_token ON user_refresh_tokens(token); -- Explicit index for the unique token
 CREATE INDEX IF NOT EXISTS idx_mesocycles_user_id_start_date ON mesocycles(user_id, start_date DESC); -- Index for mesocycles table
+CREATE UNIQUE INDEX IF NOT EXISTS idx_volume_summaries_user_week ON volume_summaries(user_id, week);
 
 -- Trigger function to update 'updated_at' columns
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
