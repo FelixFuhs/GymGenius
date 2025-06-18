@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="css/style.css"> <!-- Optional: if global styles apply -->
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@latest/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.2/dist/chartjs-chart-matrix.min.js"></script>
 </head>
 <body>
     <header>
@@ -45,6 +47,38 @@
             <h2>Weekly Volume Distribution</h2> <!-- Changed title -->
             <div class="chart-container"> <!-- Added chart-container for consistent sizing -->
                 <canvas id="volumeDistributionChart"></canvas> <!-- Changed div to canvas and updated ID -->
+            </div>
+        </section>
+
+        <section id="mti-trends-section" class="dashboard-section">
+            <h2>Mechanical Tension Index (MTI) Trends</h2>
+            <div class="chart-container">
+                <canvas id="mtiTrendsChart"></canvas>
+            </div>
+        </section>
+
+        <section id="recovery-patterns-section" class="dashboard-section">
+            <h2>Recovery Patterns</h2>
+            <div> <!-- Optional: Add selectors for exercise if data can be filtered -->
+                <label for="exerciseSelectorRecovery">Select Exercise:</label>
+                <select id="exerciseSelectorRecovery"></select>
+            </div>
+            <div class="chart-container">
+                <canvas id="recoveryPatternsHeatmap"></canvas>
+            </div>
+        </section>
+
+        <section id="mesocycle-indicator-section" class="dashboard-section">
+            <h2>Current Mesocycle</h2>
+            <div id="mesocycle-indicator-container">
+                <!-- Visual indicator will be built here by JavaScript -->
+            </div>
+        </section>
+
+        <section id="strength-gains-section" class="dashboard-section">
+            <h2>Strength Gains Summary</h2>
+            <div id="strength-gains-cards-container" class="cards-container">
+                <!-- Cards will be dynamically inserted here by JavaScript -->
             </div>
         </section>
 

@@ -1,167 +1,321 @@
-/* Basic styling for the Analytics Dashboard */
+/* Enhanced styling for a cleaner, spreadsheet-inspired aesthetic */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    line-height: 1.6;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Modern, clean font stack */
+    line-height: 1.5; /* Improved readability */
     margin: 0;
     padding: 0;
-    background-color: #f0f2f5; /* A slightly off-white background */
-    color: #333;
+    background-color: #f4f6f8; /* Lighter grey background */
+    color: #212529; /* Darker text for better contrast */
 }
 
 header {
-    background: #2c3e50; /* A modern dark blue/grey */
-    color: #ecf0f1; /* Light grey/white text */
-    padding: 1rem 0;
-    text-align: center;
-    border-bottom: 3px solid #e74c3c; /* Accent color */
+    background: #ffffff; /* White background for a cleaner look */
+    color: #212529;
+    padding: 1rem 2rem; /* More padding */
+    text-align: left; /* Align to left for a more standard app feel */
+    border-bottom: 1px solid #dee2e6; /* Subtle border */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow */
 }
 
 header h1 {
     margin: 0;
-    font-size: 2em;
+    font-size: 1.75em; /* Slightly reduced size */
+    font-weight: 600; /* Bolder */
+}
+
+header nav {
+    display: flex; /* Align nav items horizontally */
+    align-items: center;
 }
 
 header nav a {
-    color: #ecf0f1;
+    color: #007bff; /* Standard link blue */
     text-decoration: none;
-    margin: 0 15px;
+    margin-right: 20px; /* Spacing for nav items */
     font-size: 1em;
+    font-weight: 500;
 }
 header nav a:hover {
     text-decoration: underline;
+    color: #0056b3;
 }
 
 #dashboard-main {
-    padding: 20px;
+    padding: 25px;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); /* Responsive grid */
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); /* Slightly larger min-width */
+    gap: 25px; /* Increased gap */
 }
 
 .dashboard-section {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Softer shadow */
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 6px; /* Slightly reduced border-radius */
+    border: 1px solid #e9ecef; /* Subtle border for sections */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Very subtle shadow */
 }
 
 .dashboard-section h2 {
-    color: #2c3e50;
+    color: #343a40; /* Darker heading color */
     margin-top: 0;
-    border-bottom: 2px solid #3498db; /* Another accent color */
-    padding-bottom: 10px;
-    font-size: 1.5em;
+    margin-bottom: 20px; /* More space below heading */
+    border-bottom: 1px solid #dee2e6; /* Lighter border */
+    padding-bottom: 15px;
+    font-size: 1.4em; /* Adjusted size */
+    font-weight: 600;
 }
 
-/* Style for the exercise selector dropdown */
-#exerciseSelector1RM {
-    padding: 8px 12px;
-    margin-bottom: 15px; /* Space between selector and chart */
-    border: 1px solid #ccc;
+/* Style for the exercise selector dropdowns */
+.dashboard-section select {
+    padding: 10px 15px; /* Increased padding */
+    margin-bottom: 20px; /* More space */
+    border: 1px solid #ced4da; /* Standard bootstrap-like border color */
     border-radius: 4px;
-    background-color: #fff;
-    font-size: 0.95em;
-    min-width: 200px; /* Give it some default width */
+    background-color: #ffffff;
+    font-size: 1em; /* Standard font size */
+    min-width: 250px; /* Wider selector */
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.075); /* Subtle inset shadow */
 }
 
-.dashboard-section div > label[for="exerciseSelector1RM"] {
+.dashboard-section div > label { /* General label styling */
     margin-right: 10px;
-    font-weight: bold;
-    color: #333;
+    font-weight: 500; /* Medium weight */
+    color: #495057; /* Slightly lighter text color */
 }
-
-/* Styling for the Strength Curve exercise selector dropdown */
-#exerciseSelectorStrengthCurve {
-    padding: 8px 12px;
-    margin-bottom: 15px; /* Space between selector and chart */
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: #fff;
-    font-size: 0.95em;
-    min-width: 200px;
-}
-
-.dashboard-section div > label[for="exerciseSelectorStrengthCurve"] {
-    margin-right: 10px;
-    font-weight: bold;
-    color: #333;
-}
-
 
 .chart-container {
     width: 100%;
-    max-width: 600px; /* Max width for charts for better readability on large screens */
-    margin: 0 auto; /* Center chart in its container if section is wider */
-    min-height: 300px; /* Ensure container has some height */
-    position: relative; /* Needed for Chart.js responsiveness */
+    /* max-width: 700px; Remove max-width to allow full use of grid space */
+    margin: 0 auto;
+    min-height: 350px; /* Taller chart container */
+    position: relative;
 }
 
-/* Ensure canvas is responsive within its container */
 .chart-container canvas {
     max-width: 100%;
-    max-height: 400px; /* Control max height of canvas */
+    max-height: 100%; /* Allow canvas to use the full height of container */
+    border: 1px solid #dee2e6; /* Border around chart for definition */
+    border-radius: 4px; /* Rounded corners for canvas */
 }
 
-
-#volumeHeatmapContainer {
-    min-height: 300px;
-    /* Specific styles for heatmap if it's not a canvas */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px dashed #ccc;
-    background-color: #f9f9f9;
-}
-
+/* Key Metrics Specific Styling */
 #keyMetricsContainer ul {
     list-style: none;
     padding: 0;
 }
 
 #keyMetricsContainer ul li {
-    background-color: #ecf0f1;
-    padding: 10px;
-    margin-bottom: 8px;
+    background-color: #f8f9fa; /* Lighter background for list items */
+    padding: 12px 15px; /* More padding */
+    margin-bottom: 10px; /* More space between items */
     border-radius: 4px;
-    border-left: 5px solid #3498db; /* Accent border */
-    /* Updated styles for flex display */
+    border: 1px solid #e9ecef; /* Subtle border */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap; /* Allow wrapping for smaller screens if needed */
+    flex-wrap: wrap;
 }
 
 #keyMetricsContainer ul li .metric-name {
-    font-weight: normal;
-    color: #555; /* Slightly lighter than main text */
-    margin-right: auto; /* Pushes value and trend to the right */
+    font-weight: 500; /* Medium weight */
+    color: #495057;
+    margin-right: auto;
 }
 
 #keyMetricsContainer ul li .metric-value {
-    font-weight: bold;
-    margin-right: 15px; /* Space between value and trend */
-    color: #2c3e50;
+    font-weight: 600; /* Bolder value */
+    margin-right: 15px;
+    color: #212529;
 }
 
+/* Trend Indicator Styling (already quite good, minor tweaks) */
 .trend-indicator {
-    padding: 4px 8px; /* Adjusted padding */
-    border-radius: 12px; /* More rounded */
+    padding: 5px 10px; /* Slightly more padding */
+    border-radius: 15px; /* More rounded */
     color: white;
-    font-size: 0.85em; /* Slightly smaller */
-    min-width: 70px; /* Ensure consistent width */
+    font-size: 0.8em; /* Smaller font for subtlety */
+    min-width: 75px;
     text-align: center;
-    font-weight: bold;
+    font-weight: 600; /* Bolder text */
+    text-transform: uppercase; /* Uppercase text */
+    letter-spacing: 0.5px; /* Letter spacing */
 }
 
-.trend-up { background-color: #4CAF50; /* Green */ }
-.trend-down { background-color: #f44336; /* Red */ }
-.trend-neutral { background-color: #757575; /* Grey */ }
-
+.trend-up { background-color: #28a745; /* Bootstrap success green */ }
+.trend-down { background-color: #dc3545; /* Bootstrap danger red */ }
+.trend-neutral { background-color: #6c757d; /* Bootstrap secondary grey */ }
 
 footer {
     text-align: center;
-    padding: 20px;
-    background: #34495e; /* Darker footer */
-    color: #ecf0f1;
+    padding: 25px; /* More padding */
+    background: #ffffff; /* White footer */
+    color: #6c757d; /* Grey text */
     margin-top: 30px;
+    border-top: 1px solid #dee2e6; /* Border top */
+    font-size: 0.9em;
+}
+
+/* Specific styling for chart axes and gridlines for spreadsheet feel */
+/* This will be applied via Chart.js options, but we can define some CSS variables or defaults if needed */
+/* For example, if Chart.js options are not enough, one might add:
+.chartjs-render-monitor {
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+.chartjs-grid-line {
+    stroke: #e9ecef !important; // Example for grid line color
+}
+*/
+
+/* Plateau Status Section - basic styling */
+#plateau-analysis-section .content-area {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+#plateau-analysis-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #343a40;
+    font-weight: 600;
+}
+#plateau-analysis-section p {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+#plateau-analysis-section ul {
+    padding-left: 20px;
+    margin-bottom: 10px;
+}
+#plateau-analysis-section li {
+    margin-bottom: 5px;
+}
+
+/* Styling for Cards Container (used for Strength Gains and potentially others) */
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Responsive cards */
+    gap: 20px; /* Spacing between cards */
+    padding-top: 10px; /* Space from section title */
+}
+
+/* General Info Card Style (can be specialized) */
+.info-card {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef; /* Consistent with section borders */
+    border-radius: 6px; /* Consistent with section border-radius */
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Consistent subtle shadow */
+    text-align: center;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.info-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+}
+
+/* Specific Styling for Strength Gain Cards */
+.strength-gain-card h4 {
+    margin-top: 0;
+    margin-bottom: 12px; /* More space */
+    font-size: 1.2em; /* Slightly larger exercise name */
+    color: #343a40; /* Darker heading color */
+    font-weight: 600;
+}
+
+.strength-gain-card .percentage-gain {
+    font-size: 2em; /* Prominent percentage */
+    font-weight: 700; /* Bolder */
+    color: #28a745; /* Bootstrap success green for positive gains */
+    margin: 8px 0;
+}
+
+.strength-gain-card .percentage-gain.negative {
+    color: #dc3545; /* Bootstrap danger red for negative gains/losses */
+}
+
+.strength-gain-card .period {
+    font-size: 0.9em;
+    color: #6c757d; /* Grey text for period */
+    margin-bottom: 0;
+    margin-top: 8px;
+}
+
+/* Mesocycle Phase Indicator Styling */
+#mesocycle-indicator-container {
+    text-align: center;
+    padding: 25px 15px; /* Adjusted padding */
+    background-color: #f9f9f9; /* Light background for the container itself */
+    border-radius: 6px;
+    margin-top: 10px; /* Space from section title */
+}
+
+#mesocycle-indicator-container .phase-name { /* Actual H3 or H4 for phase name */
+    font-size: 1.6em; /* Larger phase name */
+    color: #343a40; /* Darker color */
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+#mesocycle-indicator-container .phase-week-progress { /* Paragraph for "Week X of Y" */
+    font-size: 1.1em;
+    color: #495057; /* Slightly lighter text */
+    margin-bottom: 15px;
+}
+
+.progress-bar-container {
+    width: 90%; /* Wider progress bar */
+    max-width: 400px; /* Max width for very large screens */
+    margin: 0 auto 20px auto; /* Centered, with bottom margin */
+    background-color: #e9ecef; /* Lighter background for bar track */
+    border-radius: 8px; /* Rounded corners */
+    height: 22px; /* Slightly taller */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Subtle inset shadow */
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: #007bff; /* Primary blue, can be changed per phase */
+    border-radius: 8px; /* Match container */
+    text-align: right; /* Text for percentage, if any */
+    padding-right: 10px; /* Padding for text inside */
+    line-height: 22px; /* Vertical centering for text */
+    color: white;
+    font-weight: 500;
+    font-size: 0.9em;
+    transition: width 0.6s ease-in-out; /* Smoother transition */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Glow effect */
+}
+
+#mesocycle-indicator-container .mesocycle-overview {
+    margin-top: 15px;
+    font-size: 0.95em; /* Slightly larger */
+    color: #6c757d; /* Standard grey */
+}
+
+#mesocycle-indicator-container .phase-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+#mesocycle-indicator-container .phase-list-item {
+    background-color: #e9ecef;
+    padding: 8px 15px;
+    border-radius: 15px; /* Pill shape */
+    font-size: 0.85em;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+#mesocycle-indicator-container .phase-list-item.current {
+    background-color: #007bff; /* Primary blue */
+    color: white;
+    font-weight: bold;
+    border-color: #0056b3;
 }
