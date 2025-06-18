@@ -335,3 +335,65 @@ footer {
     font-weight: bold;
     border-color: #0056b3;
 }
+
+/* Plateau Notification Styles */
+#notifications-container {
+    /* Optional: Add some specific container styles if needed, like max-height and overflow-y */
+}
+
+.plateau-notification {
+    background-color: #ffffe0; /* Light yellow */
+    border: 1px solid #e6e6c3; /* Darker yellow/beige for border */
+    padding: 15px; /* More padding */
+    margin-bottom: 15px; /* More margin */
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+    transition: opacity 0.5s ease-out; /* For fade-out effects if implemented */
+}
+
+.plateau-notification p {
+    margin: 0 0 8px 0; /* Consistent paragraph spacing */
+    line-height: 1.4;
+}
+.plateau-notification p:last-child {
+    margin-bottom: 0;
+}
+
+.plateau-notification strong {
+    color: #555;
+}
+
+.plateau-notification small {
+    font-size: 0.85em;
+    color: #777;
+}
+
+.plateau-notification button.acknowledge-btn { /* More specific selector */
+    margin-left: 15px;
+    padding: 6px 12px; /* Slightly adjusted padding */
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9em;
+    float: right; /* Align button to the right */
+    transition: background-color 0.2s ease;
+}
+
+.plateau-notification button.acknowledge-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Style for error messages within a notification, if any */
+.plateau-notification .ack-error {
+    color: red;
+    font-size: 0.8em;
+    margin-top: 5px;
+}
+
+/* Style for error notification itself */
+.plateau-notification.error {
+    background-color: #ffe0e0; /* Light red for error notifications */
+    border-color: #c3c0c0;
+}

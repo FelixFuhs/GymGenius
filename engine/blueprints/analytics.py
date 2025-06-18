@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from engine.constants import SEX_MULTIPLIERS # Import SEX_MULTIPLIERS
+from flask import Blueprint, request, jsonify, g # Added g
+from engine.constants import SEX_MULTIPLIERS, PLATEAU_EVENT_NOTIFICATION_COOLDOWN_WEEKS # Import SEX_MULTIPLIERS
 from ..app import (
     get_db_connection,
     release_db_connection,
@@ -7,6 +7,7 @@ from ..app import (
     logger,
     limiter, # Import limiter
 )
+from datetime import timezone, timedelta # Added timedelta
 # Corrected imports for progression and learning_models
 from engine.progression import (
     detect_plateau,
@@ -16,7 +17,7 @@ from engine.progression import (
 )
 from engine.mesocycles import get_or_create_current_mesocycle, PHASE_INTENSIFICATION, PHASE_DELOAD
 from engine.learning_models import (
-    update_user_rir_bias,
+    update_user_rir_bias, # Make sure datetime is imported if not already
     calculate_current_fatigue,
     DEFAULT_RECOVERY_TAU_MAP,
     SessionRecord,
@@ -25,7 +26,7 @@ from engine.learning_models import (
 from engine.predictions import extended_epley_1rm, round_to_available_plates, calculate_confidence_score, estimate_1rm_with_rir_bias
 import psycopg2
 import psycopg2.extras
-from datetime import datetime, date # Added date import
+from datetime import datetime, date, timezone # Added date import, ensured timezone
 
 # --- Constants for Smart 1RM Defaults ---
 EXERCISE_DEFAULT_1RM = {
@@ -127,6 +128,104 @@ def rir_bias_update_route(user_id):
         if conn:
             conn.rollback()
         return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+
+@analytics_bp.route('/v1/users/<uuid:user_id>/plateau-notifications', methods=['GET'])
+@jwt_required
+@limiter.limit("60 per minute") # Standard rate limit
+def get_plateau_notifications(user_id):
+    user_id_str = str(user_id)
+
+    # Authorization check
+    if user_id_str != g.current_user_id:
+        logger.warning(
+            f"Forbidden attempt by user {g.current_user_id} to access plateau notifications for user {user_id_str}"
+        )
+        return jsonify(error="Forbidden. You can only access your own data."), 403
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            query = """
+                SELECT
+                    pe.id AS event_id,
+                    e.name AS exercise_name,
+                    pe.detected_at,
+                    pe.details,
+                    pe.protocol_applied,
+                    pe.plateau_duration_days
+                FROM plateau_events pe
+                JOIN exercises e ON pe.exercise_id = e.id
+                WHERE pe.user_id = %s
+                  AND pe.acknowledged_at IS NULL
+                ORDER BY pe.detected_at DESC;
+            """
+            cur.execute(query, (user_id_str,))
+            notifications = cur.fetchall()
+
+            # Convert datetime objects to ISO format strings for JSON compatibility
+            for notification in notifications:
+                if isinstance(notification.get('detected_at'), datetime): # Check if detected_at is a datetime object
+                    notification['detected_at'] = notification['detected_at'].isoformat()
+
+            return jsonify(notifications), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error fetching plateau notifications for user {user_id_str}: {e}", exc_info=True)
+        return jsonify(error="Database operation failed while fetching notifications."), 500
+    except Exception as e:
+        logger.error(f"Unexpected error fetching plateau notifications for user {user_id_str}: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred while fetching notifications."), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+
+@analytics_bp.route('/v1/plateau-events/<uuid:event_id>/acknowledge', methods=['POST'])
+@jwt_required
+@limiter.limit("60 per minute")
+def acknowledge_plateau_event(event_id):
+    event_id_str = str(event_id)
+    current_user_id = g.current_user_id
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur: # No RealDictCursor needed for UPDATE and rowcount
+            update_query = """
+                UPDATE plateau_events
+                SET acknowledged_at = %s
+                WHERE id = %s AND user_id = %s;
+            """
+            cur.execute(
+                update_query,
+                (datetime.now(timezone.utc), event_id_str, current_user_id)
+            )
+
+            if cur.rowcount == 0:
+                # This means either the event_id doesn't exist or it doesn't belong to the user
+                conn.rollback() # Rollback any potential transaction start
+                logger.warning(f"Failed attempt to acknowledge plateau event {event_id_str} by user {current_user_id}. Event not found or not owned by user.")
+                return jsonify(error="Plateau event not found or you do not have permission to acknowledge it."), 404
+
+            conn.commit()
+            logger.info(f"Plateau event {event_id_str} acknowledged by user {current_user_id}.")
+            return jsonify({"message": "Notification acknowledged"}), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error acknowledging plateau event {event_id_str} for user {current_user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return jsonify(error="Database operation failed."), 500
+    except Exception as e:
+        logger.error(f"Unexpected error acknowledging plateau event {event_id_str} for user {current_user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return jsonify(error="An unexpected error occurred."), 500
     finally:
         if conn:
             release_db_connection(conn)
@@ -387,6 +486,57 @@ def recommend_set_parameters_route(user_id, exercise_id):
                         plateau_analysis_details['original_e1rm'] = original_e1rm_before_deload
                         plateau_analysis_details['deloaded_e1rm'] = estimated_1rm
                         e1rm_source += "_plateau_deload"
+
+                        # --- BEGIN: Insert plateau event if deload was applied ---
+                        if plateau_analysis_details.get('deload_applied'):
+                            try:
+                                # Check for recent, unacknowledged plateau events for this user/exercise
+                                cutoff_date = datetime.now(timezone.utc) - timedelta(weeks=PLATEAU_EVENT_NOTIFICATION_COOLDOWN_WEEKS)
+
+                                cur.execute(
+                                    """
+                                    SELECT id FROM plateau_events
+                                    WHERE user_id = %s AND exercise_id = %s
+                                      AND acknowledged_at IS NULL
+                                      AND detected_at >= %s
+                                    ORDER BY detected_at DESC LIMIT 1;
+                                    """,
+                                    (user_id_str, exercise_id_str, cutoff_date)
+                                )
+                                existing_event = cur.fetchone()
+
+                                if not existing_event:
+                                    plateau_duration_value = plateau_status.get('duration') # This is likely in sessions
+                                    details_message = (
+                                        f"Plateau detected on {exercise_name}. Applied 10% e1RM reduction. "
+                                        f"Plateau confirmed over {plateau_duration_value} prior data points/sessions."
+                                    )
+
+                                    cur.execute(
+                                        """
+                                        INSERT INTO plateau_events (
+                                            user_id, exercise_id, detected_at,
+                                            plateau_duration_days, protocol_applied, details, acknowledged_at
+                                        )
+                                        VALUES (%s, %s, %s, %s, %s, %s, NULL);
+                                        """,
+                                        (
+                                            user_id_str,
+                                            exercise_id_str,
+                                            datetime.now(timezone.utc), # Let DB handle default if possible, else use this
+                                            plateau_duration_value, # Storing session count here
+                                            "auto_deload_10_percent",
+                                            details_message
+                                        )
+                                    )
+                                    logger.info(f"Inserted new plateau event for user {user_id_str}, exercise {exercise_id_str} due to auto-deload.")
+                                    # conn.commit() should happen outside this specific block, at the end of the main try block normally
+                            except psycopg2.Error as db_err:
+                                logger.error(f"Database error during plateau event logging for user {user_id_str}, exercise {exercise_id_str}: {db_err}")
+                                # Do not re-raise or rollback here, let the main handler do it.
+                            except Exception as e_plat_event:
+                                logger.error(f"Unexpected error during plateau event logging for user {user_id_str}, exercise {exercise_id_str}: {e_plat_event}", exc_info=True)
+                        # --- END: Insert plateau event ---
                     else: # estimated_1rm is None, cannot apply deload
                         plateau_analysis_details['deload_applied'] = False
                         plateau_analysis_details['reason_no_deload'] = "e1RM was None initially"
