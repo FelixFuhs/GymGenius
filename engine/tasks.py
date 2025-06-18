@@ -3,7 +3,7 @@ import logging
 import psycopg2
 import psycopg2.extras
 from redis import Redis
-from rq import Queue
+from rq import Queue, Retry, get_current_job
 
 from .app import get_db_connection
 
@@ -16,8 +16,26 @@ redis_conn = Redis.from_url(redis_url)
 # Default queue used by the API and worker
 queue = Queue("training", connection=redis_conn)
 
+DEFAULT_RETRY = Retry(max=3, interval=[10, 30, 60])
+
+
+def enqueue_nightly_user_model_update(task_name="nightly_user_model_update", force_run=False):
+    """Enqueue nightly update with retry strategy."""
+    return queue.enqueue(
+        nightly_user_model_update,
+        task_name=task_name,
+        force_run=force_run,
+        retry=DEFAULT_RETRY,
+    )
+
 def nightly_user_model_update(task_name="nightly_user_model_update", force_run=False):
     """Process nightly per-user training tasks."""
+    job = get_current_job()
+    if job and job.meta.get("retry_count", 0) > 0:
+        logger.info(
+            "Retry attempt %s for job %s", job.meta["retry_count"], job.id
+        )
+
     conn = None
     try:
         conn = get_db_connection()
@@ -36,6 +54,7 @@ def nightly_user_model_update(task_name="nightly_user_model_update", force_run=F
         logger.info("--- Finished Nightly Training Tasks ---")
     except psycopg2.Error as e:
         logger.error("Database error during nightly update: %s", e)
+        raise
     finally:
         if conn:
             conn.close()
