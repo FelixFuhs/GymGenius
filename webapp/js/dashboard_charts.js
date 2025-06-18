@@ -322,24 +322,25 @@ async function fetchAndRender1RMEvolutionData(exerciseId) {
     }
 
     try {
-        // const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/1rm-evolution`, { headers: getAuthHeaders() }); // OLD
-        const response = await fetch(`${API_BASE_URL}/api/v1/analytics/progress/${exerciseId}`, { headers: getAuthHeaders() });
+        const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/1rm-evolution`, { headers: getAuthHeaders() });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
-        const progressData = await response.json();
-        // API is expected to return an array of { date: 'YYYY-MM-DD', value: XXX } or { date: 'YYYY-MM-DD', estimated_1rm: XXX }
-        // The problem description implies the key is `estimated_1rm`. If it's `value`, `render1RMEvolutionChart` will adapt.
-        currentSelectedExercise1RMData = progressData.data || progressData; // Adapt based on actual API response structure (e.g. if data is nested)
+        const allProgressData = await response.json(); // This will be an object: { "exerciseId1": [...], "exerciseId2": [...] }
 
-        if (!currentSelectedExercise1RMData || currentSelectedExercise1RMData.length === 0) {
+        // Extract data for the selected exerciseId
+        const exerciseSpecificData = allProgressData[exerciseId];
+
+        // currentSelectedExercise1RMData = exerciseSpecificData; // This global var might not be needed if directly passed
+
+        if (!exerciseSpecificData || exerciseSpecificData.length === 0) {
              // Message handled by render1RMEvolutionChart for this specific case
             render1RMEvolutionChart(exerciseId, []);
         } else {
-            render1RMEvolutionChart(exerciseId, currentSelectedExercise1RMData);
+            render1RMEvolutionChart(exerciseId, exerciseSpecificData);
         }
 
     } catch (error) {
@@ -412,17 +413,16 @@ function processWeeklyVolumeData(heatmapData) {
         };
     });
 
-    // Adapt to new API structure: week_start_date, muscle_group, total_volume
     // Sort data by week to ensure labels are chronological
-    apiData.sort((a, b) => new Date(a.week_start_date) - new Date(b.week_start_date));
+    heatmapData.sort((a, b) => new Date(a.week) - new Date(b.week));
 
-    const weekLabels = [...new Set(apiData.map(item => item.week_start_date))];
-    const muscleGroups = [...new Set(apiData.map(item => item.muscle_group))];
+    const weekLabels = [...new Set(heatmapData.map(item => item.week))]; // Use 'week'
+    const muscleGroups = [...new Set(heatmapData.map(item => item.muscle_group))];
 
     const datasets = muscleGroups.map(mg => {
-        const dataForMuscleGroup = weekLabels.map(week => {
-            const weekData = apiData.find(item => item.week_start_date === week && item.muscle_group === mg);
-            return weekData ? weekData.total_volume : 0;
+        const dataForMuscleGroup = weekLabels.map(weekLabel => { // Iterate using weekLabels
+            const weekData = heatmapData.find(item => item.week === weekLabel && item.muscle_group === mg);
+            return weekData ? weekData.volume : 0; // Use 'volume'
         });
         return {
             label: mg,
@@ -432,7 +432,7 @@ function processWeeklyVolumeData(heatmapData) {
             borderWidth: 1
         };
     });
-
+    // The duplicated block below this was removed.
     return { labels: weekLabels, datasets: datasets };
 }
 
@@ -568,8 +568,7 @@ async function fetchAndRenderVolumeData() {
     }
 
     try {
-        // const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/volume-heatmap`, { headers: getAuthHeaders() }); // OLD endpoint
-        const response = await fetch(`${API_BASE_URL}/api/v1/analytics/volume`, { headers: getAuthHeaders() });
+        const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/volume-heatmap`, { headers: getAuthHeaders() });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
@@ -860,10 +859,101 @@ async function initMTITrendsChart() {
     //     renderMTITrendsChart([]); // Render empty state on error
     // }
 
-    // Using mock data for now:
-    console.log("Using mock data for MTI Trends Chart.");
-    renderMTITrendsChart(mockMTITrendsData);
+    const selector = document.getElementById('exerciseSelectorMTI');
+    if (!selector) { console.error('exerciseSelectorMTI element not found! Cannot initialize MTI chart.'); return; }
+
+    if (allExercises && allExercises.length > 0) {
+        selector.innerHTML = ''; // Clear previous options
+        allExercises.forEach(exercise => {
+            const option = document.createElement('option');
+            option.value = exercise.id;
+            option.textContent = exercise.name;
+            selector.appendChild(option);
+        });
+
+        selector.addEventListener('change', (event) => {
+            fetchAndRenderMTITrendsData(event.target.value);
+        });
+
+        // Initial load for the first exercise
+        if (allExercises.length > 0) {
+            selector.value = allExercises[0].id;
+            fetchAndRenderMTITrendsData(allExercises[0].id);
+        }
+    } else {
+        const statusDiv = document.getElementById('chartMTIStatus');
+        const canvas = document.getElementById('mtiTrendsChart');
+        if (statusDiv) {
+            statusDiv.textContent = "Exercises not loaded. Cannot display MTI chart.";
+            statusDiv.style.display = 'flex';
+            if(canvas) canvas.style.display = 'none';
+        }
+        console.error("allExercises is empty, cannot initialize MTI Trends Chart selector.");
+    }
 }
+
+async function fetchAndRenderMTITrendsData(exerciseId) {
+    const statusDiv = document.getElementById('chartMTIStatus');
+    const canvas = document.getElementById('mtiTrendsChart');
+    if (!canvas) { console.error('mtiTrendsChart canvas not found'); return; }
+    const ctx = canvas.getContext('2d');
+
+    if (statusDiv) {
+        statusDiv.textContent = 'Loading MTI data...';
+        statusDiv.style.display = 'flex';
+        canvas.style.display = 'none';
+        if (window.currentMTIChart) { window.currentMTIChart.destroy(); window.currentMTIChart = null; }
+    } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText("Loading MTI data...", canvas.width / 2, canvas.height / 2);
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        console.warn("User ID not found for MTI trends.");
+        renderMTITrendsChart([]); // Render empty state
+        return;
+    }
+
+    // TODO: Backend endpoint for MTI trends needs to be implemented.
+    // Assuming endpoint: /v1/users/${userId}/exercises/${exerciseId}/analytics/mti-trends
+    // Expected data: [{ date: 'YYYY-MM-DD', mti_score: Number }, ...]
+    console.warn(`MTI Trends: Using placeholder. Backend endpoint /v1/users/${userId}/exercises/${exerciseId}/analytics/mti-trends needs implementation.`);
+    try {
+        // const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/exercises/${exerciseId}/analytics/mti-trends`, { headers: getAuthHeaders() });
+        // if (!response.ok) {
+        //     const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+        //     throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        // }
+        // const mtiApiData = await response.json();
+        // renderMTITrendsChart(mtiApiData.data || mtiApiData);
+
+        // Using mock data as placeholder until endpoint is live
+        const mockMTITrendsData = [ // Example structure
+            { date: '2023-01-01', mti_score: 1200 }, { date: '2023-01-08', mti_score: 1250 },
+            { date: '2023-01-15', mti_score: 1220 }, { date: '2023-01-22', mti_score: 1300 },
+            { date: '2023-01-29', mti_score: 1350 }
+        ];
+        renderMTITrendsChart(mockMTITrendsData);
+
+
+    } catch (error) {
+        console.error(`Failed to fetch MTI data for exercise ${exerciseId}:`, error);
+        if (statusDiv) {
+            statusDiv.textContent = `Failed to load MTI data: ${error.message}. Displaying placeholder.`;
+            statusDiv.style.display = 'flex';
+            canvas.style.display = 'none';
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "16px Segoe UI"; ctx.textAlign = "center";
+            ctx.fillText("Failed to load MTI data. Placeholder shown.", canvas.width / 2, canvas.height / 2);
+        }
+        // Render with empty or mock data on error to clear loading state
+        renderMTITrendsChart([]); // Or some placeholder mock data if preferred
+    }
+}
+
 
 // --- Strength Gains Summary (New) ---
 
@@ -955,9 +1045,54 @@ async function initStrengthGainsSummary() {
     //     renderStrengthGainsCards([]); // Render empty state on error
     // }
 
-    // Using mock data for now:
-    console.log("Using mock data for Strength Gains Summary.");
-    renderStrengthGainsCards(mockStrengthGainsData);
+    const statusDiv = document.getElementById('strengthGainsStatus');
+    const container = document.getElementById('strength-gains-cards-container');
+
+    if (statusDiv) {
+        statusDiv.textContent = 'Loading strength gains...';
+        statusDiv.style.display = 'flex';
+    }
+    if (container) container.innerHTML = ''; // Clear old content
+
+
+    const userId = getUserId();
+    if (!userId) {
+        console.warn("User ID not found. Cannot load strength gains summary.");
+        renderStrengthGainsCards([]); // Render empty state
+        return;
+    }
+
+    // TODO: Backend endpoint for strength gains summary needs to be implemented.
+    // Assuming endpoint: /v1/users/${userId}/analytics/strength-gains-summary
+    // Expected data: Array of { exerciseName: string, improvementPercentage: number, period: string, e1RMHistory?: {previous: number, current: number} }
+    console.warn(`Strength Gains Summary: Using placeholder. Backend endpoint /v1/users/${userId}/analytics/strength-gains-summary needs implementation.`);
+    try {
+        // const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/strength-gains-summary`, { headers: getAuthHeaders() });
+        // if (!response.ok) {
+        //     const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+        //     throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        // }
+        // const gainsApiData = await response.json();
+        // renderStrengthGainsCards(gainsApiData.data || gainsApiData);
+
+        // Using mock data as placeholder
+        const mockStrengthGainsData = [
+            { exerciseName: "Barbell Bench Press", improvementPercentage: 10.5, period: "Last 3 Months", e1RMHistory: { previous: 90, current: 99.5 } },
+            { exerciseName: "Squat", improvementPercentage: 15.2, period: "Last 3 Months", e1RMHistory: { previous: 120, current: 138.2 } },
+            { exerciseName: "Deadlift", improvementPercentage: 8.0, period: "Last 3 Months", e1RMHistory: { previous: 150, current: 162 } }
+        ];
+        renderStrengthGainsCards(mockStrengthGainsData);
+
+    } catch (error) {
+        console.error("Failed to fetch strength gains data:", error);
+         if (statusDiv) {
+            statusDiv.textContent = `Failed to load strength gains: ${error.message}. Displaying placeholder.`;
+            statusDiv.style.display = 'flex';
+        } else if (container) {
+            container.innerHTML = `<p>Failed to load strength gains: ${error.message}. Placeholder shown.</p>`;
+        }
+        renderStrengthGainsCards([]); // Render empty state on error
+    }
 }
 
 // --- Recovery Patterns Heatmap (New) ---
@@ -1200,21 +1335,29 @@ async function initRecoveryPatternsHeatmap() {
             selector.appendChild(option);
         });
 
+        const initialExerciseId = allExercises[0].id;
         const initialExerciseName = allExercises[0].name;
-        selector.value = allExercises[0].id;
-        renderRecoveryPatternsHeatmap(initialExerciseName);
+        selector.value = initialExerciseId;
+        // Call fetchAndRender, not just render
+        fetchAndRenderRecoveryHeatmapData(initialExerciseId, initialExerciseName);
 
         selector.addEventListener('change', (event) => {
             const selectedExercise = allExercises.find(ex => ex.id === event.target.value);
-            renderRecoveryPatternsHeatmap(selectedExercise ? selectedExercise.name : "Selected Exercise");
+            // Call fetchAndRender, not just render
+            fetchAndRenderRecoveryHeatmapData(event.target.value, selectedExercise ? selectedExercise.name : "Selected Exercise");
         });
     } else {
-        console.warn("Exercise list for selector not available. Using default for Recovery Heatmap.");
-        // Use the exerciseName from mock data if no exercises in selector
-        renderRecoveryPatternsHeatmap(mockRecoveryPatternsData.exerciseName || "Default Exercise");
+        console.warn("Exercise list for selector not available. Cannot init Recovery Heatmap.");
+        const statusDiv = document.getElementById('chartRecoveryHeatmapStatus');
+        const canvas = document.getElementById('recoveryPatternsHeatmap');
+         if (statusDiv) {
+            statusDiv.textContent = "Exercises not loaded. Cannot display Recovery Heatmap.";
+            statusDiv.style.display = 'flex';
+            if(canvas) canvas.style.display = 'none';
+        }
         selector.innerHTML = '<option value="">No exercises loaded</option>';
     }
-    // TODO: API call logic here
+    // Note: fetchAndRenderRecoveryHeatmapData contains the placeholder for backend implementation.
 }
 
 // --- Current Mesocycle Phase Indicator (New) ---
@@ -1349,6 +1492,8 @@ async function fetchAndRenderMesocycleData() {
 
 async function initMesocycleIndicator() {
     console.log('Initializing Mesocycle Phase Indicator with live data...');
+    // Note: fetchAndRenderMesocycleData calls the /api/v1/mesocycles/current endpoint,
+    // which needs to be implemented on the backend.
     await fetchAndRenderMesocycleData();
 }
 
@@ -1368,7 +1513,8 @@ async function displayKeyMetrics() {
     try {
         const response = await fetch(`${API_BASE_URL}/v1/users/${userId}/analytics/key-metrics`, { headers: getAuthHeaders() });
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
         const metricsData = await response.json();
         metricsListElement.innerHTML = ''; // Clear loading/previous metrics
@@ -1406,7 +1552,8 @@ async function displayKeyMetrics() {
     } catch (error) {
         console.error('Error fetching key metrics:', error);
         metricsListElement.innerHTML = '<li>Could not load key metrics.</li>';
-        alert(`Error fetching key metrics: ${error.message}`);
+        // Removed alert, console error is sufficient for dashboard context
+        // alert(`Error fetching key metrics: ${error.message}`);
     }
 }
 
@@ -1503,11 +1650,24 @@ async function fetchAndDisplayPlateauStatus(event) {
         htmlContent += `<p><strong>Deload Suggested:</strong> ${data.deload_suggested ? 'Yes' : 'No'}</p>`;
         if (data.deload_suggested && data.deload_protocol) {
             htmlContent += `<h5>Deload Protocol:</h5>`;
-            htmlContent += `<ul>`;
-            for (const key in data.deload_protocol) {
-                htmlContent += `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${data.deload_protocol[key]}</li>`;
+            if (Array.isArray(data.deload_protocol) && data.deload_protocol.length > 0) {
+                data.deload_protocol.forEach((week_protocol, index) => {
+                    htmlContent += `<h6>Week ${index + 1}</h6><ul>`;
+                    for (const key in week_protocol) {
+                        htmlContent += `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${week_protocol[key]}</li>`;
+                    }
+                    htmlContent += `</ul>`;
+                });
+            } else if (typeof data.deload_protocol === 'object' && data.deload_protocol !== null) {
+                // Fallback for single object (though backend sends array)
+                htmlContent += `<ul>`;
+                for (const key in data.deload_protocol) {
+                    htmlContent += `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${data.deload_protocol[key]}</li>`;
+                }
+                htmlContent += `</ul>`;
+            } else {
+                htmlContent += `<p>Protocol details not available.</p>`;
             }
-            htmlContent += `</ul>`;
         }
         plateauStatusDisplay.innerHTML = htmlContent;
 
