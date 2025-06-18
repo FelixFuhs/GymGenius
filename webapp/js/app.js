@@ -46,6 +46,232 @@ function decodeJWT(token) {
     }
 }
 
+// --- Workout Flow Management ---
+class WorkoutFlow {
+    constructor() {
+        this.currentWorkoutId = null;
+        this.planDayId = null; // ID of the plan day being executed, if applicable
+        this.exercises = []; // Array of exercise objects { id, name, ...other details }
+        this.currentExerciseIndex = -1;
+        // this.currentSetNumberPerExercise = {}; // Managed by workout_execution.js for now
+        this.workoutStartTime = null;
+        this.apiBaseUrl = ''; // Default, should be set or read from global config
+
+        this._loadState(); // Load state from localStorage on initialization
+    }
+
+    _getApiBaseUrl() {
+        // Prefer global API_BASE_URL if defined and not empty, else use internal or default
+        return (typeof API_BASE_URL !== 'undefined' && API_BASE_URL) ? API_BASE_URL : (this.apiBaseUrl || 'http://localhost:5000');
+    }
+
+    _saveState() {
+        const state = {
+            currentWorkoutId: this.currentWorkoutId,
+            planDayId: this.planDayId,
+            exercises: this.exercises,
+            currentExerciseIndex: this.currentExerciseIndex,
+            workoutStartTime: this.workoutStartTime,
+        };
+        localStorage.setItem('workoutFlowState', JSON.stringify(state));
+        console.log('WorkoutFlow state saved.');
+    }
+
+    _loadState() {
+        const savedState = localStorage.getItem('workoutFlowState');
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                this.currentWorkoutId = state.currentWorkoutId;
+                this.planDayId = state.planDayId;
+                this.exercises = state.exercises || [];
+                this.currentExerciseIndex = state.currentExerciseIndex !== undefined ? state.currentExerciseIndex : -1;
+                this.workoutStartTime = state.workoutStartTime ? new Date(state.workoutStartTime) : null;
+                console.log('WorkoutFlow state loaded:', this);
+            } catch (e) {
+                console.error("Error parsing workoutFlowState from localStorage:", e);
+                this._clearState(); // Clear corrupted state
+            }
+        }
+    }
+
+    _clearState() {
+        this.currentWorkoutId = null;
+        this.planDayId = null;
+        this.exercises = [];
+        this.currentExerciseIndex = -1;
+        this.workoutStartTime = null;
+        localStorage.removeItem('workoutFlowState');
+        console.log('WorkoutFlow state cleared.');
+    }
+
+    isWorkoutActive() {
+        return !!this.currentWorkoutId && this.currentExerciseIndex >= 0;
+    }
+
+    async startWorkout(planOrExercises) {
+        if (this.isWorkoutActive()) {
+            // For simplicity in P1, we might just override. A real app would confirm.
+            console.warn("An active workout is already in progress. Starting a new one will clear the previous state.");
+            // Consider calling endWorkout or prompting user. For now, just clear.
+            await this.endWorkout(false); // End silently without navigation
+        }
+        this._clearState(); // Ensure clean slate before starting
+
+        if (!planOrExercises) {
+            console.error("Cannot start workout: planOrExercises data is missing.");
+            return false;
+        }
+
+        // Determine if it's a plan day object or a direct list of exercises
+        if (planOrExercises.id && Array.isArray(planOrExercises.exercises)) { // Looks like a plan day
+            this.planDayId = planOrExercises.id;
+            this.exercises = planOrExercises.exercises.map(ex => ({ id: ex.exercise_id, name: ex.exercise_name, ...ex })); // Adapt structure
+        } else if (Array.isArray(planOrExercises)) { // Direct list of exercises
+             this.exercises = planOrExercises.map(ex => ({ id: ex.id, name: ex.name, ...ex })); // Ensure common structure
+        } else {
+            console.error("Invalid data provided to startWorkout. Expected plan day object or exercises array.");
+            return false;
+        }
+
+        if (this.exercises.length === 0) {
+            console.error("Cannot start workout: No exercises provided.");
+            return false;
+        }
+
+        const userId = getUserId(); // Assumes getUserId() is globally available
+        if (!userId) {
+            console.error("User not logged in. Cannot start workout.");
+            // alert("Please login to start a workout."); // Or redirect to login
+            window.location.hash = '#login';
+            return false;
+        }
+
+        try {
+            const response = await fetch(`${this._getApiBaseUrl()}/v1/users/${userId}/workouts`, {
+                method: 'POST',
+                headers: getAuthHeaders(), // Assumes getAuthHeaders() is global
+                body: JSON.stringify({
+                    plan_day_id: this.planDayId, // Can be null
+                    started_at: new Date().toISOString(),
+                    notes: `Workout started with ${this.exercises.length} exercises.`
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to create workout session on backend.');
+            }
+            this.currentWorkoutId = data.id;
+            this.workoutStartTime = new Date();
+            this.currentExerciseIndex = 0;
+            this._saveState();
+            console.log('Workout started:', this);
+            this.navigateToCurrentExercise();
+            return true;
+        } catch (error) {
+            console.error('Error starting workout via API:', error);
+            this._clearState(); // Clear any partial state
+            alert(`Error starting workout: ${error.message}`);
+            return false;
+        }
+    }
+
+    async endWorkout(navigateToEndPage = true) {
+        if (!this.isWorkoutActive()) {
+            console.log("No active workout to end.");
+            this._clearState(); // Ensure it's clean anyway
+            if (navigateToEndPage) window.location.href = 'index.html'; // Or dashboard
+            return;
+        }
+
+        // Optional: Prompt for Session RPE or other summary data
+        // const sessionRPE = prompt("Enter overall session RPE (1-10):", "7");
+
+        try {
+            const response = await fetch(`${this._getApiBaseUrl()}/v1/workouts/${this.currentWorkoutId}`, { // Assuming a PUT or PATCH endpoint
+                method: 'PUT', // Or PATCH
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    completed_at: new Date().toISOString(),
+                    // session_rpe: sessionRPE ? parseInt(sessionRPE) : null
+                }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Failed to mark workout as completed on backend:', errorData.error || response.status);
+                // Don't throw, still clear local state
+            }
+        } catch (error) {
+            console.error('Error ending workout via API:', error);
+            // Don't throw, still clear local state
+        }
+
+        const endedWorkoutId = this.currentWorkoutId;
+        this._clearState();
+        console.log(`Workout ${endedWorkoutId} ended.`);
+        if (navigateToEndPage) {
+            alert("Workout Ended!"); // Placeholder for better UI
+            window.location.href = 'index.html'; // Navigate to dashboard or summary page
+        }
+    }
+
+    nextExercise() {
+        if (!this.isWorkoutActive()) return;
+        if (this.currentExerciseIndex < this.exercises.length - 1) {
+            this.currentExerciseIndex++;
+            this._saveState();
+            this.navigateToCurrentExercise();
+        } else {
+            this.endWorkout(); // Ends workout and navigates
+        }
+    }
+
+    previousExercise() {
+        if (!this.isWorkoutActive() || this.currentExerciseIndex <= 0) return;
+        this.currentExerciseIndex--;
+        this._saveState();
+        this.navigateToCurrentExercise();
+    }
+
+    navigateToCurrentExercise() {
+        if (!this.isWorkoutActive()) return;
+        const currentExercise = this.exercises[this.currentExerciseIndex];
+        if (currentExercise && currentExercise.id && this.currentWorkoutId) {
+            // workout_execution.html is a separate page, not hash-based SPA route
+            window.location.href = `workout_execution.html?workoutId=${this.currentWorkoutId}&exerciseId=${currentExercise.id}`;
+        } else {
+            console.error("Cannot navigate: Missing current exercise, exercise ID, or workout ID.", currentExercise, this.currentWorkoutId);
+            // Potentially end workout or redirect to error/dashboard
+            this.endWorkout();
+        }
+    }
+
+    getCurrentExerciseDetail() {
+        if (!this.isWorkoutActive() || this.currentExerciseIndex < 0 || this.currentExerciseIndex >= this.exercises.length) {
+            return null;
+        }
+        return this.exercises[this.currentExerciseIndex];
+    }
+
+    getCurrentWorkoutId() {
+        return this.currentWorkoutId;
+    }
+
+    // Call this method from workout_execution.js after a set is successfully logged.
+    // This is mainly for state tracking if WorkoutFlow needs to know about set counts.
+    // For P1, primary set logging happens in workout_execution.js.
+    // recordSetCompletion(exerciseId) {
+    //     if (!this.isWorkoutActive()) return;
+    //     // This is a simplified version. A more robust one might be needed if set counts influence flow.
+    //     console.log(`Set completed for exercise ${exerciseId} in workout ${this.currentWorkoutId}`);
+    //     this._saveState(); // Save if state needs to reflect this.
+    // }
+}
+
+// Instantiate WorkoutFlow globally or make it accessible
+window.workoutFlowManager = new WorkoutFlow();
+
+
 // --- Navigation ---
 const protectedRoutes = ['#workouts', '#logset', '#exercises', '#profile']; // Add other protected routes
 
@@ -585,8 +811,20 @@ function NotFoundPage() {
 }
 
 // Helper to navigate to LogSetPage with params
-function navigateToLogSet(exerciseId, exerciseName) {
-    window.location.hash = `#logset?exerciseId=${exerciseId}&exerciseName=${encodeURIComponent(exerciseName)}`;
+async function navigateToLogSet(exerciseId, exerciseName) { // Made async
+    // This function now starts a new workout with a single exercise.
+    console.log(`Attempting to start workout with single exercise: ${exerciseName} (ID: ${exerciseId})`);
+    if (window.workoutFlowManager) {
+        const singleExercise = [{ id: exerciseId, name: exerciseName }]; // WorkoutFlow expects an array
+        await window.workoutFlowManager.startWorkout(singleExercise);
+        // startWorkout will handle navigation to workout_execution.html
+    } else {
+        console.error("workoutFlowManager not available.");
+        // Fallback or error message
+        alert("Workout flow manager is not initialized. Cannot start workout.");
+    }
+    // Original navigation to #logset is removed as WorkoutFlow now handles navigation.
+    // window.location.hash = `#logset?exerciseId=${exerciseId}&exerciseName=${encodeURIComponent(exerciseName)}`;
 }
 
 // Placeholder for resuming a workout - could navigate to a workout detail page or pre-fill log set

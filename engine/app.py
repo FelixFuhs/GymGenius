@@ -8,8 +8,25 @@ import logging
 import jwt # For JWT generation and decoding
 from functools import wraps # For creating decorators
 import atexit
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
+
+# --- Rate Limiter Configuration ---
+# Use a dedicated Redis instance or a different DB number if sharing with RQ
+RATELIMIT_STORAGE_URL = os.getenv("RATELIMIT_STORAGE_URL", "redis://localhost:6379/1")
+limiter = Limiter(
+    get_remote_address,
+    app=app, # Initialize later if app factory pattern is used
+    default_limits=["200 per day", "50 per hour"], # Sensible global defaults
+    storage_uri=RATELIMIT_STORAGE_URL,
+    strategy="fixed-window", # or "moving-window"
+    # storage_options={"socket_connect_timeout": 30}, # Example options
+)
+# If app factory pattern:
+# limiter.init_app(app)
+
 
 # --- Database Connection Pool Configuration ---
 MIN_DB_CONNECTIONS = 1

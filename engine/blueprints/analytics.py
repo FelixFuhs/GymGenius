@@ -5,6 +5,7 @@ from ..app import (
     release_db_connection,
     jwt_required,
     logger,
+    limiter, # Import limiter
 )
 # Corrected imports for progression and learning_models
 from engine.progression import (
@@ -43,6 +44,7 @@ FALLBACK_DEFAULT_1RM = 30.0 # Generic fallback if no specific default is found
 analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/v1/predict/1rm/epley', methods=['POST'])
+@limiter.limit("60 per hour")
 def predict_1rm_epley():
     data = request.get_json()
     if not data or 'weight' not in data or 'reps' not in data:
@@ -69,6 +71,7 @@ def predict_1rm_epley():
     })
 
 @analytics_bp.route('/v1/user/<uuid:user_id>/update-rir-bias', methods=['POST'])
+@limiter.limit("60 per hour") # Assuming this is also an analytics-related endpoint for adjustment
 def rir_bias_update_route(user_id):
     user_id_str = str(user_id)
     data = request.get_json()
@@ -130,6 +133,7 @@ def rir_bias_update_route(user_id):
             release_db_connection(conn)
 
 @analytics_bp.route('/v1/user/<uuid:user_id>/fatigue-status', methods=['GET'])
+@limiter.limit("60 per hour")
 def fatigue_status_route(user_id):
     user_id_str = str(user_id)
     muscle_group = request.args.get('muscle_group')
@@ -211,6 +215,7 @@ def fatigue_status_route(user_id):
             release_db_connection(conn)
 
 @analytics_bp.route('/v1/user/<uuid:user_id>/exercise/<uuid:exercise_id>/recommend-set-parameters', methods=['GET', 'POST']) # Added POST
+@limiter.limit("60 per hour") # Recommendations might be called frequently during a workout
 def recommend_set_parameters_route(user_id, exercise_id):
     user_id_str = str(user_id)
     exercise_id_str = str(exercise_id)
@@ -600,6 +605,7 @@ def recommend_set_parameters_route(user_id, exercise_id):
 
 # --- Workout Plan Builder Endpoints ---
 @analytics_bp.route('/v1/system/trigger-training-pipeline', methods=['POST'])
+@limiter.limit("5 per day") # Very strict limit for a system-level trigger
 def trigger_training_pipeline_route():
     # Conceptual Authentication: In a real system, this endpoint would be secured.
     # For example, using an API key in the header, IP whitelisting, or a Bearer token.
@@ -633,6 +639,7 @@ def trigger_training_pipeline_route():
         return jsonify(error="Failed to enqueue training pipeline"), 500
 @analytics_bp.route('/v1/users/<uuid:user_id>/exercises/<uuid:exercise_id>/plateau-analysis', methods=['GET'])
 @jwt_required
+@limiter.limit("60 per hour")
 def get_plateau_analysis(user_id, exercise_id):
     from flask import g
     # from engine.learning_models import calculate_current_fatigue, DEFAULT_RECOVERY_TAU_MAP, SessionRecord -> Already imported
@@ -798,8 +805,63 @@ def get_plateau_analysis(user_id, exercise_id):
             release_db_connection(conn)
 
 
+@analytics_bp.route('/v1/users/<uuid:user_id>/exercises/<uuid:exercise_id>/analytics/mti-trends', methods=['GET'])
+@jwt_required
+@limiter.limit("60 per hour")
+def get_mti_trends(user_id, exercise_id):
+    from flask import g
+    if str(user_id) != g.current_user_id:
+        logger.warning(f"Forbidden attempt by user {g.current_user_id} to access MTI trends for user {user_id}.")
+        return jsonify(error="Forbidden. You can only access your own MTI data."), 403
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Optional: Check if exercise exists, though the query will just return empty if not.
+            # cur.execute("SELECT id FROM exercises WHERE id = %s;", (str(exercise_id),))
+            # if not cur.fetchone():
+            #     return jsonify(error=f"Exercise with ID {exercise_id} not found."), 404
+
+            # Fetch MTI data for the user and exercise
+            cur.execute(
+                """
+                SELECT ws.completed_at, ws.mti
+                FROM workout_sets ws
+                JOIN workouts w ON ws.workout_id = w.id
+                WHERE w.user_id = %s AND ws.exercise_id = %s AND ws.mti IS NOT NULL
+                ORDER BY ws.completed_at ASC;
+                """,
+                (str(user_id), str(exercise_id))
+            )
+            records = cur.fetchall()
+
+            if not records:
+                # Return an empty list as per frontend expectation for chart data
+                return jsonify([]), 200
+
+            mti_trends_data = [
+                {
+                    "date": rec["completed_at"].isoformat(), # Ensure ISO format for dates
+                    "mti_score": int(rec["mti"]) # MTI is already stored as INTEGER
+                }
+                for rec in records
+            ]
+
+            return jsonify(mti_trends_data), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error fetching MTI trends for user {user_id}, exercise {exercise_id}: {e}", exc_info=True)
+        return jsonify(error="Database error while fetching MTI trends."), 500
+    except Exception as e:
+        logger.error(f"Unexpected error fetching MTI trends for user {user_id}, exercise {exercise_id}: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred while fetching MTI trends."), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
 @analytics_bp.route('/v1/users/<uuid:user_id>/analytics/1rm-evolution', methods=['GET'])
 @jwt_required
+@limiter.limit("60 per hour")
 def get_1rm_evolution(user_id):
     from flask import g
     if str(user_id) != g.current_user_id:
@@ -847,6 +909,7 @@ def get_1rm_evolution(user_id):
 
 @analytics_bp.route('/v1/users/<uuid:user_id>/analytics/volume-heatmap', methods=['GET'])
 @jwt_required
+@limiter.limit("60 per hour")
 def get_volume_heatmap(user_id):
     from flask import g
     if str(user_id) != g.current_user_id:
@@ -898,6 +961,7 @@ def get_volume_heatmap(user_id):
 
 @analytics_bp.route('/v1/users/<uuid:user_id>/analytics/key-metrics', methods=['GET'])
 @jwt_required
+@limiter.limit("60 per hour")
 def get_key_metrics(user_id):
     from flask import g
     if str(user_id) != g.current_user_id:

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from ..app import get_db_connection, release_db_connection, jwt_required, logger
+from ..app import get_db_connection, release_db_connection, jwt_required, logger, limiter # Import limiter
 import psycopg2
 import psycopg2.extras
 import uuid
@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/v1/auth/register', methods=['POST'])
+@limiter.limit("5 per hour")
 def register_user():
     data = request.get_json()
     if not data or not data.get('email') or not data.get('password'):
@@ -64,6 +65,7 @@ def register_user():
             release_db_connection(conn)
 
 @auth_bp.route('/v1/auth/login', methods=['POST'])
+@limiter.limit("10 per minute")
 def login_user():
     data = request.get_json()
     if not data or not data.get('email') or not data.get('password'):
@@ -123,6 +125,7 @@ def login_user():
             release_db_connection(conn)
 
 @auth_bp.route('/v1/auth/refresh', methods=['POST'])
+@limiter.limit("20 per hour")
 def refresh_token():
     data = request.get_json()
     if not data or not data.get('refresh_token'):

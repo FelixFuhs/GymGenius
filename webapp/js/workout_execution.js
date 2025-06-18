@@ -8,6 +8,8 @@ let currentUserId = null; // Will be fetched by getUserId()
 // Store the fetched explanation globally or re-fetch if panel is re-rendered often.
 let aiExplanation = "Explanation will be loaded from the AI.";
 
+const DEFAULT_REST_DURATION = 90; // 90 seconds
+
 // Function to update the AI Recommendation Panel
 function updateAIRecommendationPanel(data) {
     const weightDisplay = document.querySelector('.ai-recommendation-card .weight-display');
@@ -38,6 +40,86 @@ function updateAIRecommendationPanel(data) {
         confidenceFill.textContent = `Error loading`;
         aiExplanation = "Could not load explanation.";
         whyExplanationP.textContent = aiExplanation;
+    }
+}
+
+// Function to log a set
+async function logSet(weight, reps, rir) {
+    if (!currentUserId || !currentExerciseId) {
+        console.error("User ID or Exercise ID is missing. Cannot log set.");
+        // Display error to user on the page
+        alert("Error: User or Exercise not identified. Please refresh.");
+        return;
+    }
+
+    // Basic validation
+    if (isNaN(parseFloat(weight)) || parseFloat(weight) < 0) {
+        alert("Please enter a valid weight.");
+        return;
+    }
+    if (isNaN(parseInt(reps)) || parseInt(reps) < 0) {
+        alert("Please enter a valid number of reps.");
+        return;
+    }
+    // RIR is optional, but if provided, should be a number.
+    // The API expects an integer or null for RIR.
+    let rirValue = null;
+    if (rir !== "" && rir !== null && rir !== undefined) {
+        rirValue = parseInt(rir);
+        if (isNaN(rirValue)) {
+            alert("Please enter a valid RIR value or leave it blank.");
+            return;
+        }
+    }
+
+    const payload = {
+        weight_kg: parseFloat(weight),
+        reps: parseInt(reps),
+        rir: rirValue,
+        // Optional: include notes, set_type if your form and API support it
+        // notes: document.getElementById('setNotes').value,
+        // set_type: "NORMAL" // Or "WARMUP", "DROPSET", etc.
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/exercise/${currentExerciseId}/log-set`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: "Failed to log set. Network error or invalid response." }));
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        const loggedSetData = await response.json(); // API should return the logged set, possibly with server-generated fields like ID or timestamp
+
+        // Add to UI table
+        addSetToTable(loggedSetData); // Assuming loggedSetData is in the format addSetToTable expects
+
+        // Clear input fields (optional, good UX)
+        document.getElementById('weightInput').value = '';
+        document.getElementById('repsInput').value = '';
+        document.getElementById('rirInput').value = '';
+        // document.getElementById('setNotes').value = '';
+
+
+        // Fetch new AI recommendations based on the new set
+        await fetchAndDisplayAIRecommendations(currentExerciseId, currentUserId);
+        // Fetch updated previous performance (which will now include this set)
+        await fetchAndDisplayPreviousPerformance(currentExerciseId, currentUserId);
+
+
+        // Start rest timer
+        startRestTimer(DEFAULT_REST_DURATION);
+
+        console.log("Set logged successfully:", loggedSetData);
+        // Display success message (e.g., a toast notification)
+
+    } catch (error) {
+        console.error("Error logging set:", error);
+        alert(`Error logging set: ${error.message}`); // Display error to user
     }
 }
 
@@ -108,7 +190,40 @@ function setupEventListeners() {
         });
     }
 
-    // Add other event listeners here (e.g., for set logging, timer)
+    // Event listener for the set logging form
+    const setLoggingForm = document.getElementById('setLoggingForm'); // Assuming your form has this ID
+    if (setLoggingForm) {
+        setLoggingForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const weightInput = document.getElementById('weightInput'); // Assuming ID for weight input
+            const repsInput = document.getElementById('repsInput');   // Assuming ID for reps input
+            const rirInput = document.getElementById('rirInput');     // Assuming ID for RIR input
+
+            if (!weightInput || !repsInput || !rirInput) {
+                console.error("Set logging form input elements not found.");
+                alert("Error: Could not find form input fields.");
+                return;
+            }
+
+            const weight = weightInput.value;
+            const reps = repsInput.value;
+            const rir = rirInput.value;
+
+            await logSet(weight, reps, rir);
+        });
+    } else {
+        console.warn("Set logging form #setLoggingForm not found.");
+    }
+
+    // Add other event listeners here (e.g., for timer buttons if not handled in startRestTimer)
+    const manualStartTimerButton = document.getElementById('startRestTimerButton');
+    if (manualStartTimerButton) {
+        manualStartTimerButton.addEventListener('click', () => {
+            // Potentially get duration from an input field if you want configurable manual start
+            startRestTimer(DEFAULT_REST_DURATION);
+        });
+    }
 }
 
 // Main initialization function for the workout execution page
@@ -214,6 +329,84 @@ async function fetchAndDisplayPreviousPerformance(exerciseId, userId) {
         console.error("Error fetching previous performance:", error);
         lastTimePerfEl.textContent = "Could not load previous performance.";
         improvementMetricEl.textContent = `Error: ${error.message.substring(0, 30)}...`; // Show a snippet of the error
+    }
+}
+
+// Function to add a logged set to the history table
+function addSetToTable(set) {
+    const historyTableBody = document.querySelector('.set-history-table tbody');
+    if (!historyTableBody) {
+        console.error("Set history table body not found.");
+        return;
+    }
+
+    const row = historyTableBody.insertRow();
+    // Columns: Set #, Weight, Reps, RIR, Date/Time (optional, or just order)
+    // Assuming 'set' object has properties like: set_number, weight_kg, reps, rir_value
+    // If set_number is not directly available, count existing rows or manage it externally.
+    const setNumber = historyTableBody.rows.length; // Simple set number based on rows
+
+    row.insertCell().textContent = setNumber;
+    row.insertCell().textContent = `${set.weight_kg} kg`;
+    row.insertCell().textContent = set.reps;
+    row.insertCell().textContent = set.rir !== null && set.rir !== undefined ? set.rir : 'N/A'; // Handle optional RIR
+    // Optionally, add a timestamp or notes if available in 'set'
+    // row.insertCell().textContent = new Date(set.timestamp).toLocaleTimeString();
+}
+
+let restTimerInterval = null;
+let restTimerSecondsRemaining = 0;
+
+// Function to start/update the rest timer
+function startRestTimer(durationInSeconds) {
+    const timerDisplay = document.getElementById('restTimerDisplay'); // Assuming an element with this ID shows the time
+    const startTimerButton = document.getElementById('startRestTimerButton'); // Assuming a button to manually start/add time
+    const stopTimerButton = document.getElementById('stopRestTimerButton'); // Assuming a button to stop/reset
+
+    if (!timerDisplay) {
+        console.error("Rest timer display element not found.");
+        return;
+    }
+
+    if (restTimerInterval) {
+        clearInterval(restTimerInterval); // Clear any existing timer
+    }
+
+    restTimerSecondsRemaining = durationInSeconds;
+
+    function updateTimerDisplay() {
+        const minutes = Math.floor(restTimerSecondsRemaining / 60);
+        const seconds = restTimerSecondsRemaining % 60;
+        timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
+
+    updateTimerDisplay(); // Initial display
+
+    restTimerInterval = setInterval(() => {
+        restTimerSecondsRemaining--;
+        updateTimerDisplay();
+
+        if (restTimerSecondsRemaining <= 0) {
+            clearInterval(restTimerInterval);
+            timerDisplay.textContent = "Time's up!";
+            // Optionally, play a sound or show a more prominent notification
+            // alert("Rest period finished!");
+            if (startTimerButton) startTimerButton.disabled = false; // Re-enable start button
+            if (stopTimerButton) stopTimerButton.textContent = 'Reset Timer';
+        }
+    }, 1000);
+
+    if (startTimerButton) startTimerButton.disabled = true; // Disable start button while timer is running
+    if (stopTimerButton) {
+        stopTimerButton.textContent = 'Stop Timer'; // Change text to "Stop"
+        stopTimerButton.onclick = function() { // Make stop button functional
+            clearInterval(restTimerInterval);
+            restTimerSecondsRemaining = 0;
+            updateTimerDisplay();
+            timerDisplay.textContent = "0:00";
+            if (startTimerButton) startTimerButton.disabled = false;
+            stopTimerButton.textContent = 'Reset Timer';
+        };
     }
 }
 
