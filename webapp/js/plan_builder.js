@@ -50,8 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeListElement = document.getElementById('volume-list');
     const frequencyListElement = document.getElementById('frequency-list');
     const savePlanButton = document.getElementById('save-plan');
-    const loadPlansButton = document.getElementById('load-plans-btn'); // Changed ID for clarity
+    const loadPlansButton = document.getElementById('load-plan');
     const clearPlanButton = document.getElementById('clear-plan');
+    const planSaveFeedbackDiv = document.getElementById('plan-save-feedback');
+    const feedbackTotalVolumeSpan = document.getElementById('feedback-total-volume');
+    const feedbackFrequencyListUl = document.getElementById('feedback-frequency-list');
     const userPlansListElement = document.getElementById('user-plans-list');
     const planNameInput = document.getElementById('plan-name'); // Assuming an input field for plan name
 
@@ -139,6 +142,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Plan Management Functions ---
     function addExerciseToPlan(exercise) {
+        if (planSaveFeedbackDiv) {
+            planSaveFeedbackDiv.style.display = 'none';
+            if (feedbackTotalVolumeSpan) feedbackTotalVolumeSpan.textContent = 'N/A';
+            if (feedbackFrequencyListUl) feedbackFrequencyListUl.innerHTML = '';
+        }
         // Ensure exercise has default sets/reps if not provided (e.g. when dragged)
         const exerciseToAdd = {
             ...exercise,
@@ -152,6 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function removeExerciseFromPlan(exerciseIdToRemove) {
+        if (planSaveFeedbackDiv) {
+            planSaveFeedbackDiv.style.display = 'none';
+            if (feedbackTotalVolumeSpan) feedbackTotalVolumeSpan.textContent = 'N/A';
+            if (feedbackFrequencyListUl) feedbackFrequencyListUl.innerHTML = '';
+        }
         const idToRemove = exerciseIdToRemove.toString(); // Ensure comparison with string IDs from dataset
         currentPlanExercises = currentPlanExercises.filter(ex => ex.id.toString() !== idToRemove);
         renderPlan();
@@ -246,6 +259,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleSetRepChange(event) {
+        if (planSaveFeedbackDiv) {
+            planSaveFeedbackDiv.style.display = 'none';
+            if (feedbackTotalVolumeSpan) feedbackTotalVolumeSpan.textContent = 'N/A';
+            if (feedbackFrequencyListUl) feedbackFrequencyListUl.innerHTML = '';
+        }
         const index = parseInt(event.target.dataset.index, 10);
         const property = event.target.classList.contains('plan-exercise-sets') ? 'sets' : 'reps';
         let value = event.target.value;
@@ -320,8 +338,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const savedPlan = await response.json();
-            alert(`Plan ${method === 'POST' ? 'saved' : 'updated'} successfully!`);
+            // alert(`Plan ${method === 'POST' ? 'saved' : 'updated'} successfully!`);
             console.log('Saved/Updated plan:', savedPlan);
+
+            if (feedbackTotalVolumeSpan) feedbackTotalVolumeSpan.textContent = savedPlan.total_volume || 'N/A';
+            if (feedbackFrequencyListUl) feedbackFrequencyListUl.innerHTML = '';
+
+            if (savedPlan.muscle_group_frequency && typeof savedPlan.muscle_group_frequency === 'object') {
+                if (Object.keys(savedPlan.muscle_group_frequency).length > 0) {
+                    for (const muscleGroup in savedPlan.muscle_group_frequency) {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${muscleGroup}: ${savedPlan.muscle_group_frequency[muscleGroup]} session(s)`;
+                        if (feedbackFrequencyListUl) feedbackFrequencyListUl.appendChild(listItem);
+                    }
+                } else {
+                    if (feedbackFrequencyListUl) feedbackFrequencyListUl.innerHTML = '<li>No specific muscle group frequency calculated.</li>';
+                }
+            } else {
+                if (feedbackFrequencyListUl) feedbackFrequencyListUl.innerHTML = '<li>Frequency data not available.</li>';
+            }
+
+            if (planSaveFeedbackDiv) planSaveFeedbackDiv.style.display = 'block';
+            alert('Plan saved!'); // Or remove if UI feedback is sufficient
 
             if (method === 'POST' && savedPlan.id) { // If new plan saved
                 currentLoadedPlanId = savedPlan.id;
@@ -333,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error saving plan:', error);
             alert(`Error saving plan: ${error.message}`);
+            if (planSaveFeedbackDiv) planSaveFeedbackDiv.style.display = 'none';
         }
     }
 
@@ -486,6 +525,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     function clearPlan() {
+        if (planSaveFeedbackDiv) {
+            planSaveFeedbackDiv.style.display = 'none';
+            if (feedbackTotalVolumeSpan) feedbackTotalVolumeSpan.textContent = 'N/A';
+            if (feedbackFrequencyListUl) feedbackFrequencyListUl.innerHTML = '';
+        }
         currentPlanExercises = [];
         currentLoadedPlanId = null;
         currentLoadedPlanName = "My New Plan";
@@ -506,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZoneElement.addEventListener('drop', handleDrop);
     }
     if (savePlanButton) savePlanButton.addEventListener('click', savePlan);
-    if (loadPlansButton) loadPlansButton.addEventListener('click', loadUserPlans); // Changed
+    if (loadPlansButton) loadPlansButton.addEventListener('click', loadUserPlans);
     if (clearPlanButton) clearPlanButton.addEventListener('click', clearPlan);
 
     // Initial setup

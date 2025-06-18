@@ -50,12 +50,27 @@
                         <!-- Frequency data will be populated here by JS -->
                     </ul>
                 </div>
+                <div id="plan-save-feedback" style="display:none; margin-top: 15px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9;">
+                    <h4>Plan Save Confirmation:</h4>
+                    <p><strong>Total Volume:</strong> <span id="feedback-total-volume">N/A</span> sets</p>
+                    <p><strong>Muscle Group Frequency:</strong></p>
+                    <ul id="feedback-frequency-list">
+                        <!-- Frequency data will be populated here by JS -->
+                    </ul>
+                </div>
             </section>
             <section id="plan-controls">
                 <h2>Plan Management</h2>
                 <button id="save-plan">Save Plan</button>
             <button id="load-plan">Load Plan</button>
             <button id="clear-plan">Clear Plan</button>
+        </section>
+        <section id="user-plans-section">
+            <h2>Your Saved Plans</h2>
+            <ul id="user-plans-list">
+                <!-- User's saved plans will be listed here by JS -->
+                <li>Click "Load Plan" to fetch your plans.</li>
+            </ul>
         </section>
     </main>
     <footer>

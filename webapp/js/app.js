@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '#logset': LogSetPage,
         '#exercises': ExerciseListPage, // Added ExerciseListPage
         '#rir-weight-input': RirWeightInputPage,
-        // '#profile': ProfilePage, // Example for later
+        '#profile': ProfilePage,
     };
 
     function navigate() {
@@ -783,6 +783,7 @@ function updateFooterNav() {
         footerNav.innerHTML = `
             <a href="#exercises">Exercises</a>
             <a href="#workouts">My Workouts</a>
+            <a href="#profile">Profile</a>
             <a href="#rir-weight-input">RIR/Weight Calc</a>
             <a id="feedback-link" target="_blank">Beta Feedback</a>
             <a href="#" id="logout-link">Logout</a>
@@ -810,6 +811,48 @@ function NotFoundPage() {
     const page = document.createElement('div');
     page.className = 'page active';
     page.innerHTML = '<h2>404 - Page Not Found</h2>';
+    return page;
+}
+
+// --- Profile Page ---
+function ProfilePage() {
+    const page = document.createElement('div');
+    page.className = 'page active';
+    page.innerHTML = `
+        <h2>User Profile</h2>
+        <section id="equipment-management">
+            <h3>My Equipment</h3>
+            <div id="equipment-message" style="display:none;"></div>
+            <form id="equipment-form">
+                <h4>Weight Plates</h4>
+                <div id="plate-selection">
+                    <!-- Plate toggles/checkboxes will be dynamically added here by profile.js -->
+                    <p>Loading plate options...</p>
+                </div>
+                <p>Default Barbell Weight (kg): <input type="number" id="barbell-weight-kg" value="20" step="0.5"></p>
+
+                <h4>Dumbbells</h4>
+                <div>
+                    <label for="dumbbell-type">Type:</label>
+                    <select id="dumbbell-type">
+                        <option value="none">None</option>
+                        <option value="fixed">Fixed Weight</option>
+                        <option value="adjustable">Adjustable</option>
+                    </select>
+                </div>
+                <div id="fixed-dumbbells-section" style="display:none;">
+                    <label for="fixed-dumbbell-weights">Available Fixed Dumbbell Weights (kg, comma-separated):</label>
+                    <input type="text" id="fixed-dumbbell-weights" placeholder="e.g., 5, 7.5, 10, 12.5, 15">
+                </div>
+                <div id="adjustable-dumbbells-section" style="display:none;">
+                    <label for="adjustable-dumbbell-max-weight">Max Weight per Adjustable Dumbbell (kg):</label>
+                    <input type="number" id="adjustable-dumbbell-max-weight" step="0.5">
+                </div>
+
+                <button type="submit">Save Equipment</button>
+            </form>
+        </section>
+    `;
     return page;
 }
 
