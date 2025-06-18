@@ -1,19 +1,30 @@
-const QuickStart = {
-  checkFirstTime() {
-    if (!localStorage.getItem('gg_first_time')) {
-      document.getElementById('onboarding-modal').classList.add('show');
-    }
-  },
-  start() {
-    localStorage.setItem('gg_first_time', 'no');
-    document.getElementById('onboarding-modal').classList.remove('show');
-  }
-};
+const QuickStart = (() => {
+    const KEY = 'gg_first_time';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('qs-start-btn');
-  if (btn) {
-    btn.addEventListener('click', QuickStart.start);
-  }
-  QuickStart.checkFirstTime();
-});
+    function showModal() {
+        const modal = document.getElementById('onboarding-modal');
+        if (!modal) return;
+        modal.classList.add('show');
+        const btn = modal.querySelector('#qs-start-btn');
+        if (btn) {
+            btn.addEventListener('click', finish, { once: true });
+        }
+    }
+
+    function finish() {
+        localStorage.setItem(KEY, 'no');
+        const modal = document.getElementById('onboarding-modal');
+        if (modal) modal.classList.remove('show');
+        window.location.hash = '#exercises';
+    }
+
+    function checkFirstTime() {
+        if (!localStorage.getItem(KEY)) {
+            showModal();
+        }
+    }
+
+    return { checkFirstTime };
+})();
+
+window.QuickStart = QuickStart;
