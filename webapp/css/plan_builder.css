@@ -215,3 +215,23 @@ footer {
     color: #fff;
     margin-top: 20px;
 }
+
+/* Layout adjustments for narrow screens */
+@media (max-width: 360px) {
+    main {
+        flex-wrap: wrap;
+    }
+    aside#left-panel,
+    div#right-panel,
+    section#plan-creation-area {
+        width: 100%;
+    }
+    section,
+    #drop-zone {
+        padding: 10px;
+    }
+    #plan-controls button {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+}

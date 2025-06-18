@@ -99,3 +99,28 @@ button:hover {
     margin-bottom: 10px;
     border-radius: 4px;
 }
+
+/* Mobile tweaks for very small screens */
+@media (max-width: 360px) {
+    header,
+    main,
+    footer {
+        padding: 0.5em;
+    }
+    footer nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    footer nav a {
+        margin: 0.3em 0.5em;
+        font-size: 0.9em;
+    }
+    h2 {
+        font-size: 1.3em;
+    }
+    button {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+}

@@ -374,6 +374,29 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
     margin: 0 auto; /* Center if it's the only button in its direct parent */
 }
 
+/* Narrow screen support */
+@media (max-width: 360px) {
+    .page-header {
+        padding: 0.5rem 1rem;
+    }
+    .page-header nav a {
+        margin-right: 10px;
+        font-size: 0.9em;
+    }
+    .workout-execution-container {
+        padding: 10px;
+    }
+    .ai-recommendation-card,
+    .performance-comparison,
+    .set-logging-section,
+    .rest-timer-widget {
+        padding: 15px;
+    }
+    button {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+}
 
 /* Responsive adjustments */
 @media (min-width: 768px) {

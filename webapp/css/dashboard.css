@@ -335,3 +335,24 @@ footer {
     font-weight: bold;
     border-color: #0056b3;
 }
+
+/* Mobile layout adjustments */
+@media (max-width: 360px) {
+    #dashboard-main {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    header {
+        padding: 0.5rem 1rem;
+    }
+    header nav a {
+        margin-right: 10px;
+        font-size: 0.9em;
+    }
+    .dashboard-section {
+        padding: 15px;
+    }
+    h2 {
+        font-size: 1.3em;
+    }
+}
