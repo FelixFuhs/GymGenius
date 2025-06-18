@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Workout</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/workout_execution.css">
+</head>
+<body>
+    <header class="page-header">
+        <!-- Basic navigation placeholder, actual nav might be in style.css or dynamically loaded -->
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="analytics_dashboard.html">Dashboard</a>
+            <!-- A more specific "Back to Workout Plan" or similar would be appropriate here -->
+        </nav>
+        <h1>Log Workout</h1>
+    </header>
+
+    <main class="workout-execution-container">
+        <div id="current-exercise-name-display">
+            <h2>Exercise: <span id="exercise-name-placeholder">[Exercise Name]</span></h2>
+        </div>
+
+        <div class="ai-recommendation-card">
+            <h2>AI Recommends</h2>
+            <div class="weight-display">80 kg</div>
+            <div class="rep-range">8-10 reps @ 2 RIR</div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: 85%;">85% confident</div>
+            </div>
+            <button class="why-button action-button">Why this weight?</button> <!-- Added action-button class for base styling -->
+            <div class="why-explanation" style="display: none;">
+                <p>Based on your last session for Squats (75kg for 3 sets of 10 reps @ 3 RIR) and your current readiness score, we predict you can lift 80kg for 8-10 reps while maintaining good form (2 RIR). This aligns with your current goal of hypertrophy in the 8-12 rep range.</p>
+            </div>
+        </div>
+
+        <div class="performance-comparison">
+            <h3>Previous Performance</h3>
+            <div class="last-time-performance">Last time: 77.5kg × 9 reps @ 2 RIR</div>
+            <div class="improvement-metric">+2.5kg progression</div>
+        </div>
+
+        <div class="set-logging-section">
+            <h3>Log Sets</h3>
+            <table class="set-tracker">
+                <thead>
+                    <tr>
+                        <th>Set</th>
+                        <th>Weight (kg)</th>
+                        <th>Reps</th>
+                        <th>RIR</th>
+                        <th>MTI</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="set-logging-tbody">
+                    <!-- Sample row for styling purposes. Actual rows added by JS. -->
+                    <tr>
+                        <td class="set-number">1</td>
+                        <td><input type="number" class="set-input weight-input" placeholder="0" value=""></td>
+                        <td><input type="number" class="set-input reps-input" placeholder="0" value=""></td>
+                        <td><input type="number" class="set-input rir-input" placeholder="0" value=""></td>
+                        <td class="mti-value">--</td>
+                        <td><button class="log-set-row-btn action-button" disabled>Log</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button id="add-set-btn" class="action-button primary-action">Add Set</button> <!-- Ensured primary-action class -->
+        </div>
+
+        <div class="rest-timer-widget">
+            <h3>Rest Timer</h3>
+            <div class="timer-circle-container">
+                <canvas id="rest-timer-canvas" width="150" height="150"></canvas>
+                <div id="rest-timer-display" class="timer-display">1:30</div> <!-- Updated placeholder -->
+            </div>
+            <div class="timer-controls">
+                <button id="start-timer-btn" class="action-button primary-action">Start</button> <!-- Added primary-action -->
+                <button id="pause-timer-btn" class="action-button">Pause</button>
+                <button id="reset-timer-btn" class="action-button">Reset</button>
+            </div>
+        </div>
+
+        <div class="workout-controls">
+             <button id="next-exercise-btn" class="action-button primary-action">Next Exercise</button>
+             <button id="end-workout-btn" class="action-button secondary-action">End Workout</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 GymGenius. All rights reserved.</p>
+    </footer>
+
+    <!-- Basic JS placeholder, actual logic will be in a separate file -->
+    <script src="js/workout_execution_ui.js"></script> <!-- Added UI script for canvas placeholder -->
+    <script src="js/workout_execution.js"></script> <!-- Main logic for the page -->
+</body>
+</html>

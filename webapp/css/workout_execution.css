@@ -1,0 +1,423 @@
+/* General page styling for workout_execution.html */
+body.workout-execution-page { /* Add class to body in HTML for specificity if needed */
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f6f8; /* Light grey background */
+    color: #333;
+    margin: 0;
+    padding: 0; /* Header/footer might have their own padding */
+}
+
+.page-header { /* Assuming a similar header structure to analytics_dashboard */
+    background: #ffffff;
+    color: #212529;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px; /* Space below header */
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.75em;
+    font-weight: 600;
+}
+
+.page-header nav a {
+    color: #007bff;
+    text-decoration: none;
+    margin-right: 20px;
+    font-size: 1em;
+    font-weight: 500;
+}
+
+/* Workout Execution Container Layout */
+.workout-execution-container {
+    display: grid;
+    grid-template-areas:
+        "exercise-title"
+        "ai-rec"
+        "prev-perf"
+        "set-log"
+        "rest-timer"
+        "workout-controls";
+    gap: 25px; /* Increased gap for better separation */
+    max-width: 900px; /* Slightly wider max-width */
+    margin: 20px auto; /* Added top/bottom margin */
+    padding: 20px; /* Padding for the container itself */
+}
+
+/* Assign grid areas */
+#current-exercise-name-display {
+    grid-area: exercise-title;
+    text-align: center;
+    margin-bottom: 0; /* Gap will handle spacing */
+    font-size: 1.5em;
+    color: #343a40;
+}
+#current-exercise-name-display h2 {
+    margin: 0; /* Remove default h2 margin */
+}
+
+.ai-recommendation-card { grid-area: ai-rec; }
+.performance-comparison { grid-area: prev-perf; }
+.set-logging-section { grid-area: set-log; }
+.rest-timer-widget { grid-area: rest-timer; }
+.workout-controls { grid-area: workout-controls; text-align: center; }
+
+
+/* Basic card/section styling */
+.ai-recommendation-card,
+.performance-comparison,
+.set-logging-section,
+.rest-timer-widget {
+    background-color: #ffffff;
+    padding: 20px; /* Increased padding */
+    border-radius: 8px; /* Consistent rounded corners */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Slightly more pronounced shadow */
+    border: 1px solid #e9ecef; /* Subtle border */
+    text-align: center; /* Center content like title, button */
+}
+
+.ai-recommendation-card h2, /* This style was already decent, minor tweaks if needed */
+.performance-comparison h3,
+.set-logging-section h3,
+.rest-timer-widget h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.4em; /* Slightly larger for card titles */
+    color: #333; /* Standard dark color */
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+/* AI Recommendation Card Specifics - Refined */
+.ai-recommendation-card .weight-display {
+    font-size: 3em; /* Large display for weight */
+    font-weight: bold;
+    color: #007bff; /* Primary accent color for weight */
+    margin: 10px 0;
+}
+.ai-recommendation-card .rep-range {
+    font-size: 1.2em; /* Clearer rep range */
+    color: #555; /* Dark grey for readability */
+    margin-bottom: 20px; /* More space before confidence bar */
+}
+.confidence-bar {
+    background-color: #e9ecef; /* Light grey track */
+    border-radius: 8px; /* More rounded */
+    height: 28px; /* Taller bar */
+    margin: 20px auto; /* More vertical margin, centered */
+    width: 90%; /* Responsive width */
+    max-width: 300px; /* Max width for very large cards */
+    overflow: hidden;
+    position: relative; /* For text inside fill or for custom text display */
+    border: 1px solid #ced4da; /* Subtle border for definition */
+}
+.confidence-fill {
+    background-color: #28a745; /* Green for high confidence */
+    height: 100%;
+    border-radius: 7px; /* Slightly less than parent to show border if needed */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9em; /* Adjusted font size */
+    font-weight: 600; /* Bolder text */
+    line-height: 28px; /* Match height */
+    transition: width 0.5s ease-in-out;
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1); /* Inner shadow for depth */
+}
+
+/* Styling for the .why-button, ensuring it uses .action-button styles if desired */
+.why-button {
+    /* .action-button provides base. Add specifics if needed. */
+    /* Example: make it less prominent than primary actions if it's secondary */
+    /* background-color: transparent; */
+    /* color: #007bff; */
+    /* border: 1px solid #007bff; */
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-weight: 500; /* Medium weight */
+}
+/* .why-button:hover {
+    background-color: #e7f3ff; /* Light blue hover for secondary-like button
+}*/
+
+.why-explanation {
+    background-color: #f8f9fa; /* Light background for explanation box */
+    border: 1px solid #e0e0e0; /* Softer border */
+    padding: 15px; /* More padding */
+    margin-top: 10px;
+    border-radius: 6px; /* Consistent rounding */
+    text-align: left; /* Explanation text usually left-aligned */
+    font-size: 0.95em; /* Slightly larger for readability */
+    color: #495057; /* Softer text color */
+    line-height: 1.6; /* Improved line spacing */
+}
+
+/* Performance Comparison Specifics - Refined */
+.performance-comparison {
+    /* General card styles are inherited or defined in a common class */
+    /* text-align: left; /* Default for content, can be centered if preferred for whole card */
+}
+
+.performance-comparison h3 {
+    /* This style is already covered by the generic card h3 selector:
+       .ai-recommendation-card h2, .performance-comparison h3, ...
+       Adjust if specific styling for this h3 is needed.
+       For example, if it needs to be different from AI Rec h2: */
+    font-size: 1.3em; /* Ensuring consistency with other panel titles */
+    text-align: left; /* Explicitly left-align if card itself is centered */
+}
+
+.performance-comparison .last-time-performance {
+    font-size: 1em; /* Standard readable size */
+    color: #495057; /* Dark grey for good contrast */
+    padding: 10px; /* More padding */
+    background-color: #f8f9fa; /* Light background to subtly offset */
+    border: 1px solid #e9ecef; /* Soft border */
+    border-radius: 4px;
+    margin-bottom: 10px; /* Space before improvement metric */
+    text-align: left; /* Ensure text is left aligned */
+}
+
+.performance-comparison .improvement-metric {
+    font-size: 1.15em; /* Slightly larger to make it stand out */
+    font-weight: bold;
+    color: #28a745; /* Default green for positive progression */
+    padding: 12px 10px; /* More vertical padding */
+    border-radius: 4px;
+    background-color: #e6ffed; /* Light green background for positive emphasis */
+    border: 1px solid #a3d9b1; /* Border that complements background */
+    text-align: center; /* Center the improvement text */
+    margin-top: 10px; /* Ensure space from previous element */
+}
+
+/* Example for negative progression (to be applied by JS later if value is negative) */
+.performance-comparison .improvement-metric.negative {
+    color: #dc3545; /* Red for negative progression */
+    background-color: #ffebee; /* Light red background */
+    border-color: #f1b0b7;
+}
+
+
+/* Set Logging Table - Refined */
+.set-logging-section h3 { /* Already covered by general card h3 style, ensure consistency or override if needed */
+    font-size: 1.3em;
+    color: #343a40;
+    margin-bottom: 15px; /* Standard spacing */
+    text-align: left; /* Override card's text-align:center if needed for this title */
+}
+
+.set-tracker {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px; /* More space before Add Set button */
+    font-size: 0.95em; /* Base font size for table content */
+}
+
+.set-tracker th, .set-tracker td {
+    padding: 12px 8px; /* Increased padding for better spacing */
+    text-align: center; /* Center align most content */
+    border: 1px solid #e0e0e0; /* Lighter border for all cells */
+    vertical-align: middle; /* Ensure vertical centering */
+}
+
+.set-tracker th {
+    background-color: #f8f9fa; /* Light grey background for headers */
+    font-weight: 600;
+    color: #343a40; /* Darker header text */
+    font-size: 0.9em; /* Slightly smaller header text */
+    text-transform: uppercase; /* Uppercase headers for distinction */
+    letter-spacing: 0.5px;
+}
+
+.set-tracker td.set-number {
+    font-weight: bold;
+    color: #495057;
+}
+
+.set-input {
+    width: 100%; /* Inputs take full cell width */
+    max-width: 80px; /* Max width to keep them neat, esp for numbers */
+    padding: 8px 5px;
+    border: 1px solid #ced4da; /* Standard input border */
+    border-radius: 4px;
+    font-size: 1em; /* Match table cell font size */
+    text-align: center;
+    box-sizing: border-box; /* Important for width calculation with padding */
+    -moz-appearance: textfield; /* Remove spinners on Firefox */
+}
+.set-input::-webkit-outer-spin-button,
+.set-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; /* Remove spinners on Chrome/Safari/Edge */
+    margin: 0;
+}
+
+.mti-value {
+    font-weight: 500; /* Medium weight for MTI value */
+    color: #007bff; /* Primary color for MTI, or choose another */
+    font-size: 0.95em;
+}
+
+.log-set-row-btn {
+    /* Uses .action-button for base */
+    padding: 6px 12px; /* Smaller button for table row */
+    font-size: 0.85em; /* Smaller font */
+    min-width: 60px; /* Ensure it's not too small */
+}
+.log-set-row-btn:disabled {
+    background-color: #adb5bd; /* Greyer when disabled */
+    border-color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#add-set-btn {
+    /* Uses .action-button.primary-action */
+    display: block;
+    margin: 10px auto; /* Center button */
+    width: auto; /* Auto width based on content and padding */
+    padding: 12px 25px; /* Larger padding for main action */
+    min-width: 150px;
+}
+
+/* Rest Timer Widget - Refined */
+.rest-timer-widget {
+    text-align: center;
+    /* General card styles inherited */
+}
+.rest-timer-widget h3 {
+    /* Consistent with other panel titles */
+    font-size: 1.3em;
+    color: #343a40;
+    margin-bottom: 20px; /* More space before timer circle */
+}
+
+.timer-circle-container {
+    position: relative; /* For absolute positioning of timer-display */
+    width: 150px;       /* Matches canvas width */
+    height: 150px;      /* Matches canvas height */
+    margin: 0 auto 20px auto; /* Centered, with more bottom margin */
+}
+
+#rest-timer-canvas {
+    display: block; /* Removes any extra space below canvas if it's inline */
+    /* A subtle border can help visualize bounds if needed, but circle is drawn by JS */
+    /* border: 1px solid #ddd; */
+}
+
+#rest-timer-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.2em; /* Larger timer text */
+    font-weight: 600; /* Bolder */
+    color: #343a40; /* Dark text for timer */
+    white-space: nowrap; /* Prevent wrapping if font size is very large */
+}
+
+.timer-controls {
+    display: flex;
+    justify-content: center; /* Center buttons horizontally */
+    gap: 10px; /* Space between buttons */
+    margin-top: 15px; /* Space above buttons */
+}
+
+/* Buttons already use .action-button. Specifics if needed: */
+#start-timer-btn {
+    /* .primary-action class will style this if added in HTML */
+}
+#pause-timer-btn {
+    /* Standard action-button styling */
+}
+#reset-timer-btn {
+    /* Uses .action-button. Add .secondary-action if desired, or specific styles: */
+    background-color: #6c757d; /* Example secondary color */
+    color: white;
+}
+#reset-timer-btn:hover {
+    background-color: #5a6268;
+}
+
+
+/* General Action Buttons (can be reused) */
+.action-button {
+    padding: 10px 20px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.action-button.primary-action {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+.action-button.primary-action:hover {
+    background-color: #0056b3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.action-button.secondary-action {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+.action-button.secondary-action:hover {
+    background-color: #545b62;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+#add-set-btn { /* Specific styling if needed, or use .action-button */
+    display: block;
+    margin: 0 auto; /* Center if it's the only button in its direct parent */
+}
+
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .workout-execution-container {
+        grid-template-columns: 1fr 1fr; /* Two columns on wider screens */
+        grid-template-areas:
+            "exercise-title exercise-title"
+            "ai-rec prev-perf"
+            "set-log set-log"
+            "rest-timer workout-controls"; /* Timer and workout controls side-by-side */
+        align-items: start; /* Align items at the start of their grid area */
+    }
+
+    .set-logging-section, .rest-timer-widget {
+        /* Example: make them span full width if preferred even in 2-column for some items */
+        /* grid-column: 1 / -1; */
+    }
+    .rest-timer-widget {
+        /* Could be placed beside set-log or below AI/Prev Perf depending on flow */
+    }
+}
+
+@media (min-width: 992px) {
+    .workout-execution-container {
+         grid-template-columns: 2fr 1fr; /* e.g. Main content wider, timer/context narrower */
+         grid-template-areas:
+            "exercise-title exercise-title"
+            "set-log ai-rec"
+            "set-log prev-perf"
+            "set-log rest-timer"
+            "workout-controls workout-controls";
+    }
+     .set-logging-section {
+        grid-row: span 3; /* Make set logging take more vertical space */
+    }
+}
+
+/* Footer styling */
+footer {
+    text-align: center;
+    padding: 20px;
+    background: #ffffff;
+    color: #6c757d;
+    margin-top: 30px;
+    border-top: 1px solid #dee2e6;
+    font-size: 0.9em;
+}
