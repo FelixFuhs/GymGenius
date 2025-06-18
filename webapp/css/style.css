@@ -100,7 +100,7 @@ button:hover {
     border-radius: 4px;
 }
 
-/* Mobile tweaks for very small screens */
+/* Mobile tweaks for screens under 360px */
 @media (max-width: 360px) {
     header,
     main,
