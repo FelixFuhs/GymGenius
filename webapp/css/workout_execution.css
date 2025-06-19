@@ -2,342 +2,399 @@
 /* body, .page-header (if HTML uses <header>), footer base styles are now inherited from style.css */
 /* Add .workout-execution-page to body tag in HTML if page-specific body styles are ever needed beyond global */
 body.workout-execution-page {
-    /* Retain if specific overrides are needed, e.g. different default font for this page only. */
-    /* For now, assuming global body styles are sufficient. */
+  /* Retain if specific overrides are needed, e.g. different default font for this page only. */
+  /* For now, assuming global body styles are sufficient. */
 }
 
 /* If HTML uses <header class="page-header">, this class can be removed if global <header> styles are enough.
    If specific margin or other properties are needed for this page's header, keep the class and only override those. */
 .page-header {
-    margin-bottom: 20px; /* Keep specific margin if needed */
-    /* Other properties like background, padding, color, border, shadow, h1, nav a should be inherited. */
+  margin-bottom: 20px; /* Keep specific margin if needed */
+  /* Other properties like background, padding, color, border, shadow, h1, nav a should be inherited. */
 }
 
 /* Workout Execution Container Layout */
 .workout-execution-container {
-    display: grid;
-    grid-template-areas:
-        "exercise-title"
-        "ai-rec"
-        "prev-perf"
-        "set-log"
-        "rest-timer"
-        "workout-controls";
-    gap: 25px; /* Increased gap for better separation */
-    max-width: 900px; /* Slightly wider max-width */
-    margin: 20px auto; /* Added top/bottom margin */
-    padding: 20px; /* Padding for the container itself */
+  display: grid;
+  grid-template-areas:
+    "exercise-title"
+    "ai-rec"
+    "prev-perf"
+    "set-log"
+    "rest-timer"
+    "workout-controls";
+  gap: 25px; /* Increased gap for better separation */
+  max-width: 900px; /* Slightly wider max-width */
+  margin: 20px auto; /* Added top/bottom margin */
+  padding: 20px; /* Padding for the container itself */
 }
 
 /* Assign grid areas */
 #current-exercise-name-display {
-    grid-area: exercise-title;
-    text-align: center;
-    margin-bottom: 0; /* Gap will handle spacing */
-    /* font-size for h2 will be inherited, color needs update */
+  grid-area: exercise-title;
+  text-align: center;
+  margin-bottom: 0; /* Gap will handle spacing */
+  /* font-size for h2 will be inherited, color needs update */
 }
 #current-exercise-name-display h2 {
-    margin: 0; /* Remove default h2 margin */
-    color: #2c3e50; /* Updated to global heading color */
-    font-size: 1.75em; /* Consistent H2 size */
-    font-weight: 600; /* Consistent H2 weight */
+  margin: 0; /* Remove default h2 margin */
+  color: #1d1d1f; /* Primary Dark */
+  font-size: 1.75em; /* Consistent H2 size */
+  font-weight: 700; /* Updated to H2 weight */
 }
 
-.ai-recommendation-card { grid-area: ai-rec; }
-.performance-comparison { grid-area: prev-perf; }
-.set-logging-section { grid-area: set-log; }
-.rest-timer-widget { grid-area: rest-timer; }
-.workout-controls { grid-area: workout-controls; text-align: center; }
-
+.ai-recommendation-card {
+  grid-area: ai-rec;
+}
+.performance-comparison {
+  grid-area: prev-perf;
+}
+.set-logging-section {
+  grid-area: set-log;
+}
+.rest-timer-widget {
+  grid-area: rest-timer;
+}
+.workout-controls {
+  grid-area: workout-controls;
+  text-align: center;
+}
 
 /* Basic card/section styling */
 .ai-recommendation-card,
 .performance-comparison,
 .set-logging-section,
 .rest-timer-widget,
-.readiness-dial-container { /* Added .readiness-dial-container here */
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 6px; /* Updated to global card radius */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Updated to global card shadow */
-    border: 1px solid #dee2e6; /* Updated to global card border */
-    text-align: center; /* Keep text-align center for these cards */
-    margin-bottom: 25px; /* Ensure consistent spacing between cards, was gap in grid */
+.readiness-dial-container {
+  /* Added .readiness-dial-container here */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  padding: 20px;
+  border-radius: 16px; /* Updated */
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e5e7; /* Light Border */
+  text-align: center; /* Keep text-align center for these cards */
+  margin-bottom: 25px; /* Ensure consistent spacing between cards, was gap in grid */
 }
 /* Remove individual margin-bottom from .readiness-dial-container if set elsewhere and conflicts */
 .readiness-dial-container {
-    margin-bottom: 25px; /* Explicitly ensure it has the margin if not covered by grid gap */
+  margin-bottom: 25px; /* Explicitly ensure it has the margin if not covered by grid gap */
 }
-
 
 .ai-recommendation-card h2,
 .performance-comparison h3,
 .set-logging-section h3,
 .rest-timer-widget h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.4em; /* Custom size for these cards is fine */
-    color: #2c3e50; /* Updated to global heading color */
-    border-bottom: 1px solid #dee2e6; /* Consistent border */
-    padding-bottom: 10px;
-    font-weight: 600; /* Ensure consistent weight */
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.4em; /* Custom size for these cards is fine */
+  color: #1d1d1f; /* Primary Dark */
+  border-bottom: 1px solid #e5e5e7; /* Light Border */
+  padding-bottom: 10px;
+  font-weight: 600; /* Ensure consistent weight */
 }
 
 /* AI Recommendation Card Specifics - Refined */
 .ai-recommendation-card .weight-display {
-    font-size: 3em; /* Large display for weight */
-    font-weight: bold;
-    color: #007bff; /* Primary accent color for weight */
-    margin: 10px 0;
+  font-size: 3em; /* Large display for weight */
+  font-weight: 700; /* Updated from bold */
+  color: #1d1d1f; /* Primary Dark */
+  margin: 10px 0;
 }
 .ai-recommendation-card .rep-range {
-    font-size: 1.2em; /* Clearer rep range */
-    color: #555; /* Dark grey for readability */
-    margin-bottom: 20px; /* More space before confidence bar */
+  font-size: 1.2em; /* Clearer rep range */
+  color: #515154; /* Medium Gray */
+  margin-bottom: 20px; /* More space before confidence bar */
 }
 .confidence-bar {
-    background-color: #e9ecef; /* Light grey track */
-    border-radius: 8px; /* More rounded */
-    height: 28px; /* Taller bar */
-    margin: 20px auto; /* More vertical margin, centered */
-    width: 90%; /* Responsive width */
-    max-width: 300px; /* Max width for very large cards */
-    overflow: hidden;
-    position: relative; /* For text inside fill or for custom text display */
-    border: 1px solid #ced4da; /* Subtle border for definition */
+  background-color: #e5e5e7; /* Light Border (as track) */
+  border-radius: 10px; /* Updated */
+  height: 28px; /* Taller bar */
+  margin: 20px auto; /* More vertical margin, centered */
+  width: 90%; /* Responsive width */
+  max-width: 300px; /* Max width for very large cards */
+  overflow: hidden;
+  position: relative; /* For text inside fill or for custom text display */
+  border: 1px solid #e5e5e7; /* Light Border */
 }
 .confidence-fill {
-    background-color: #28a745; /* Green for high confidence */
-    height: 100%;
-    border-radius: 7px; /* Slightly less than parent to show border if needed */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.9em; /* Adjusted font size */
-    font-weight: 600; /* Bolder text */
-    line-height: 28px; /* Match height */
-    transition: width 0.5s ease-in-out;
-    box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1); /* Inner shadow for depth */
+  background-color: #30d158; /* Success Green */
+  height: 100%;
+  border-radius: 8px; /* Updated (slightly less than container) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.9em; /* Adjusted font size */
+  font-weight: 600; /* Bolder text */
+  line-height: 28px; /* Match height */
+  transition: width 0.5s ease-in-out;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.1); /* Inner shadow for depth */
 }
 
 /* Styling for the .why-button, ensuring it uses .action-button styles if desired */
 .why-button {
-    /* This button should get a class like .button-link or .button-secondary.button-sm in HTML. */
-    /* Removing specific style here. Ensure HTML is updated. */
-    margin-top: 15px;
-    margin-bottom: 10px;
-    /* font-weight: 500; */ /* This would be part of the button class if needed */
+  /* This button should get a class like .button-link or .button-secondary.button-sm in HTML. */
+  /* Removing specific style here. Ensure HTML is updated. */
+  margin-top: 15px;
+  margin-bottom: 10px;
+  /* font-weight: 500; */ /* This would be part of the button class if needed */
 }
 /* .why-button:hover {
     background-color: #e7f3ff;
 }*/
 
 .why-explanation {
-    background-color: #f8f9fa; /* Light background for explanation box */
-    border: 1px solid #dee2e6; /* Consistent global border */
-    padding: 15px;
-    margin-top: 10px;
-    border-radius: 6px; /* Consistent rounding */
-    text-align: left; /* Explanation text usually left-aligned */
-    font-size: 0.95em; /* Slightly larger for readability */
-    color: #495057; /* Softer text color */
-    line-height: 1.6; /* Improved line spacing */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border: 1px solid #e5e5e7; /* Light Border */
+  padding: 20px; /* Standard Card Padding */
+  margin-top: 10px;
+  border-radius: 16px; /* Updated */
+  position: relative;
+  overflow: hidden;
+  text-align: left; /* Explanation text usually left-aligned */
+  font-size: 0.95em; /* Slightly larger for readability */
+  color: #1d1d1f; /* Primary Dark */
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
+  /* line-height: 1.6; Inherits from body */
 }
 
 /* Performance Comparison Specifics - Refined */
 .performance-comparison {
-    /* General card styles are inherited or defined in a common class */
-    /* text-align: left; /* Default for content, can be centered if preferred for whole card */
+  /* General card styles are inherited or defined in a common class */
+  /* text-align: left; /* Default for content, can be centered if preferred for whole card */
 }
 
 .performance-comparison h3 {
-    /* This style is already covered by the generic card h3 selector:
+  /* This style is already covered by the generic card h3 selector:
        .ai-recommendation-card h2, .performance-comparison h3, ...
        Adjust if specific styling for this h3 is needed.
        For example, if it needs to be different from AI Rec h2: */
-    font-size: 1.3em; /* Ensuring consistency with other panel titles */
-    text-align: left; /* Explicitly left-align if card itself is centered */
+  font-size: 1.3em; /* Ensuring consistency with other panel titles */
+  text-align: left; /* Explicitly left-align if card itself is centered */
 }
 
 .performance-comparison .last-time-performance {
-    font-size: 1em;
-    color: #495057;
-    padding: 10px;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6; /* Consistent global border */
-    border-radius: 4px;
-    margin-bottom: 10px;
-    text-align: left;
+  font-size: 1em;
+  color: #1d1d1f; /* Primary Dark */
+  padding: 15px; /* Standardized smaller card/item padding */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e5e7; /* Light Border */
+  border-radius: 10px; /* Updated */
+  margin-bottom: 10px;
+  text-align: left;
 }
 
 .performance-comparison .improvement-metric {
-    font-size: 1.15em; /* Slightly larger to make it stand out */
-    font-weight: bold;
-    color: #28a745; /* Default green for positive progression */
-    padding: 12px 10px; /* More vertical padding */
-    border-radius: 4px;
-    background-color: #e6ffed; /* Light green background for positive emphasis */
-    border: 1px solid #a3d9b1; /* Border that complements background */
-    text-align: center; /* Center the improvement text */
-    margin-top: 10px; /* Ensure space from previous element */
+  font-size: 1.15em; /* Slightly larger to make it stand out */
+  font-weight: 600; /* Updated from bold */
+  color: #30d158; /* Success Green */
+  padding: 12px 10px; /* More vertical padding */
+  border-radius: 10px; /* Updated */
+  background-color: #ffffff; /* Surface */
+  border: 1px solid #30d158; /* Success Green */
+  text-align: center; /* Center the improvement text */
+  margin-top: 10px; /* Ensure space from previous element */
 }
 
 /* Example for negative progression (to be applied by JS later if value is negative) */
 .performance-comparison .improvement-metric.negative {
-    color: #dc3545; /* Red for negative progression */
-    background-color: #ffebee; /* Light red background */
-    border-color: #f1b0b7;
+  color: #ff3b30; /* Error Red */
+  background-color: #ffffff; /* Surface */
+  border: 1px solid #ff3b30; /* Error Red */
 }
 
-
 /* Set Logging Table - Refined */
-.set-logging-section h3 { /* Already covered by general card h3 style, ensure consistency or override if needed */
-    font-size: 1.3em;
-    color: #343a40;
-    margin-bottom: 15px; /* Standard spacing */
-    text-align: left; /* Override card's text-align:center if needed for this title */
-    color: #2c3e50; /* Ensure this was updated */
+.set-logging-section h3 {
+  /* Already covered by general card h3 style, ensure consistency or override if needed */
+  font-size: 1.3em;
+  color: #1d1d1f; /* Primary Dark */
+  margin-bottom: 15px; /* Standard spacing */
+  text-align: left; /* Override card's text-align:center if needed for this title */
 }
 
 .set-tracker {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px; /* More space before Add Set button */
-    font-size: 0.95em; /* Base font size for table content */
+  width: 100%;
+  /* border-collapse: collapse; Removed to inherit global style */
+  margin-bottom: 20px; /* More space before Add Set button */
+  font-size: 0.95em; /* Base font size for table content */
+  /* Inherits background, backdrop-filter, border-radius, overflow, border-collapse, border-spacing from global table */
 }
 
-.set-tracker th, .set-tracker td {
-    padding: 12px 8px; /* Keep existing padding, seems reasonable for a table */
-    text-align: center;
-    border: 1px solid #dee2e6; /* Updated to global border color */
-    vertical-align: middle;
+.set-tracker th,
+.set-tracker td {
+  padding: 12px 8px; /* Keep existing padding, seems reasonable for a table */
+  text-align: center;
+  border: 0; /* Remove individual cell borders initially */
+  border-bottom: 1px solid #e5e5e7; /* Apply only bottom border */
+  vertical-align: middle;
 }
 
 .set-tracker th {
-    background-color: #f8f9fa; /* Consistent light grey background */
-    font-weight: 600; /* Global heading weight */
-    color: #495057; /* Consistent table header text color */
-    font-size: 0.9em;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  background-color: transparent; /* Transparent as per Style Guide */
+  font-weight: 600; /* Global heading weight */
+  color: #1d1d1f; /* Primary Dark */
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative; /* For ::after pseudo-element */
+}
+
+.set-tracker tr:last-child td {
+  border-bottom: 0; /* Remove bottom border from cells in the last row */
 }
 
 .set-tracker td.set-number {
-    font-weight: bold;
-    color: #495057; /* Consistent secondary text color */
+  font-weight: 600; /* Updated from bold */
+  color: #1d1d1f; /* Primary Dark */
 }
 
 .set-input {
-    width: 100%;
-    max-width: 80px;
-    padding: 8px 10px; /* Adjusted padding for better consistency with global inputs */
-    border: 1px solid #ced4da; /* Consistent global input border */
-    border-radius: 4px; /* Consistent global input radius */
-    font-size: 1em;
-    text-align: center;
-    box-sizing: border-box; /* Important for width calculation with padding */
-    -moz-appearance: textfield; /* Remove spinners on Firefox */
+  width: 100%;
+  max-width: 80px;
+  padding: 8px 10px; /* Adjusted padding for better consistency with global inputs */
+  border: 1px solid rgba(229, 229, 231, 0.8); /* New input border */
+  border-radius: 10px; /* Updated */
+  font-size: 1em;
+  text-align: center;
+  box-sizing: border-box; /* Important for width calculation with padding */
+  -moz-appearance: textfield; /* Remove spinners on Firefox */
 }
 .set-input::-webkit-outer-spin-button,
 .set-input::-webkit-inner-spin-button {
-    -webkit-appearance: none; /* Remove spinners on Chrome/Safari/Edge */
-    margin: 0;
+  -webkit-appearance: none; /* Remove spinners on Chrome/Safari/Edge */
+  margin: 0;
 }
 
 .mti-value {
-    font-weight: 500; /* Medium weight for MTI value */
-    color: #007bff; /* Primary color for MTI, or choose another */
-    font-size: 0.95em;
+  font-weight: 500; /* Medium weight for MTI value */
+  color: #1d1d1f; /* Primary Dark */
+  font-size: 0.95em;
 }
 
 .log-set-row-btn {
-    /* Should be styled by .button-primary and .button-sm classes in HTML */
-    /* Remove specific styles here if HTML is updated, or make these align with .button-primary.button-sm */
-    /* Forcing alignment here if HTML class change is deferred: */
-    background-color: #007bff;
-    color: white;
-    border: 1px solid #007bff;
-    padding: 5px 10px; /* from .button-sm */
-    font-size: 0.875em; /* from .button-sm */
-    border-radius: 4px; /* global button radius */
-    min-width: 60px;
-    cursor: pointer;
+  /* Should be styled by .button-primary and .button-sm classes in HTML */
+  /* Removing specific appearance styles to rely on global classes. */
+  min-width: 60px;
+  cursor: pointer;
+  /* Ensure HTML for this button uses .button-primary or .button-secondary and potentially a size modifier if needed */
 }
 .log-set-row-btn:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
+  /* Hover styles will come from global button classes */
 }
 .log-set-row-btn:disabled {
-    background-color: #adb5bd; /* Keep disabled style distinct */
-    border-color: #adb5bd;
-    cursor: not-allowed;
-    opacity: 0.7;
+  /* Disabled styles will come from global button classes or a general [disabled] attribute selector */
+  background-color: #86868b; /* Example from previous, ensure global disabled style is sufficient */
+  border-color: #86868b;
+  cursor: not-allowed;
+  opacity: 0.7; /* Opacity is a common way to show disabled state */
 }
 
 #add-set-btn {
-    /* Uses .action-button.primary-action */
-    display: block;
-    margin: 10px auto; /* Center button */
-    width: auto; /* Auto width based on content and padding */
-    padding: 12px 25px; /* Larger padding for main action */
-    min-width: 150px;
+  /* Uses .action-button.primary-action */
+  display: block;
+  margin: 10px auto; /* Center button */
+  width: auto; /* Auto width based on content and padding */
+  padding: 12px 25px; /* Larger padding for main action */
+  min-width: 150px;
 }
 
 /* Rest Timer Widget - Refined */
 .rest-timer-widget {
-    text-align: center;
-    /* General card styles inherited */
+  text-align: center;
+  /* General card styles inherited */
 }
 .rest-timer-widget h3 {
-    /* Consistent with other panel titles */
-    font-size: 1.3em; /* Keep custom size if desired */
-    color: #2c3e50; /* Updated color */
-    margin-bottom: 20px; /* More space before timer circle */
+  /* Consistent with other panel titles */
+  font-size: 1.3em; /* Keep custom size if desired */
+  color: #1d1d1f; /* Primary Dark */
+  margin-bottom: 20px; /* More space before timer circle */
 }
 
 .timer-circle-container {
-    position: relative; /* For absolute positioning of timer-display */
-    width: 150px;       /* Matches canvas width */
-    height: 150px;      /* Matches canvas height */
-    margin: 0 auto 20px auto; /* Centered, with more bottom margin */
+  position: relative; /* For absolute positioning of timer-display */
+  width: 150px; /* Matches canvas width */
+  height: 150px; /* Matches canvas height */
+  margin: 0 auto 20px auto; /* Centered, with more bottom margin */
 }
 
 #rest-timer-canvas {
-    display: block; /* Removes any extra space below canvas if it's inline */
-    /* A subtle border can help visualize bounds if needed, but circle is drawn by JS */
-    /* border: 1px solid #ddd; */
+  display: block; /* Removes any extra space below canvas if it's inline */
+  /* A subtle border can help visualize bounds if needed, but circle is drawn by JS */
+  /* border: 1px solid #ddd; */
 }
 
 #rest-timer-display {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2.2em; /* Larger timer text */
-    font-weight: 600; /* Bolder */
-    color: #2c3e50; /* Updated color */
-    white-space: nowrap; /* Prevent wrapping if font size is very large */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.2em; /* Larger timer text */
+  font-weight: 600; /* Bolder */
+  color: #1d1d1f; /* Primary Dark */
+  white-space: nowrap; /* Prevent wrapping if font size is very large */
 }
 
 .timer-controls {
-    display: flex;
-    justify-content: center; /* Center buttons horizontally */
-    gap: 10px; /* Space between buttons */
-    margin-top: 15px; /* Space above buttons */
+  display: flex;
+  justify-content: center; /* Center buttons horizontally */
+  gap: 10px; /* Space between buttons */
+  margin-top: 15px; /* Space above buttons */
 }
 
 /* Buttons already use .action-button. Specifics if needed: */
 #start-timer-btn {
-    /* .primary-action class will style this if added in HTML - should be .button-primary */
+  /* .primary-action class will style this if added in HTML - should be .button-primary */
 }
 #pause-timer-btn {
-    /* Standard action-button styling - should be .button-secondary */
+  /* Standard action-button styling - should be .button-secondary */
 }
 #reset-timer-btn {
-    /* Uses .action-button. Add .secondary-action if desired, or specific styles: */
-    /* background-color: #6c757d; */ /* These will be covered by .button-secondary if class is applied in HTML */
-    /* color: white; */
+  /* Uses .action-button. Add .secondary-action if desired, or specific styles: */
+  /* background-color: #6c757d; */ /* These will be covered by .button-secondary if class is applied in HTML */
+  /* color: white; */
 }
 /* #reset-timer-btn:hover {
     background-color: #5a6268;
@@ -346,72 +403,74 @@ body.workout-execution-page {
 /* Removed all .action-button, .action-button.primary-action, .action-button.secondary-action rules.
    These are replaced by global .button-primary, .button-secondary, etc. applied in the HTML. */
 
-#add-set-btn { /* Specific layout styling for this button, appearance from .button-primary */
-    display: block;
-    margin: 10px auto; /* Center button, keep from original */
-    /* width: auto; */ /* from original, handled by button content + padding */
-    padding: 12px 25px; /* Keep larger padding for this main action button */
-    min-width: 150px; /* Keep min-width */
-    /* Ensure #add-set-btn in HTML has .button-primary class */
+#add-set-btn {
+  /* Specific layout styling for this button, appearance from .button-primary */
+  display: block;
+  margin: 10px auto; /* Center button, keep from original */
+  /* width: auto; */ /* from original, handled by button content + padding */
+  padding: 12px 25px; /* Keep larger padding for this main action button */
+  min-width: 150px; /* Keep min-width */
+  /* Ensure #add-set-btn in HTML has .button-primary class */
 }
-
 
 /* Responsive adjustments */
 @media (min-width: 768px) {
-    .workout-execution-container {
-        grid-template-columns: 1fr 1fr; /* Two columns on wider screens */
-        grid-template-areas:
-            "exercise-title exercise-title"
-            "ai-rec prev-perf"
-            "set-log set-log"
-            "rest-timer workout-controls"; /* Timer and workout controls side-by-side */
-        align-items: start; /* Align items at the start of their grid area */
-    }
+  .workout-execution-container {
+    grid-template-columns: 1fr 1fr; /* Two columns on wider screens */
+    grid-template-areas:
+      "exercise-title exercise-title"
+      "ai-rec prev-perf"
+      "set-log set-log"
+      "rest-timer workout-controls"; /* Timer and workout controls side-by-side */
+    align-items: start; /* Align items at the start of their grid area */
+  }
 
-    .set-logging-section, .rest-timer-widget {
-        /* Example: make them span full width if preferred even in 2-column for some items */
-        /* grid-column: 1 / -1; */
-    }
-    .rest-timer-widget {
-        /* Could be placed beside set-log or below AI/Prev Perf depending on flow */
-    }
+  .set-logging-section,
+  .rest-timer-widget {
+    /* Example: make them span full width if preferred even in 2-column for some items */
+    /* grid-column: 1 / -1; */
+  }
+  .rest-timer-widget {
+    /* Could be placed beside set-log or below AI/Prev Perf depending on flow */
+  }
 }
 
 @media (min-width: 992px) {
-    .workout-execution-container {
-         grid-template-columns: 2fr 1fr; /* e.g. Main content wider, timer/context narrower */
-         grid-template-areas:
-            "exercise-title exercise-title"
-            "set-log ai-rec"
-            "set-log prev-perf"
-            "set-log rest-timer"
-            "workout-controls workout-controls";
-    }
-     .set-logging-section {
-        grid-row: span 3; /* Make set logging take more vertical space */
-    }
+  .workout-execution-container {
+    grid-template-columns: 2fr 1fr; /* e.g. Main content wider, timer/context narrower */
+    grid-template-areas:
+      "exercise-title exercise-title"
+      "set-log ai-rec"
+      "set-log prev-perf"
+      "set-log rest-timer"
+      "workout-controls workout-controls";
+  }
+  .set-logging-section {
+    grid-row: span 3; /* Make set logging take more vertical space */
+  }
 }
 
 /* Make table scrollable on small screens */
 @media screen and (max-width: 767px) {
-    .set-logging-section {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    }
+  .set-logging-section {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  }
 
-    .set-tracker {
-        min-width: 600px; /* Ensure table has a minimum width to trigger scroll */
-        /* Or a width that's wider than typical mobile screens, e.g., 150% */
-    }
+  .set-tracker {
+    min-width: 600px; /* Ensure table has a minimum width to trigger scroll */
+    /* Or a width that's wider than typical mobile screens, e.g., 150% */
+  }
 
-    /* Optional: Adjust padding or margins within the table for smaller screens if needed */
-    .set-tracker th, .set-tracker td {
-        padding: 10px 5px; /* Slightly reduce padding */
-    }
+  /* Optional: Adjust padding or margins within the table for smaller screens if needed */
+  .set-tracker th,
+  .set-tracker td {
+    padding: 10px 5px; /* Slightly reduce padding */
+  }
 
-    .set-input {
-        max-width: 60px; /* Adjust input width if necessary */
-    }
+  .set-input {
+    max-width: 60px; /* Adjust input width if necessary */
+  }
 }
 
 /* Footer styling is now inherited from style.css */
@@ -420,96 +479,111 @@ body.workout-execution-page {
 /* Styles for Edit/Delete Set Functionality */
 
 .set-actions button {
-    margin: 0 3px; /* Add small margin between action buttons */
-    padding: 5px 8px;
-    font-size: 0.9em;
-    line-height: 1.2;
+  margin: 0 3px; /* Add small margin between action buttons */
+  /* Padding, font-size, line-height removed to use base button styles or icon-btn styles */
 }
 
 .icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 2px 4px; /* Keep padding minimal */
-    font-size: 1.1em; /* Slightly smaller for less prominence, or keep 1.2em if preferred */
-    color: #007bff; /* Default icon/text action color - Accent */
-    transition: color 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px; /* Keep padding minimal */
+  font-size: 1.1em; /* Slightly smaller for less prominence, or keep 1.2em if preferred */
+  color: #1d1d1f; /* Primary Dark */
+  transition: color 0.2s ease;
 }
 .icon-btn:hover {
-    color: #0056b3; /* Darker accent on hover */
+  color: #515154; /* Medium Gray */
 }
 
-.delete-set-btn.icon-btn { /* This class is used in HTML */
-    color: #dc3545; /* Error/Danger color */
+.delete-set-btn.icon-btn {
+  /* This class is used in HTML */
+  color: #ff3b30; /* Error Red */
 }
 .delete-set-btn.icon-btn:hover {
-    color: #c82333; /* Darker Error/Danger color */
+  color: #ff3b30; /* Error Red (or darker if defined) */
 }
 
 /* Save and Cancel buttons in edit mode */
-.save-set-btn.icon-btn { /* Assuming .icon-btn is also on save/cancel for consistency */
-    color: #28a745; /* Success color */
+.save-set-btn.icon-btn {
+  /* Assuming .icon-btn is also on save/cancel for consistency */
+  color: #30d158; /* Success Green */
 }
 .save-set-btn.icon-btn:hover {
-    color: #1e7e34; /* Darker Success */
+  color: #30d158; /* Success Green (or darker if defined) */
 }
 
-.cancel-edit-btn.icon-btn { /* Assuming .icon-btn is also on save/cancel */
-    color: #6c757d; /* Secondary/muted color */
+.cancel-edit-btn.icon-btn {
+  /* Assuming .icon-btn is also on save/cancel */
+  color: #515154; /* Medium Gray */
 }
 .cancel-edit-btn.icon-btn:hover {
-    color: #545b62; /* Darker secondary/muted */
+  color: #86868b; /* Light Gray/Tertiary */
 }
-
 
 /* Styling for rows in edit mode */
 tr.editing {
-    background-color: #e9f5ff; /* Light blue highlight for editing row, or #f8f9fa for subtle grey */
+  background-color: #fafbfc; /* Off White (subtle highlight) */
 }
 
 tr.editing .set-input,
 tr.editing .notes-input {
-    border: 1px solid #007bff; /* Highlight input fields in edit mode with accent color */
-    background-color: #fff;
+  border: 1px solid #1d1d1f; /* Primary Dark for highlight */
+  /* background-color: #fff; Will use glassmorphism from global input or specific below */
 }
 
 tr.editing .notes-input {
-    width: 100%;
-    min-width: 120px;
-    max-width: 200px;
-    height: auto;
-    min-height: 38px;
-    resize: vertical;
-    box-sizing: border-box;
-    padding: 8px 10px; /* Match .set-input padding */
-    text-align: left;
-    border-radius: 4px; /* Match .set-input radius */
+  width: 100%;
+  min-width: 120px;
+  max-width: 200px;
+  height: auto;
+  min-height: 38px;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 8px 10px; /* Match .set-input padding */
+  text-align: left;
+  border-radius: 10px; /* Updated */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(250, 251, 252, 0.98) 100%
+  );
+  backdrop-filter: blur(10px);
+  color: #1d1d1f; /* Assuming text color should be primary */
+  font-family: inherit;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* Small loader for inline buttons like "Log" in new set rows */
 .loader-small {
-    display: inline-block;
-    border: 3px solid #f3f3f3; /* Light grey */
-    border-top: 3px solid #007bff; /* Blue */
-    border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    animation: spin 1s linear infinite;
-    vertical-align: middle;
-    margin-right: 5px;
+  display: inline-block;
+  border: 3px solid #f3f3f3; /* Light grey */
+  border-top: 3px solid #1d1d1f; /* Primary Dark */
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  vertical-align: middle;
+  margin-right: 5px;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Styles for Share Workout Functionality */
 #share-workout-btn {
-    /* Uses .action-button, can add specifics if needed */
-    /* e.g., background-color: #17a2b8; for a different color */
-    /* border-color: #17a2b8; */
-    margin-left: 10px; /* Space from other workout controls */
+  /* Uses .action-button, can add specifics if needed */
+  /* e.g., background-color: #17a2b8; for a different color */
+  /* border-color: #17a2b8; */
+  margin-left: 10px; /* Space from other workout controls */
 }
 /* #share-workout-btn:hover {
     background-color: #138496;
@@ -517,42 +591,69 @@ tr.editing .notes-input {
 } */
 
 .share-link-container {
-    /* HTML has: style="display:none; margin-top: 20px; padding: 15px; background-color: #e9f5ff; border-radius: 6px; text-align: center;" */
-    /* These will be applied if inline styles are removed from HTML. */
-    background-color: #e9f5ff; /* Light blue info background */
-    padding: 15px;
-    border-radius: 6px; /* Consistent radius */
-    border: 1px solid #bce8f1; /* Light blue border */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Global card shadow */
-    text-align: center;
-    margin-top: 20px; /* Keep existing margin */
+  /* HTML has: style="display:none; margin-top: 20px; padding: 15px; background-color: #e9f5ff; border-radius: 6px; text-align: center;" */
+  /* These will be applied if inline styles are removed from HTML. */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  padding: 20px; /* Standard Card Padding */
+  border-radius: 16px; /* Updated */
+  border: 1px solid #e5e5e7; /* Light Border */
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
+  text-align: center;
+  margin-top: 20px; /* Keep existing margin */
 }
 
-#share-link-container p:first-child { /* "Share this link:" text */
-    font-weight: 600; /* Consistent heading weight */
-    color: #0056b3; /* Darker blue for emphasis - this is fine, or use #2c3e50 for global heading color */
-    margin-bottom: 8px;
+#share-link-container p:first-child {
+  /* "Share this link:" text */
+  font-weight: 600; /* Consistent heading weight */
+  color: #1d1d1f; /* Primary Dark */
+  margin-bottom: 8px;
 }
 
-#share-link-display { /* Will be styled by global input styles if class is added in HTML */
-    /* Assuming it gets class="form-control" or similar in HTML for global styling */
-    max-width: 400px; /* Keep max-width if desired */
-    /* Ensure global input styles are applied in HTML, otherwise explicitly style here: */
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 1em;
-    color: #212529;
-    background-color: #fff;
-    margin-bottom: 12px;
-    box-sizing: border-box;
-    width: 100%; /* Inputs are typically full width within their container */
+#share-link-display {
+  /* Will be styled by global input styles if class is added in HTML */
+  /* Assuming it gets class="form-control" or similar in HTML for global styling */
+  max-width: 400px; /* Keep max-width if desired */
+  /* Ensure global input styles are applied in HTML, otherwise explicitly style here: */
+  padding: 12px 16px; /* Match global */
+  border: 1px solid rgba(229, 229, 231, 0.8); /* New input border */
+  border-radius: 10px; /* Updated */
+  font-size: 1em;
+  color: #1d1d1f; /* Primary Dark */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(250, 251, 252, 0.98) 100%
+  ); /* Glassmorphism */
+  backdrop-filter: blur(10px); /* Glassmorphism */
+  font-family: inherit;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  width: 100%; /* Inputs are typically full width within their container */
 }
 
 #copy-share-link-btn {
-    /* This should get .button-primary or .button-success in HTML */
-    /* Remove specific styles, rely on global button classes */
-    /* padding: 8px 15px; */ /* This would be part of .button-sm if used */
+  /* This should get .button-primary or .button-success in HTML */
+  /* Remove specific styles, rely on global button classes */
+  /* padding: 8px 15px; */ /* This would be part of .button-sm if used */
 }
 /* #copy-share-link-btn:hover {
     background-color: #218838;
@@ -560,115 +661,139 @@ tr.editing .notes-input {
 } */
 
 #copy-feedback-msg {
-    min-height: 1.2em;
-    font-size: 0.9em;
-    color: #155724; /* Global success text color */
-    margin-top: 5px;
+  min-height: 1.2em;
+  font-size: 0.9em;
+  color: #30d158; /* Success Green */
+  margin-top: 5px;
 }
 
-.share-link-container p:last-child { /* Expiry info */
-    font-style: italic;
-    font-size: 0.8em;
-    color: #495057; /* Consistent secondary text color */
-    margin-top: 10px;
+.share-link-container p:last-child {
+  /* Expiry info */
+  font-style: italic;
+  font-size: 0.8em;
+  color: #515154; /* Medium Gray */
+  margin-top: 10px;
 }
 
 /* Readiness Dial Styles */
 .readiness-dial-container {
-    /* Card styles are applied via class in HTML or general section rules */
-    /* background-color, padding, border-radius, box-shadow are now part of the common rule above */
-    text-align: center;
-    /* margin-bottom: 20px; */ /* Now handled by common rule or grid gap */
+  /* Card styles are applied via class in HTML or general section rules */
+  /* background-color, padding, border-radius, box-shadow are now part of the common rule above */
+  text-align: center;
+  /* margin-bottom: 20px; */ /* Now handled by common rule or grid gap */
 }
 .readiness-label {
-    display: block;
-    font-size: 1.1em; /* Keep custom size */
-    font-weight: 500; /* Global label weight */
-    color: #34495e; /* Global label color */
-    margin-bottom: 10px;
+  display: block;
+  font-size: 1.1em; /* Keep custom size */
+  font-weight: 500; /* Global label weight */
+  color: #1d1d1f; /* Primary Dark */
+  margin-bottom: 10px;
 }
 .progress-bar-container {
-    position: relative;
-    width: 80%;
-    max-width: 300px;
-    margin: 0 auto;
-    height: 25px; /* Height of the progress bar */
-    background-color: #e9ecef; /* Track color */
-    border-radius: 12px; /* Rounded ends for the track */
-    overflow: hidden; /* Ensures fill stays within bounds */
+  position: relative;
+  width: 80%;
+  max-width: 300px;
+  margin: 0 auto;
+  height: 25px; /* Height of the progress bar */
+  background-color: #e5e5e7; /* Light Border (Track color) */
+  border-radius: 10px; /* Updated */
+  overflow: hidden; /* Ensures fill stays within bounds */
 }
 #readiness-progress {
-    width: 100%;
-    height: 100%;
-    border: none; /* Remove default browser border */
-    border-radius: 12px; /* Match container */
-    appearance: none; /* Remove default browser appearance */
-    -webkit-appearance: none;
-    -moz-appearance: none;
+  width: 100%;
+  height: 100%;
+  border: none; /* Remove default browser border */
+  border-radius: 10px; /* Updated (or 8px for fill) */
+  appearance: none; /* Remove default browser appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 /* Progress bar fill color - default (can be high readiness) */
 #readiness-progress::-webkit-progress-bar {
-    background-color: #e9ecef; /* Track color for WebKit */
-    border-radius: 12px;
+  background-color: #e5e5e7; /* Light Border (Track color for WebKit) */
+  border-radius: 10px; /* Updated */
 }
 #readiness-progress::-webkit-progress-value {
-    background-color: #28a745; /* Default/High readiness: Green */
-    border-radius: 12px;
-    transition: width 0.3s ease;
+  background-color: #30d158; /* Success Green */
+  border-radius: 8px; /* Updated (fill) */
+  transition: width 0.3s ease;
 }
-#readiness-progress::-moz-progress-bar { /* Firefox */
-    background-color: #28a745; /* Default/High readiness: Green */
-    border-radius: 12px;
-    transition: width 0.3s ease;
+#readiness-progress::-moz-progress-bar {
+  /* Firefox */
+  background-color: #30d158; /* Success Green */
+  border-radius: 8px; /* Updated (fill) */
+  transition: width 0.3s ease;
 }
 
 /* Readiness level specific colors for the progress bar value */
-#readiness-progress.low-readiness::-webkit-progress-value { background-color: #dc3545; } /* Red */
-#readiness-progress.low-readiness::-moz-progress-bar { background-color: #dc3545; }
+#readiness-progress.low-readiness::-webkit-progress-value {
+  background-color: #ff3b30;
+  border-radius: 8px;
+} /* Error Red */
+#readiness-progress.low-readiness::-moz-progress-bar {
+  background-color: #ff3b30;
+  border-radius: 8px;
+} /* Error Red */
 
-#readiness-progress.medium-readiness::-webkit-progress-value { background-color: #ffc107; } /* Yellow/Orange */
-#readiness-progress.medium-readiness::-moz-progress-bar { background-color: #ffc107; }
+#readiness-progress.medium-readiness::-webkit-progress-value {
+  background-color: #ff9500;
+  border-radius: 8px;
+} /* Warning Orange */
+#readiness-progress.medium-readiness::-moz-progress-bar {
+  background-color: #ff9500;
+  border-radius: 8px;
+} /* Warning Orange */
 
-#readiness-progress.high-readiness::-webkit-progress-value { background-color: #28a745; } /* Green */
-#readiness-progress.high-readiness::-moz-progress-bar { background-color: #28a745; }
+#readiness-progress.high-readiness::-webkit-progress-value {
+  background-color: #30d158;
+  border-radius: 8px;
+} /* Success Green */
+#readiness-progress.high-readiness::-moz-progress-bar {
+  background-color: #30d158;
+  border-radius: 8px;
+} /* Success Green */
 
-#readiness-progress.na-readiness::-webkit-progress-value { background-color: #adb5bd; } /* Grey for N/A */
-#readiness-progress.na-readiness::-moz-progress-bar { background-color: #adb5bd; }
-
+#readiness-progress.na-readiness::-webkit-progress-value {
+  background-color: #86868b;
+  border-radius: 8px;
+} /* Light Gray/Tertiary */
+#readiness-progress.na-readiness::-moz-progress-bar {
+  background-color: #86868b;
+  border-radius: 8px;
+} /* Light Gray/Tertiary */
 
 .progress-bar-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff; /* White text on colored bars */
-    font-weight: bold;
-    font-size: 0.9em;
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.2); /* Slight shadow for readability */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff; /* White text on colored bars */
+  font-weight: bold;
+  font-size: 0.9em;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2); /* Slight shadow for readability */
 }
 /* Adjust text color for medium readiness if yellow is too light for white text */
 #readiness-progress.medium-readiness + .progress-bar-text {
-    color: #34495e; /* Darker text for yellow bar, consistent with label color */
-    text-shadow: none;
+  color: #1d1d1f; /* Primary Dark for better contrast on orange */
+  text-shadow: none;
 }
 #readiness-progress.na-readiness + .progress-bar-text {
-    color: #fff; /* White text on grey bar */
+  color: #fff; /* White text on grey bar */
 }
 
 #low-readiness-message {
-    /* This will be styled by .warning-message class from global style.css
+  /* This will be styled by .warning-message class from global style.css
        Ensure class="warning-message" is added to this div in HTML.
        Default styles for .warning-message are already applied globally.
     */
-    margin-top: 10px; /* Keep specific margin if needed */
-    font-size: 0.9em; /* Keep specific font size */
-    text-align: left; /* Keep specific text align */
+  margin-top: 10px; /* Keep specific margin if needed */
+  font-size: 0.9em; /* Keep specific font size */
+  text-align: left; /* Keep specific text align */
 }
 #low-readiness-message p {
-    margin: 0;
+  margin: 0;
 }
-
 
 /* Styles for End Workout Modal */
 /* Most .modal and .modal-content styling will come from global style.css.
@@ -679,22 +804,23 @@ tr.editing .notes-input {
     max-width: 550px;
 } */
 
-.close-modal-btn { /* Specific styling for this close button can remain if distinct */
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    line-height: 1;
+.close-modal-btn {
+  /* Specific styling for this close button can remain if distinct */
+  color: #86868b; /* Light Gray/Tertiary */
+  float: right;
+  font-size: 28px;
+  font-weight: 700; /* Updated from bold */
+  line-height: 1;
 }
 .close-modal-btn:hover,
 .close-modal-btn:focus {
-    color: #2c3e50;
-    text-decoration: none;
-    cursor: pointer;
+  color: #1d1d1f; /* Primary Dark */
+  text-decoration: none;
+  cursor: pointer;
 }
 
 #end-workout-form .form-group {
-    margin-bottom: 1rem; /* Consistent spacing from global forms */
+  margin-bottom: 1rem; /* Consistent spacing from global forms */
 }
 
 /* Labels will pick up global styles: display: block; margin-bottom: 8px; font-weight: 500; color: #34495e; */
@@ -702,52 +828,59 @@ tr.editing .notes-input {
    width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; etc. */
 
 #end-workout-form input[type="range"] {
-    width: calc(100% - 90px); /* Adjusted to allow more space for text after value */
-    margin-right: 10px;
-    vertical-align: middle;
-    /* Custom styling for range inputs is often needed for cross-browser consistency
+  width: calc(
+    100% - 90px
+  ); /* Adjusted to allow more space for text after value */
+  margin-right: 10px;
+  vertical-align: middle;
+  /* Custom styling for range inputs is often needed for cross-browser consistency
        but is outside the scope of simple color/padding changes. For now, default browser style. */
 }
 
-#end-workout-form input[type="number"] { /* Specific override for HRV input width */
-     max-width: 120px;
+#end-workout-form input[type="number"] {
+  /* Specific override for HRV input width */
+  max-width: 120px;
 }
 
-#end-workout-form textarea { /* Override for min-height if global is different */
-    min-height: 80px;
+#end-workout-form textarea {
+  /* Override for min-height if global is different */
+  min-height: 80px;
 }
 
-#end-workout-form span[id$="-value"] { /* For sleep/stress/fatigue value display */
-    display: inline-block;
-    min-width: 25px;
-    text-align: right;
-    font-weight: 600;
-    color: #007bff; /* Accent color for the value */
-    padding-right: 5px;
-    vertical-align: middle;
+#end-workout-form span[id$="-value"] {
+  /* For sleep/stress/fatigue value display */
+  display: inline-block;
+  min-width: 25px;
+  text-align: right;
+  font-weight: 600;
+  color: #1d1d1f; /* Primary Dark */
+  padding-right: 5px;
+  vertical-align: middle;
 }
-#end-workout-form .form-group span:not([id$="-value"]):not(.label-unit) { /* Text like "hours" */
-    vertical-align: middle;
-    font-size: 0.9em;
-    color: #495057; /* Secondary text color */
+#end-workout-form .form-group span:not([id$="-value"]):not(.label-unit) {
+  /* Text like "hours" */
+  vertical-align: middle;
+  font-size: 0.9em;
+  color: #515154; /* Medium Gray */
 }
 /* Added a class for units to be more specific if needed */
 #end-workout-form .form-group .label-unit {
-    vertical-align: middle;
-    font-size: 0.9em;
-    color: #495057;
-    margin-left: 2px;
+  vertical-align: middle;
+  font-size: 0.9em;
+  color: #515154; /* Medium Gray */
+  margin-left: 2px;
 }
 
 .modal-actions {
-    margin-top: 1.5rem;
-    text-align: right; /* Buttons are typically right-aligned in modals */
+  margin-top: 1.5rem;
+  text-align: right; /* Buttons are typically right-aligned in modals */
 }
 /* Buttons inside .modal-actions should use global classes like .button-primary, .button-secondary in HTML.
    Any margin between buttons should be handled by button classes themselves or utility margin classes if available.
    e.g., <button class="button-secondary mr-2">Cancel</button> <button class="button-primary">Save</button>
    If no utility classes, add simple margin here:
 */
-.modal-actions .button-secondary { /* Or a more generic .modal-actions button */
-    margin-right: 0.5rem; /* Space between cancel and save buttons */
+.modal-actions .button-secondary {
+  /* Or a more generic .modal-actions button */
+  margin-right: 0.5rem; /* Space between cancel and save buttons */
 }

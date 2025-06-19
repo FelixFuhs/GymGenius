@@ -14,132 +14,171 @@
 */
 
 /* Dashboard header might have its nav items styled slightly differently or additional items */
-header nav { /* This is from dashboard.css, may need adjustment */
-    display: flex;
-    align-items: center;
-    /* Potentially adjust flex properties if layout differs from global header */
+header nav {
+  /* This is from dashboard.css, may need adjustment */
+  display: flex;
+  align-items: center;
+  /* Potentially adjust flex properties if layout differs from global header */
 }
 
 /* Override for dashboard nav links if global style isn't quite right for this context */
 header nav a {
-    /* color: #007bff; */ /* Inherited */
-    /* text-decoration: none; */ /* Inherited */
-    margin-right: 20px; /* Specific to dashboard.css, global is margin: 0 0.5em; */
-    font-size: 1em; /* Global is based on 0.5em padding, this is explicit font-size */
-    font-weight: 500; /* Global has no specific font-weight for nav links */
-    /* padding: 0.5em 1em; */ /* Inherited, but margin-right might make it look different */
+  /* color: #007bff; */ /* Inherited */
+  /* text-decoration: none; */ /* Inherited */
+  margin-right: 20px; /* Specific to dashboard.css, global is margin: 0 0.5em; */
+  font-size: 1em; /* Global is based on 0.5em padding, this is explicit font-size */
+  font-weight: 500; /* Global has no specific font-weight for nav links */
+  /* padding: 0.5em 1em; */ /* Inherited, but margin-right might make it look different */
 }
 header nav a:hover {
-    /* text-decoration: underline; */ /* Global is 'none', dashboard.css adds underline */
-    /* color: #0056b3; */ /* Inherited */
-    text-decoration: underline; /* Explicitly keep underline for dashboard nav hover */
+  /* text-decoration: underline; */ /* Global is 'none', dashboard.css adds underline */
+  /* color: #0056b3; */ /* Inherited */
+  text-decoration: underline; /* Explicitly keep underline for dashboard nav hover */
 }
 
-
 #dashboard-main {
-    padding: 25px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); /* Slightly larger min-width */
-    gap: 25px; /* Increased gap */
+  padding: 25px;
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(450px, 1fr)
+  ); /* Slightly larger min-width */
+  gap: 25px; /* Increased gap */
 }
 
 .dashboard-section {
-    background: #ffffff; /* Consistent with global card backgrounds */
-    padding: 25px;
-    border-radius: 6px; /* Consistent with modal/card radius */
-    border: 1px solid #dee2e6; /* Consistent global border color */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Consistent subtle shadow */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  padding: 32px; /* Updated from 25px */
+  border-radius: 16px; /* Updated */
+  border: 1px solid #e5e5e7; /* Light Border */
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
 }
 
 .dashboard-section h2 {
-    color: #2c3e50; /* Updated to global heading color */
-    margin-top: 0;
-    margin-bottom: 20px; /* More space below heading */
-    border-bottom: 1px solid #dee2e6; /* Lighter border */
-    padding-bottom: 15px;
-    font-size: 1.4em; /* Adjusted size */
-    font-weight: 600;
+  color: #1d1d1f; /* Primary Dark */
+  margin-top: 0;
+  margin-bottom: 20px; /* More space below heading */
+  border-bottom: 1px solid #e5e5e7; /* Light Border */
+  padding-bottom: 15px;
+  font-size: 1.4em; /* Adjusted size */
+  font-weight: 700; /* Updated to H2 weight */
 }
 
 /* Style for the exercise selector dropdowns */
 .dashboard-section select {
-    padding: 10px 15px; /* Increased padding */
-    margin-bottom: 20px; /* More space */
-    border: 1px solid #ced4da; /* Standard bootstrap-like border color */
-    border-radius: 4px;
-    background-color: #ffffff;
-    font-size: 1em; /* Standard font size */
-    min-width: 250px; /* Wider selector */
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.075); /* Subtle inset shadow */
+  /* padding: 10px 15px; Removed to inherit global input padding */
+  margin-bottom: 20px; /* More space */
+  border: 1px solid rgba(229, 229, 231, 0.8); /* New input border */
+  border-radius: 10px; /* Updated */
+  /* background-color: #ffffff; Will be overridden by global Style Guide form styles */
+  font-size: 1em; /* Standard font size */
+  min-width: 250px; /* Wider selector */
+  /* box-shadow: inset 0 1px 2px rgba(0,0,0,0.075); Removed, focus handled globally */
 }
 
-.dashboard-section div > label { /* General label styling */
-    margin-right: 10px;
-    font-weight: 500; /* Medium weight */
-    color: #34495e; /* Updated to global label color */
+.dashboard-section div > label {
+  /* General label styling */
+  margin-right: 10px;
+  font-weight: 500; /* Medium weight */
+  color: #1d1d1f; /* Primary Dark */
 }
 
 .chart-container {
-    width: 100%;
-    /* max-width: 700px; Remove max-width to allow full use of grid space */
-    margin: 0 auto;
-    min-height: 350px; /* Taller chart container */
-    position: relative;
+  width: 100%;
+  /* max-width: 700px; Remove max-width to allow full use of grid space */
+  margin: 0 auto;
+  min-height: 350px; /* Taller chart container */
+  position: relative;
 }
 
 .chart-container canvas {
-    max-width: 100%;
-    max-height: 100%; /* Allow canvas to use the full height of container */
-    border: 1px solid #dee2e6; /* Border around chart for definition */
-    border-radius: 4px; /* Rounded corners for canvas */
+  max-width: 100%;
+  max-height: 100%; /* Allow canvas to use the full height of container */
+  border: 1px solid #e5e5e7; /* Light Border */
+  border-radius: 10px; /* Updated */
 }
 
 /* Key Metrics Specific Styling */
 #keyMetricsContainer ul {
-    list-style: none;
-    padding: 0;
+  list-style: none;
+  padding: 0;
 }
 
 #keyMetricsContainer ul li {
-    background-color: #f8f9fa; /* Lighter background for list items */
-    padding: 12px 15px; /* More padding */
-    margin-bottom: 10px; /* More space between items */
-    border-radius: 4px;
-    border: 1px solid #dee2e6; /* Consistent global border color */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  padding: 15px; /* Standardized smaller card padding */
+  margin-bottom: 10px; /* More space between items */
+  border-radius: 10px; /* Updated */
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e5e7; /* Light Border */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 #keyMetricsContainer ul li .metric-name {
-    font-weight: 500; /* Medium weight */
-    color: #495057;
-    margin-right: auto;
+  font-weight: 500; /* Medium weight */
+  color: #1d1d1f; /* Primary Dark */
+  margin-right: auto;
 }
 
 #keyMetricsContainer ul li .metric-value {
-    font-weight: 600; /* Bolder value */
-    margin-right: 15px;
-    color: #212529;
+  font-weight: 600; /* Bolder value */
+  margin-right: 15px;
+  color: #1d1d1f; /* Primary Dark */
 }
 
 /* Trend Indicator Styling (already quite good, minor tweaks) */
 .trend-indicator {
-    padding: 5px 10px; /* Slightly more padding */
-    border-radius: 15px; /* More rounded */
-    color: white;
-    font-size: 0.8em; /* Smaller font for subtlety */
-    min-width: 75px;
-    text-align: center;
-    font-weight: 600; /* Bolder text */
-    text-transform: uppercase; /* Uppercase text */
-    letter-spacing: 0.5px; /* Letter spacing */
+  padding: 5px 10px; /* Slightly more padding */
+  border-radius: 15px; /* More rounded */
+  color: white;
+  font-size: 0.8em; /* Smaller font for subtlety */
+  min-width: 75px;
+  text-align: center;
+  font-weight: 600; /* Bolder text */
+  text-transform: uppercase; /* Uppercase text */
+  letter-spacing: 0.5px; /* Letter spacing */
 }
 
-.trend-up { background-color: #28a745; /* Bootstrap success green */ }
-.trend-down { background-color: #dc3545; /* Bootstrap danger red */ }
-.trend-neutral { background-color: #6c757d; /* Bootstrap secondary grey */ }
+.trend-up {
+  background-color: #30d158; /* Success Green */
+}
+.trend-down {
+  background-color: #ff3b30; /* Error Red */
+}
+.trend-neutral {
+  background-color: #515154; /* Medium Gray */
+}
 
 /* Footer base styles are inherited from style.css */
 /* The global footer style includes:
@@ -170,283 +209,345 @@ footer {
 
 /* Plateau Status Section - basic styling */
 #plateau-analysis-section .content-area {
-    padding: 15px;
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
+  padding: 20px; /* Standard card padding */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border: 1px solid #e5e5e7; /* Light Border */
+  border-radius: 16px; /* Updated */
+  position: relative;
+  overflow: hidden;
 }
 #plateau-analysis-section h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: #2c3e50; /* Updated to global heading color */
-    font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #1d1d1f; /* Primary Dark */
+  font-weight: 600;
 }
 #plateau-analysis-section p {
-    margin-bottom: 8px;
-    line-height: 1.6;
+  margin-bottom: 8px;
+  /* line-height: 1.6; Ensure this inherits from body */
 }
 #plateau-analysis-section ul {
-    padding-left: 20px;
-    margin-bottom: 10px;
+  padding-left: 20px;
+  margin-bottom: 10px;
 }
 #plateau-analysis-section li {
-    margin-bottom: 5px;
+  margin-bottom: 5px;
 }
 
 /* Styling for Cards Container (used for Strength Gains and potentially others) */
 .cards-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Responsive cards */
-    gap: 20px; /* Spacing between cards */
-    padding-top: 10px; /* Space from section title */
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(220px, 1fr)
+  ); /* Responsive cards */
+  gap: 20px; /* Spacing between cards */
+  padding-top: 10px; /* Space from section title */
 }
 
 /* General Info Card Style (can be specialized) */
 .info-card {
-    background-color: #ffffff;
-    border: 1px solid #dee2e6; /* Consistent global border color */
-    border-radius: 6px; /* Consistent with section border-radius */
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Consistent subtle shadow */
-    text-align: center;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border: 1px solid #e5e5e7; /* Light Border */
+  border-radius: 16px; /* Updated */
+  padding: 20px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 }
 
 .info-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Elevated/Hover (Secondary/Cards on hover) */
 }
 
 /* Specific Styling for Strength Gain Cards */
 .strength-gain-card h4 {
-    margin-top: 0;
-    margin-bottom: 12px; /* More space */
-    font-size: 1.2em; /* Slightly larger exercise name */
-    color: #2c3e50; /* Updated to global heading color */
-    font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 12px; /* More space */
+  font-size: 1.2em; /* Slightly larger exercise name */
+  color: #1d1d1f; /* Primary Dark */
+  font-weight: 600;
 }
 
 .strength-gain-card .percentage-gain {
-    font-size: 2em; /* Prominent percentage */
-    font-weight: 700; /* Bolder */
-    color: #28a745; /* Bootstrap success green for positive gains */
-    margin: 8px 0;
+  font-size: 2em; /* Prominent percentage */
+  font-weight: 700; /* Bolder */
+  color: #30d158; /* Success Green for positive gains */
+  margin: 8px 0;
 }
 
 .strength-gain-card .percentage-gain.negative {
-    color: #dc3545; /* Bootstrap danger red for negative gains/losses */
+  color: #ff3b30; /* Error Red for negative gains/losses */
 }
 
 .strength-gain-card .period {
-    font-size: 0.9em;
-    color: #6c757d; /* Grey text for period */
-    margin-bottom: 0;
-    margin-top: 8px;
+  font-size: 0.9em;
+  color: #515154; /* Medium Gray for period */
+  margin-bottom: 0;
+  margin-top: 8px;
 }
 
 /* Chart Status Message Styling (for loading/error/empty states) */
 .chart-status-message {
-    text-align: center;
-    padding: 30px 20px; /* More padding for visibility */
-    font-style: italic;
-    color: #6c757d; /* Standard grey text */
-    background-color: #f8f9fa; /* Light background */
-    border: 1px dashed #dee2e6; /* Dashed border */
-    border-radius: 4px;
-    margin: 10px auto; /* Centered with some margin */
-    min-height: 50px; /* Ensure it's visible even if text is short */
-    display: flex; /* For centering text vertically if needed */
-    align-items: center;
-    justify-content: center;
+  text-align: center;
+  padding: 30px 20px; /* More padding for visibility */
+  font-style: italic;
+  color: #515154; /* Medium Gray */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border: 1px dashed #e5e5e7; /* Light Border */
+  border-radius: 10px; /* Updated */
+  margin: 10px auto; /* Centered with some margin */
+  min-height: 50px; /* Ensure it's visible even if text is short */
+  display: flex; /* For centering text vertically if needed */
+  align-items: center;
+  justify-content: center;
 }
 
 /* Mesocycle Phase Indicator Styling */
 #mesocycle-indicator-container {
-    text-align: center;
-    padding: 25px 15px; /* Adjusted padding */
-    background-color: #f9f9f9; /* Light background for the container itself */
-    border-radius: 6px;
-    margin-top: 10px; /* Space from section title */
+  text-align: center;
+  padding: 32px; /* Updated from 25px 15px for large section */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border-radius: 16px; /* Updated */
+  margin-top: 10px; /* Space from section title */
+  position: relative;
+  overflow: hidden;
 }
 
-#mesocycle-indicator-container .phase-name { /* Actual H3 or H4 for phase name */
-    font-size: 1.6em; /* Larger phase name */
-    color: #2c3e50; /* Updated to global heading color */
-    margin-bottom: 8px;
-    font-weight: 600;
+#mesocycle-indicator-container .phase-name {
+  /* Actual H3 or H4 for phase name */
+  font-size: 1.6em; /* Larger phase name */
+  color: #1d1d1f; /* Primary Dark */
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 
-#mesocycle-indicator-container .phase-week-progress { /* Paragraph for "Week X of Y" */
-    font-size: 1.1em;
-    color: #34495e; /* Updated to global label/secondary text color */
-    margin-bottom: 15px;
+#mesocycle-indicator-container .phase-week-progress {
+  /* Paragraph for "Week X of Y" */
+  font-size: 1.1em;
+  color: #1d1d1f; /* Primary Dark */
+  margin-bottom: 15px;
 }
 
 .progress-bar-container {
-    width: 90%; /* Wider progress bar */
-    max-width: 400px; /* Max width for very large screens */
-    margin: 0 auto 20px auto; /* Centered, with bottom margin */
-    background-color: #e9ecef; /* Lighter background for bar track */
-    border-radius: 8px; /* Rounded corners */
-    height: 22px; /* Slightly taller */
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Subtle inset shadow */
+  width: 90%; /* Wider progress bar */
+  max-width: 400px; /* Max width for very large screens */
+  margin: 0 auto 20px auto; /* Centered, with bottom margin */
+  background-color: #e5e5e7; /* Light Border (as track color) */
+  border-radius: 10px; /* Updated */
+  height: 22px; /* Slightly taller */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inset shadow */
 }
 
 .progress-bar-fill {
-    height: 100%;
-    background-color: #007bff; /* Primary blue, can be changed per phase */
-    border-radius: 8px; /* Match container */
-    text-align: right; /* Text for percentage, if any */
-    padding-right: 10px; /* Padding for text inside */
-    line-height: 22px; /* Vertical centering for text */
-    color: white;
-    font-weight: 500;
-    font-size: 0.9em;
-    transition: width 0.6s ease-in-out; /* Smoother transition */
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Glow effect */
+  height: 100%;
+  background-color: #1d1d1f; /* Primary Dark */
+  border-radius: 10px; /* Updated (or slightly less like 8px if needed for visual fit) */
+  text-align: right; /* Text for percentage, if any */
+  padding-right: 10px; /* Padding for text inside */
+  line-height: 22px; /* Vertical centering for text */
+  color: white;
+  font-weight: 500;
+  font-size: 0.9em;
+  transition: width 0.6s ease-in-out; /* Smoother transition */
+  /* box-shadow: 0 0 5px rgba(29, 29, 31, 0.5); Removed glow */
 }
 
 #mesocycle-indicator-container .mesocycle-overview {
-    margin-top: 15px;
-    font-size: 0.95em; /* Slightly larger */
-    color: #6c757d; /* Standard grey */
+  margin-top: 15px;
+  font-size: 0.95em; /* Slightly larger */
+  color: #515154; /* Medium Gray */
 }
 
 #mesocycle-indicator-container .phase-list {
-    list-style: none;
-    padding: 0;
-    margin-top: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 
 #mesocycle-indicator-container .phase-list-item {
-    background-color: #e9ecef; /* This is a light grey, fine for inactive items */
-    padding: 8px 15px;
-    border-radius: 15px; /* Pill shape */
-    font-size: 0.85em;
-    color: #495057; /* Text color for inactive items */
-    border: 1px solid #dee2e6;
+  background-color: #e5e5e7; /* Light Border for inactive items */
+  padding: 8px 15px;
+  border-radius: 15px; /* Pill shape */
+  font-size: 0.85em;
+  color: #1d1d1f; /* Primary Dark */
+  border: 1px solid #e5e5e7; /* Light Border */
 }
 
 #mesocycle-indicator-container .phase-list-item.current {
-    background-color: #007bff; /* Accent color for current item */
-    color: white;
-    font-weight: bold;
-    border-color: #0056b3;
+  background-color: #1d1d1f; /* Primary Dark */
+  color: white;
+  font-weight: 600; /* Updated from bold */
+  border-color: #1d1d1f; /* Primary Dark */
 }
 
 /* Plateau Notification Styles */
 #notifications-container {
-    /* Optional: Add some specific container styles if needed, like max-height and overflow-y */
+  /* Optional: Add some specific container styles if needed, like max-height and overflow-y */
 }
 
 .plateau-notification {
-    background-color: #fff3cd; /* Light yellow - from Bootstrap warning, or use #ffffe0 if preferred */
-    border: 1px solid #ffeeba; /* Border for Bootstrap warning, or #e6e6c3 */
-    color: #856404; /* Text color for Bootstrap warning */
-    padding: 10px 15px; /* Consistent with global message boxes */
-    margin-bottom: 1rem; /* Consistent margin */
-    border-radius: 4px; /* Consistent radius */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Lighter shadow */
-    transition: opacity 0.5s ease-out;
-    display: flex; /* For aligning button if kept inside */
-    justify-content: space-between;
-    align-items: center;
+  background-color: #ffffff; /* Surface */
+  border: 1px solid #ff9500; /* Warning Orange */
+  color: #ff9500; /* Warning Orange */
+  padding: 10px 15px; /* Consistent with global message boxes */
+  margin-bottom: 1rem; /* Consistent margin */
+  border-radius: 10px; /* Updated */
+  /* box-shadow: 0 2px 4px rgba(0,0,0,0.05); Removed shadow */
+  transition: opacity 0.5s ease-out;
+  display: flex; /* For aligning button if kept inside */
+  justify-content: space-between;
+  align-items: center;
 }
 
 .plateau-notification .content {
-    flex-grow: 1; /* Allow text content to take space */
+  flex-grow: 1; /* Allow text content to take space */
 }
 
 .plateau-notification p {
-    margin: 0 0 8px 0;
-    line-height: 1.4;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
 }
 .plateau-notification p:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .plateau-notification strong {
-    /* color: #555; */ /* Inherits from .plateau-notification color now */
+  /* color: #555; */ /* Inherits from .plateau-notification color now */
 }
 
 .plateau-notification small {
-    font-size: 0.85em;
-    /* color: #777; */ /* Inherits */
+  font-size: 0.85em;
+  /* color: #777; */ /* Inherits */
 }
 
 /* Removing custom button style, will use .button-secondary or .button-sm */
 /* .plateau-notification button.acknowledge-btn { ... } */
 
 /* Style for error messages within a notification, if any */
-.plateau-notification .ack-error { /* This class might not be used if JS handles errors differently */
-    color: #721c24; /* Match global error message text */
-    font-size: 0.8em;
-    margin-top: 5px;
+.plateau-notification .ack-error {
+  /* This class might not be used if JS handles errors differently */
+  color: #ff3b30; /* Error Red */
+  font-size: 0.8em;
+  margin-top: 5px;
 }
 
 /* Style for error notification itself, if a .plateau-notification.error is used */
-.plateau-notification.error { /* This would override the yellow for an error variant */
-    color: #721c24;
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
+.plateau-notification.error {
+  /* This would override the yellow for an error variant */
+  color: #ff3b30; /* Error Red */
+  background-color: #ffffff; /* Surface */
+  border: 1px solid #ff3b30; /* Error Red */
 }
 
 /* Mobile notice for charts */
 .chart-mobile-notice {
-    display: none; /* Hidden by default */
-    padding: 10px;
-    background-color: #eef1f5; /* Light blue-grey background */
-    border: 1px solid #d6dde7;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 0.9em;
-    color: #34495e; /* Darker blue-grey text */
+  display: none; /* Hidden by default */
+  padding: 10px;
+  background-color: #fafbfc; /* Off White */
+  border: 1px solid #e5e5e7; /* Light Border */
+  border-radius: 10px; /* Updated */
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 0.9em;
+  color: #1d1d1f; /* Primary Dark */
 }
 
 .chart-mobile-notice p {
-    margin: 0;
+  margin: 0;
 }
 
 .chart-mobile-notice strong {
-    color: #2c3e50; /* Even darker for emphasis */
+  color: #1d1d1f; /* Primary Dark */
 }
 
 @media screen and (max-width: 767px) {
-    .chart-mobile-notice {
-        display: block; /* Show on small screens */
-    }
+  .chart-mobile-notice {
+    display: block; /* Show on small screens */
+  }
 
-    #dashboard-main {
-        grid-template-columns: 1fr; /* Single column on small screens */
-        padding: 15px;
-        gap: 15px;
-    }
+  #dashboard-main {
+    grid-template-columns: 1fr; /* Single column on small screens */
+    padding: 15px;
+    gap: 15px;
+  }
 
-    .dashboard-section {
-        padding: 15px;
-    }
+  .dashboard-section {
+    padding: 15px;
+  }
 
-    .dashboard-section h2 {
-        font-size: 1.2em; /* Smaller headings for sections */
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-    }
+  .dashboard-section h2 {
+    font-size: 1.2em; /* Smaller headings for sections */
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+  }
 
-    .dashboard-section select {
-        min-width: 100%; /* Full width for selectors */
-        margin-bottom: 15px;
-    }
+  .dashboard-section select {
+    min-width: 100%; /* Full width for selectors */
+    margin-bottom: 15px;
+  }
 
-    .chart-container {
-        min-height: 250px; /* Reduced height for smaller screens */
-    }
+  .chart-container {
+    min-height: 250px; /* Reduced height for smaller screens */
+  }
 
-    .cards-container {
-        grid-template-columns: 1fr; /* Single column for cards */
-    }
+  .cards-container {
+    grid-template-columns: 1fr; /* Single column for cards */
+  }
 }
