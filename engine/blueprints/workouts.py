@@ -1,14 +1,229 @@
-from flask import Blueprint, request, jsonify
-from ..app import get_db_connection, release_db_connection, jwt_required, logger
+from flask import Blueprint, request, jsonify, g, abort
+from ..app import get_db_connection, release_db_connection, jwt_required, logger # Assuming limiter is also in app if needed by new endpoint
 import psycopg2
 import psycopg2.extras
 import uuid
 import math
-from datetime import datetime, timezone, date
-from engine.predictions import calculate_mti, estimate_1rm_with_rir_bias
-from engine.learning_models import update_user_rir_bias
+from datetime import datetime, timezone, date, timedelta # Added timedelta
+from engine.predictions import calculate_mti, estimate_1rm_with_rir_bias, round_to_available_plates
+# Removed: calculate_confidence_score, generate_possible_side_weights, generate_possible_single_weights, extended_epley_1rm as they are not directly used by this new endpoint, but round_to_available_plates is.
+# estimate_1rm_with_rir_bias is used by get_previous_performance, so keep.
+from engine.learning_models import update_user_rir_bias, calculate_training_params, calculate_current_fatigue
+from engine.readiness import calculate_readiness_multiplier
 
 workouts_bp = Blueprint('workouts', __name__)
+
+
+# Constants for Fatigue Adjustment
+MAX_REASONABLE_FATIGUE_SCORE = 500.0  # Example value, needs tuning
+MAX_FATIGUE_REDUCTION_PERCENT = 0.20  # Max 20% reduction due to fatigue
+
+
+# --- API Endpoint for Set Parameter Recommendation ---
+# Path changed to /v1/ per common prefix, not /api/v1
+@workouts_bp.route('/v1/users/<uuid:user_id>/exercises/<uuid:exercise_id>/recommend-set-parameters', methods=['GET'])
+@jwt_required
+# Add limiter if desired: @limiter.limit("...")
+def recommend_set_parameters_for_exercise(user_id, exercise_id):
+    # Authorization
+    if str(user_id) != g.current_user_id:
+        logger.warning(f"Forbidden attempt to get recommendations for user {user_id} by user {g.current_user_id}")
+        return jsonify(error="Forbidden. You can only get recommendations for your own profile."), 403
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # 1. Fetch User Data
+            cur.execute(
+                """
+                SELECT goal_slider, rir_bias, available_plates,
+                       COALESCE((available_plates->>'barbell_weight_kg')::numeric, 20.0) as barbell_weight_kg
+                FROM users WHERE id = %s;
+                """, (str(user_id),)
+            )
+            user_data = cur.fetchone()
+            if not user_data:
+                return jsonify(error="User not found."), 404
+
+            goal_strength_fraction = float(user_data['goal_slider'])
+            user_rir_bias = float(user_data['rir_bias'])
+            user_available_plates_data = user_data.get('available_plates')
+            user_available_plates_kg = user_available_plates_data.get('plates_kg') if isinstance(user_available_plates_data, dict) else []
+            user_barbell_weight_kg = float(user_data.get('barbell_weight_kg', 20.0))
+
+            # 2. Fetch Exercise Data
+            cur.execute(
+                "SELECT id, name, equipment_type, main_target_muscle_group FROM exercises WHERE id = %s;",
+                (str(exercise_id),)
+            )
+            exercise_data = cur.fetchone()
+            if not exercise_data:
+                return jsonify(error="Exercise not found."), 404
+            exercise_equipment_type = exercise_data['equipment_type']
+            main_target_muscle_group = exercise_data['main_target_muscle_group']
+
+            # 3. Fetch Current Estimated 1RM
+            cur.execute(
+                "SELECT estimated_1rm FROM estimated_1rm_history WHERE user_id = %s AND exercise_id = %s ORDER BY calculated_at DESC LIMIT 1;",
+                (str(user_id), str(exercise_id))
+            )
+            e1rm_record = cur.fetchone()
+            current_e1rm = float(e1rm_record['estimated_1rm']) if e1rm_record and e1rm_record['estimated_1rm'] is not None else 0.0
+
+            if current_e1rm <= 0.0:
+                logger.info(f"No valid 1RM history for user {user_id}, exercise {exercise_id}. Cannot generate 1RM-based recommendation.")
+                return jsonify({
+                    "message": "No performance history found for this exercise. Please log a set to establish a baseline.",
+                    "recommended_weight_kg": None, "target_reps_low": 8, "target_reps_high": 12, "target_rir": 3,
+                    "explanation": "Cannot calculate recommendation without prior performance data."
+                }), 200
+
+            # 4. Calculate Base Training Parameters
+            base_params = calculate_training_params(goal_strength_fraction)
+            target_reps = round((base_params['rep_range_low'] + base_params['rep_range_high']) / 2)
+
+            # 5. Calculate Effective Target RIR for weight calculation
+            effective_rir_for_calc = base_params['target_rir_float'] - user_rir_bias
+            effective_rir_for_calc = max(0, min(effective_rir_for_calc, 5))
+
+            # 6. Calculate Recommended Weight (before fatigue/readiness)
+            total_reps_for_e1rm_formula = target_reps + effective_rir_for_calc
+            if total_reps_for_e1rm_formula >= 30: total_reps_for_e1rm_formula = 29
+
+            denominator_for_weight_calc = 1 - (0.0333 * total_reps_for_e1rm_formula)
+            if denominator_for_weight_calc <= 0:
+                recommended_weight_pre_adjustments = current_e1rm * 0.5
+                logger.warning(f"Denominator issue for weight calc User {user_id}, Ex {exercise_id}. Defaulting to 50% 1RM.")
+            else:
+                recommended_weight_pre_adjustments = current_e1rm * denominator_for_weight_calc
+
+            explanation_parts = [f"Base on e1RM {current_e1rm:.1f}kg for {target_reps}reps@{base_params['target_rir']:.0f}RIR (adj. for bias {user_rir_bias:.1f} to eff_RIR {effective_rir_for_calc:.1f})."]
+
+            # 7. Apply Fatigue Adjustment (Simplified)
+            fatigue_multiplier = 1.0
+            # Placeholder for actual fatigue calculation logic
+            # current_fatigue_value = calculate_current_fatigue(main_target_muscle_group, session_history_for_fatigue, ...)
+            # For MVP, assume fatigue_multiplier = 1.0 or a very simple model if possible.
+            current_fatigue_value = 0.0
+            if main_target_muscle_group: # Only calculate fatigue if a main muscle group is defined
+                # Fetch session history for fatigue calculation
+                cur.execute(
+                    """
+                    SELECT
+                        w.completed_at as session_date,
+                        SUM(ws.mti) as stimulus
+                    FROM workout_sets ws
+                    JOIN workouts w ON ws.workout_id = w.id
+                    JOIN exercises e ON ws.exercise_id = e.id
+                    WHERE w.user_id = %s
+                      AND e.main_target_muscle_group = %s
+                      AND w.completed_at IS NOT NULL
+                      AND w.completed_at >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '21 days'
+                    GROUP BY w.id, w.completed_at
+                    ORDER BY w.completed_at ASC;
+                    """,
+                    (str(user_id), main_target_muscle_group)
+                )
+                session_history_for_fatigue_raw = cur.fetchall()
+
+                session_history_for_fatigue = [
+                    {'session_date': row['session_date'], 'stimulus': float(row['stimulus'])}
+                    for row in session_history_for_fatigue_raw if row['stimulus'] is not None
+                ]
+
+                if session_history_for_fatigue:
+                    current_fatigue_value = calculate_current_fatigue(
+                        main_target_muscle_group,
+                        session_history_for_fatigue
+                        # Potentially pass user_recovery_multiplier if stored on user
+                    )
+                    logger.info(f"User {user_id}, Ex {exercise_id}, Muscle Group {main_target_muscle_group}: Calculated fatigue score {current_fatigue_value:.2f}")
+                else:
+                    logger.info(f"User {user_id}, Ex {exercise_id}, Muscle Group {main_target_muscle_group}: No recent session history found for fatigue calculation.")
+
+            # Apply fatigue effect
+            fatigue_effect = min(current_fatigue_value / MAX_REASONABLE_FATIGUE_SCORE, 1.0)
+            fatigue_multiplier = 1.0 - (fatigue_effect * MAX_FATIGUE_REDUCTION_PERCENT)
+
+            recommended_weight_after_fatigue = recommended_weight_pre_adjustments * fatigue_multiplier
+            if abs(fatigue_multiplier - 1.0) > 0.005: # Only add to explanation if fatigue adjustment is significant
+               explanation_parts.append(f"Fatigue adj: {fatigue_multiplier:.3f} (score: {current_fatigue_value:.1f}).")
+
+
+            # 8. Apply Readiness Adjustment
+            cur.execute(
+                "SELECT sleep_hours, stress_level, hrv_ms FROM workouts WHERE user_id = %s AND completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT 1;",
+                (str(user_id),)
+            )
+            latest_workout_readiness_data = cur.fetchone()
+
+            readiness_mult = 1.0
+            readiness_total_score = None # Default to None
+
+            if latest_workout_readiness_data and \
+               latest_workout_readiness_data['sleep_hours'] is not None and \
+               latest_workout_readiness_data['stress_level'] is not None:
+
+                readiness_mult, readiness_total_score = calculate_readiness_multiplier(
+                    sleep_h=float(latest_workout_readiness_data['sleep_hours']),
+                    stress_lvl=int(latest_workout_readiness_data['stress_level']),
+                    hrv_ms=float(latest_workout_readiness_data['hrv_ms']) if latest_workout_readiness_data['hrv_ms'] is not None else None,
+                    user_id=uuid.UUID(user_id),
+                    db_conn=conn
+                )
+                explanation_parts.append(f"Readiness (score: {round(readiness_total_score * 100)}%) adj: x{readiness_mult:.3f}.")
+            else:
+                # Default readiness_mult is 1.0, readiness_total_score is None
+                # Calculate what score would yield a 1.0 multiplier for consistent reporting if desired, or keep as None
+                # (1.0 - MULTIPLIER_BASE) / MULTIPLIER_RANGE = (1.0 - 0.93) / 0.14 = 0.07 / 0.14 = 0.5
+                # So, a score of 0.5 implies a multiplier of 1.0.
+                # If no data, perhaps it's better to report score as None.
+                explanation_parts.append("No recent readiness data for adjustment (multiplier x1.0).")
+
+            recommended_weight_after_readiness = recommended_weight_after_fatigue * readiness_mult
+
+            # 9. Round Weight
+            final_weight = round_to_available_plates(
+                target_weight_kg=recommended_weight_after_readiness,
+                available_plates_kg=user_available_plates_kg,
+                barbell_weight_kg=user_barbell_weight_kg,
+                equipment_type=exercise_equipment_type
+            )
+            explanation_parts.append(f"Suggested: {final_weight:.2f}kg.")
+
+            # from ..predictions import calculate_confidence_score # Delayed import
+            # confidence = calculate_confidence_score(str(user_id), str(exercise_id), cur)
+
+
+            logger.info(
+                f"Recommendation for user {user_id}, ex {exercise_id} ('{exercise_data['name']}'): "
+                f"Weight={final_weight:.2f}kg (Pre-adj: {recommended_weight_pre_adjustments:.2f}, "
+                f"Post-Fatigue: {recommended_weight_after_fatigue:.2f}, Post-Readiness: {recommended_weight_after_readiness:.2f}), "
+                f"Reps Low={base_params['rep_range_low']}, Reps High={base_params['rep_range_high']}, "
+                f"Target RIR (goal): {base_params['target_rir']}"
+            )
+
+            return jsonify({
+                "recommended_weight_kg": final_weight,
+                "target_reps_low": base_params['rep_range_low'],
+                "target_reps_high": base_params['rep_range_high'],
+                "target_rir": base_params['target_rir'],
+                "explanation": " ".join(explanation_parts),
+                "readiness_score_percent": round(readiness_total_score * 100) if readiness_total_score is not None else None,
+                # "confidence_score": confidence
+            }), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"DB error recommending set for user {user_id}, ex {exercise_id}: {e}", exc_info=True)
+        return jsonify(error="Database error during recommendation."), 500
+    except Exception as e:
+        logger.error(f"Unexpected error recommending set for user {user_id}, ex {exercise_id}: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred."), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
 
 # --- Basic CRUD APIs for Exercises (P1-BE-010) ---
 @workouts_bp.route('/v1/exercises', methods=['GET'])
@@ -63,6 +278,157 @@ def list_exercises():
         return jsonify(error="Database operation failed"), 500
     except Exception as e:
         logger.error(f"Unexpected error listing exercises: {e}", exc_info=True)
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+
+@workouts_bp.route('/v1/sets/<uuid:set_id>', methods=['DELETE'])
+@jwt_required
+def delete_workout_set(set_id):
+    user_id = g.current_user_id
+
+    sql_query = "DELETE FROM workout_sets WHERE id = %s AND workout_id IN (SELECT id FROM workouts WHERE user_id = %s);"
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(sql_query, (str(set_id), user_id))
+
+            if cur.rowcount == 0:
+                # Check if the set exists at all for better error context (optional)
+                cur.execute("SELECT id FROM workout_sets WHERE id = %s;", (str(set_id),))
+                if not cur.fetchone():
+                    logger.warning(f"Delete set {set_id} failed for user {user_id}: Set not found.")
+                    abort(404, description="Set not found.")
+                else:
+                    logger.warning(f"Delete set {set_id} failed for user {user_id}: Set found but ownership check failed.")
+                    abort(404, description="Set not found or not authorized to delete.") # Or 403
+
+            conn.commit()
+            logger.info(f"Set {set_id} deleted successfully by user {user_id}.")
+
+            # Placeholder for recalculation/cleanup logic:
+            # If a set is deleted, it might affect e1RM history or other aggregated data.
+            # This might involve:
+            # - Removing associated e1RM history entries if they were solely based on this set.
+            # - Triggering a recalculation of exercise progression or user stats.
+            # - This could be handled by an asynchronous task.
+            # Example:
+            # logger.info(f"Set {set_id} deleted. Scheduling related data cleanup/recalculation.")
+            # queue_set_deletion_cleanup_task(user_id, exercise_id_of_set, deleted_set_data)
+
+            return jsonify({"msg": "Set deleted successfully"}), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error deleting set {set_id} for user {user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e: # Catch other exceptions like aborts
+        logger.error(f"Unexpected error deleting set {set_id} for user {user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        if hasattr(e, 'code') and e.code is not None: # Check if it's an HTTPException
+            raise e
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+
+@workouts_bp.route('/v1/sets/<uuid:set_id>', methods=['PATCH'])
+@jwt_required
+def edit_workout_set(set_id):
+    user_id = g.current_user_id
+    payload = request.json
+
+    if not payload:
+        logger.warning(f"Edit set {set_id} failed for user {user_id}: No JSON payload provided.")
+        abort(400, description="Invalid request: No JSON payload provided.")
+
+    allowed_fields = {"actual_weight", "actual_reps", "actual_rir", "notes"}
+    updates = {}
+
+    for field in allowed_fields:
+        if field in payload:
+            # Basic type validation, can be expanded
+            if field in {"actual_weight", "actual_reps", "actual_rir"}:
+                try:
+                    if payload[field] is not None: # Allow null to clear, but if not null, validate type
+                        if field == "actual_weight":
+                            updates[field] = float(payload[field])
+                        else: # reps, rir
+                            updates[field] = int(payload[field])
+                except ValueError:
+                    logger.warning(f"Edit set {set_id} failed for user {user_id}: Invalid type for field '{field}'.")
+                    abort(400, description=f"Invalid type for field '{field}'.")
+            else: # notes (string)
+                updates[field] = payload[field]
+
+
+    if not updates:
+        logger.info(f"Edit set {set_id} for user {user_id}: No valid fields to update provided.")
+        abort(400, description="No valid fields to update provided.")
+
+    set_clauses = [f"{field} = %s" for field in updates.keys()]
+    sql_query = f"UPDATE workout_sets SET {', '.join(set_clauses)}, updated_at = NOW() " \
+                f"WHERE id = %s AND workout_id IN (SELECT id FROM workouts WHERE user_id = %s);"
+
+    update_values = list(updates.values())
+    update_values.extend([str(set_id), user_id])
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(sql_query, tuple(update_values))
+            if cur.rowcount == 0:
+                # Check if the set exists at all, to distinguish between not found vs not owned
+                # This adds an extra query, but provides better error feedback potential
+                cur.execute("SELECT workout_id FROM workout_sets WHERE id = %s", (str(set_id),))
+                set_exists = cur.fetchone()
+                if not set_exists:
+                    logger.warning(f"Edit set {set_id} failed for user {user_id}: Set not found.")
+                    abort(404, description="Set not found.")
+                else:
+                    logger.warning(f"Edit set {set_id} failed for user {user_id}: Set found but ownership check failed (or no changes made).")
+                    # This could also mean the data sent was the same as existing,
+                    # though `updated_at` should still trigger rowcount=1 if ownership is fine.
+                    # For simplicity, treating as "not found or not authorized".
+                    abort(404, description="Set not found or not authorized to edit.")
+
+
+            conn.commit()
+            logger.info(f"Set {set_id} updated successfully by user {user_id}. Fields updated: {', '.join(updates.keys())}")
+
+            # Placeholder for recalculation logic:
+            # If 'actual_weight', 'actual_reps', or 'actual_rir' are in updates:
+            # - Consider recalculating user's RIR bias.
+            # - Consider updating e1RM history for this set/exercise.
+            # - This might involve queuing a background task (e.g., with RQ).
+            # Example:
+            # if any(key in updates for key in ['actual_weight', 'actual_reps', 'actual_rir']):
+            #   logger.info(f"Set {set_id} data relevant to predictions changed. Scheduling recalculations.")
+            #   # queue_recalculation_task(user_id, exercise_id_of_set, set_id)
+
+            return jsonify({"msg": "Set updated successfully"}), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error updating set {set_id} for user {user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e: # Catch other exceptions like aborts if they are not Response objects
+        logger.error(f"Unexpected error updating set {set_id} for user {user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        # If e is an HTTPException from abort(), re-raise it or Flask handles it.
+        # Otherwise, return a generic 500.
+        if hasattr(e, 'code') and e.code is not None: # Check if it's an HTTPException
+            raise e
         return jsonify(error="An unexpected error occurred"), 500
     finally:
         if conn:
@@ -456,6 +822,118 @@ def log_set_to_workout(workout_id):
         if conn:
             release_db_connection(conn)
 
+@workouts_bp.route('/v1/workouts/<uuid:workout_id>', methods=['PUT'])
+@jwt_required
+def update_workout_summary(workout_id):
+    user_id_from_token = g.current_user_id
+
+    data = request.get_json()
+    if not data:
+        logger.warning(f"Update workout {workout_id} failed: No JSON payload provided by user {user_id_from_token}.")
+        return jsonify(error="Invalid request: No JSON payload provided."), 400
+
+    # Fields that can be updated in the workout summary
+    allowed_fields = {
+        "completed_at": datetime, # Expect ISO string, will be parsed
+        "fatigue_level": float,
+        "sleep_hours": float,
+        "hrv_ms": float,
+        "stress_level": float, # Or int, depending on how it's stored/used
+        "notes": str
+    }
+
+    update_payload = {}
+    update_errors = []
+
+    for field, field_type in allowed_fields.items():
+        if field in data:
+            value = data[field]
+            if value is None and field not in ["hrv_ms", "notes", "fatigue_level", "sleep_hours", "stress_level"]: # These can be explicitly nulled
+                 update_errors.append(f"Field '{field}' cannot be null.")
+                 continue
+
+            if value is not None: # Process if not None, or if it's an allowed nullable field like notes/hrv
+                try:
+                    if field_type is datetime:
+                        # Frontend sends ISO string, convert to datetime object
+                        update_payload[field] = datetime.fromisoformat(value)
+                        # Ensure timezone awareness if needed, fromisoformat might produce naive if tz not in string
+                        if update_payload[field].tzinfo is None:
+                             update_payload[field] = update_payload[field].replace(tzinfo=timezone.utc)
+                    elif field_type is float:
+                        update_payload[field] = float(value)
+                    elif field_type is int: # e.g. for stress_level if it's int
+                        update_payload[field] = int(value)
+                    else: # string for notes
+                        update_payload[field] = str(value)
+                except ValueError:
+                    update_errors.append(f"Invalid data type for field '{field}'. Expected format for {field_type.__name__}.")
+            else: # Value is None, explicitly set for allowed nullable fields
+                 update_payload[field] = None
+
+
+    if update_errors:
+        logger.warning(f"Update workout {workout_id} for user {user_id_from_token} failed due to validation errors: {update_errors}")
+        return jsonify(errors=update_errors), 400
+
+    if not update_payload:
+        logger.info(f"Update workout {workout_id} for user {user_id_from_token}: No valid fields provided for update.")
+        return jsonify(msg="No valid fields provided for update or no changes needed."), 200 # Or 400 if no fields is an error
+
+    # Add updated_at timestamp
+    update_payload["updated_at"] = datetime.now(timezone.utc)
+
+    set_clauses = [f"{field} = %s" for field in update_payload.keys()]
+    sql_query = f"UPDATE workouts SET {', '.join(set_clauses)} WHERE id = %s AND user_id = %s RETURNING *;"
+
+    query_params = list(update_payload.values())
+    query_params.extend([str(workout_id), user_id_from_token])
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # First, verify ownership and existence (already part of WHERE clause but good for early 404)
+            cur.execute("SELECT id FROM workouts WHERE id = %s AND user_id = %s;", (str(workout_id), user_id_from_token))
+            if not cur.fetchone():
+                logger.warning(f"Update workout failed: Workout {workout_id} not found or not owned by user {user_id_from_token}.")
+                abort(404, description="Workout not found or you do not have permission to update it.")
+
+            cur.execute(sql_query, tuple(query_params))
+            if cur.rowcount == 0:
+                # This case should ideally be caught by the check above.
+                # If reached, it might mean no actual data change occurred, or a race condition.
+                logger.warning(f"Update workout {workout_id} for user {user_id_from_token}: Rowcount 0, workout not updated (no change or error).")
+                # Fetch current to return, or indicate no change
+                cur.execute("SELECT * FROM workouts WHERE id = %s AND user_id = %s;", (str(workout_id), user_id_from_token))
+                updated_workout_data = cur.fetchone()
+                if updated_workout_data:
+                     return jsonify(updated_workout_data), 200 # Return current data if no change made by update
+                else: # Should not happen if first check passed
+                     abort(404, description="Workout not found after update attempt.")
+
+
+            updated_workout_data = cur.fetchone()
+            conn.commit()
+            logger.info(f"Workout {workout_id} summary updated successfully by user {user_id_from_token}.")
+            return jsonify(updated_workout_data), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error updating workout {workout_id} for user {user_id_from_token}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return jsonify(error="Database operation failed"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error updating workout {workout_id} for user {user_id_from_token}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        if hasattr(e, 'code') and e.code is not None: # Check if it's an HTTPException (from abort)
+            raise e
+        return jsonify(error="An unexpected error occurred"), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
 
 # The new endpoint as per the subtask description
 @workouts_bp.route('/v1/users/<uuid:user_id>/exercises/<uuid:exercise_id>/log-set', methods=['POST'])
@@ -512,14 +990,20 @@ def log_set_for_user_exercise(user_id, exercise_id):
             # --- Start Transaction ---
             # All operations should be atomic for this endpoint
 
-            # 1. Fetch User's Current RIR Bias
-            cur.execute("SELECT rir_bias FROM users WHERE id = %s FOR UPDATE;", (str(user_id),)) # Lock user row
+            # 1. Fetch User's Current RIR Bias, LR, and Error EMA
+            cur.execute(
+                "SELECT rir_bias, rir_bias_lr, rir_bias_error_ema FROM users WHERE id = %s FOR UPDATE;",
+                (str(user_id),)
+            ) # Lock user row
             user_data = cur.fetchone()
             if not user_data:
                 logger.error(f"User not found for ID: {user_id} during set logging.")
                 conn.rollback() # Release lock
                 return jsonify(error="User not found."), 404
+
             current_rir_bias = float(user_data['rir_bias'])
+            current_rir_bias_lr = float(user_data['rir_bias_lr'])
+            current_rir_bias_error_ema = float(user_data['rir_bias_error_ema'])
 
             # 2. Fetch Latest Estimated 1RM (Pre-Set)
             cur.execute(
@@ -551,13 +1035,23 @@ def log_set_for_user_exercise(user_id, exercise_id):
                  predicted_reps_for_bias_update = 0 # Predict 0-1 reps
             # If no latest_estimated_1rm, predicted_reps_for_bias_update remains 0, leading to minimal RIR bias change if actual_reps also 0.
 
-            # 4. Update RIR Bias
-            new_rir_bias = update_user_rir_bias(current_rir_bias, predicted_reps_for_bias_update, reps)
-            cur.execute(
-                "UPDATE users SET rir_bias = %s, updated_at = NOW() WHERE id = %s;",
-                (new_rir_bias, str(user_id))
+            # 4. Update RIR Bias and Error EMA
+            new_rir_bias, new_rir_error_ema = update_user_rir_bias(
+                current_rir_bias,
+                predicted_reps_for_bias_update,
+                reps,
+                current_rir_bias_lr,
+                current_rir_bias_error_ema
             )
-            logger.info(f"RIR bias for user {user_id} updated from {current_rir_bias:.2f} to {new_rir_bias:.2f} (predicted_reps: {predicted_reps_for_bias_update}, actual_reps: {reps}).")
+            cur.execute(
+                "UPDATE users SET rir_bias = %s, rir_bias_error_ema = %s, updated_at = NOW() WHERE id = %s;",
+                (new_rir_bias, new_rir_error_ema, str(user_id))
+            )
+            logger.info(
+                f"RIR bias for user {user_id} updated from {current_rir_bias:.3f} to {new_rir_bias:.3f}. "
+                f"Error EMA from {current_rir_bias_error_ema:.3f} to {new_rir_error_ema:.3f}. "
+                f"Base LR: {current_rir_bias_lr:.3f}. Pred Reps: {predicted_reps_for_bias_update}, Actual Reps: {reps}."
+            )
 
             # 5. Calculate New Estimated 1RM (Post-Set)
             # Use the *newly updated* rir_bias for this calculation
@@ -633,7 +1127,11 @@ def log_set_for_user_exercise(user_id, exercise_id):
             new_set_log = cur.fetchone()
 
             conn.commit()
-            logger.info(f"Set {set_id} (workout: {workout_id_for_set}) logged for user {user_id}, ex {exercise_id}. MTI: {mti_score}, New 1RM: {new_estimated_1rm}, New RIR Bias: {new_rir_bias:.2f}")
+            logger.info(
+                f"Set {set_id} (workout: {workout_id_for_set}) logged for user {user_id}, ex {exercise_id}. "
+                f"MTI: {mti_score:.2f}, New 1RM: {new_estimated_1rm:.2f}, "
+                f"New RIR Bias: {new_rir_bias:.3f}, New RIR Error EMA: {new_rir_error_ema:.3f}"
+            )
             return jsonify(new_set_log), 201
 
     except psycopg2.Error as e:

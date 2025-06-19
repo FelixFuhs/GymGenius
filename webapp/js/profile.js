@@ -213,17 +213,137 @@ document.addEventListener('DOMContentLoaded', () => {
     // A more robust solution might use a custom event or a check loop.
     if (typeof currentUserId !== 'undefined' && currentUserId !== null) {
         loadUserProfile();
+        populateUserDetails(); // Populate user details section
     } else {
         // Attempt to load after a short delay, in case app.js is still initializing
         setTimeout(() => {
             if (typeof currentUserId !== 'undefined' && currentUserId !== null) {
                 loadUserProfile();
+                populateUserDetails();
             } else {
                 console.warn('currentUserId not available after delay. Profile will not be loaded automatically.');
-                // displayMessage('Could not load user profile: User not identified.', true);
-                // Optionally, hide the form or parts of it if user ID is essential
                  if (plateSelectionDiv) plateSelectionDiv.innerHTML = '<p>Please log in to manage your equipment.</p>';
+                 displayMessageInArea('Could not load user profile: User not identified.', 'export-feedback-msg', true);
             }
         }, 500);
     }
+
+    // --- Populate User Details ---
+    function populateUserDetails() {
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const userIdDisplay = document.getElementById('user-id-display');
+
+        // Assuming currentUserId is already fetched and available globally or from localStorage
+        // And user email might be part of a decoded JWT or another stored user object
+
+        if (userIdDisplay && currentUserId) {
+            userIdDisplay.textContent = currentUserId;
+        } else if (userIdDisplay) {
+            userIdDisplay.textContent = 'N/A';
+        }
+
+        if (userEmailDisplay) {
+            // Try to get email from decoded token if available (app.js might provide such a function)
+            let email = 'N/A';
+            try {
+                const token = localStorage.getItem('jwtToken'); // Assuming getToken() from app.js might not be directly usable here
+                if (token) {
+                    const decoded = JSON.parse(atob(token.split('.')[1])); // Basic decode
+                    email = decoded.email || 'N/A'; // Assuming email is in token
+                }
+            } catch (e) { console.error("Error decoding token for email:", e); }
+            userEmailDisplay.textContent = email;
+        }
+    }
+
+
+    // --- Data Export Functionality ---
+    const exportDataButton = document.getElementById('export-data-btn');
+    if (exportDataButton) {
+        exportDataButton.addEventListener('click', handleExportData);
+    }
+
+    async function handleExportData() {
+        if (!currentUserId) {
+            displayMessageInArea('User ID not found. Cannot export data.', 'export-feedback-msg', true);
+            return;
+        }
+        if (!API_BASE_URL || !getAuthHeaders) { // Check if API config is available
+            displayMessageInArea('API configuration is missing. Cannot export.', 'export-feedback-msg', true);
+            return;
+        }
+
+        const originalButtonText = exportDataButton.textContent;
+        exportDataButton.disabled = true;
+        exportDataButton.innerHTML = '<span class="loader-small"></span> Processing...';
+        displayMessageInArea('Exporting data, please wait...', 'export-feedback-msg', false);
+
+        try {
+            const exportUrl = `${API_BASE_URL}/v1/users/${currentUserId}/export`;
+            const headers = getAuthHeaders(); // From app.js, should include Authorization
+
+            const response = await fetch(exportUrl, {
+                method: 'GET',
+                headers: headers
+            });
+
+            if (response.ok) {
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/zip") !== -1) {
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = downloadUrl;
+
+                    let filename = `gymgenius_export_${currentUserId.substring(0,8)}.zip`; // Default filename
+                    const disposition = response.headers.get('content-disposition');
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                        const matches = filenameRegex.exec(disposition);
+                        if (matches != null && matches[1]) {
+                            filename = matches[1].replace(/['"]/g, '');
+                        }
+                    }
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    a.remove();
+                    displayMessageInArea('Data export started successfully! Check your downloads.', 'export-feedback-msg', false, true);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    displayMessageInArea(errorData.error || errorData.message || 'Export failed: Unexpected server response.', 'export-feedback-msg', true);
+                }
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                const message = errorData.error || errorData.message || `Export failed: ${response.statusText} (Status ${response.status})`;
+                displayMessageInArea(message, 'export-feedback-msg', true);
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            displayMessageInArea('Data export failed due to a network or unexpected error. Please try again later.', 'export-feedback-msg', true);
+        } finally {
+            exportDataButton.disabled = false;
+            exportDataButton.innerHTML = originalButtonText;
+        }
+    }
+
+    // Generic message display function for different areas
+    function displayMessageInArea(message, elementId, isError = false, autoClear = false, duration = 3000) {
+        const feedbackElement = document.getElementById(elementId);
+        if (!feedbackElement) return;
+
+        feedbackElement.textContent = message;
+        feedbackElement.style.color = isError ? 'red' : 'green';
+        feedbackElement.style.display = 'block';
+
+        if (autoClear) {
+            setTimeout(() => {
+                feedbackElement.style.display = 'none';
+                feedbackElement.textContent = '';
+            }, duration);
+        }
+    }
+
 });

@@ -444,3 +444,474 @@ footer {
     border-top: 1px solid #dee2e6;
     font-size: 0.9em;
 }
+
+/* Styles for Edit/Delete Set Functionality */
+
+.set-actions button {
+    margin: 0 3px; /* Add small margin between action buttons */
+    padding: 5px 8px; /* Adjust padding for smaller icon buttons */
+    font-size: 0.9em;
+    line-height: 1.2; /* Ensure text/icons are centered well */
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em; /* Make icons a bit larger */
+    color: #007bff; /* Default icon color */
+    padding: 2px 4px;
+}
+
+.icon-btn:hover {
+    color: #0056b3; /* Darker on hover */
+}
+
+.delete-set-btn.icon-btn {
+    color: #dc3545; /* Red for delete */
+}
+.delete-set-btn.icon-btn:hover {
+    color: #a71d2a; /* Darker red on hover */
+}
+
+/* Styling for rows in edit mode */
+tr.editing {
+    background-color: #f8f9fa; /* Lightly highlight the row being edited */
+}
+
+tr.editing .set-input,
+tr.editing .notes-input {
+    border: 1px solid #007bff; /* Highlight input fields in edit mode */
+    background-color: #fff; /* Ensure white background for inputs */
+}
+
+tr.editing .notes-input {
+    width: 100%; /* Notes textarea should take more space */
+    min-width: 120px; /* Minimum width for notes */
+    max-width: 200px; /* Max width for notes */
+    height: auto;     /* Auto height based on content */
+    min-height: 38px; /* Match other inputs roughly */
+    resize: vertical; /* Allow vertical resize */
+    box-sizing: border-box;
+    padding: 6px;
+    text-align: left;
+}
+
+/* Specifics for save/cancel buttons if needed beyond .action-button */
+.save-set-btn {
+    /* Potentially use action-button primary-action if it's a main action */
+    color: #28a745; /* Green for save */
+    font-weight: bold;
+    font-size: 1.2em; /* Match other icons */
+}
+.save-set-btn:hover {
+    color: #1e7e34;
+}
+
+.cancel-edit-btn {
+    color: #6c757d; /* Secondary/grey for cancel */
+    font-weight: bold;
+    font-size: 1.2em; /* Match other icons */
+}
+.cancel-edit-btn:hover {
+    color: #545b62;
+}
+
+/* Small loader for inline buttons like "Log" in new set rows */
+.loader-small {
+    display: inline-block;
+    border: 3px solid #f3f3f3; /* Light grey */
+    border-top: 3px solid #007bff; /* Blue */
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Styles for Share Workout Functionality */
+#share-workout-btn {
+    /* Uses .action-button, can add specifics if needed */
+    /* e.g., background-color: #17a2b8; for a different color */
+    /* border-color: #17a2b8; */
+    margin-left: 10px; /* Space from other workout controls */
+}
+/* #share-workout-btn:hover {
+    background-color: #138496;
+    border-color: #117a8b;
+} */
+
+.share-link-container {
+    /* HTML has: style="display:none; margin-top: 20px; padding: 15px; background-color: #e9f5ff; border-radius: 6px; text-align: center;" */
+    /* Adding some more robust styles here in case inline styles are removed or to enhance */
+    border: 1px solid #bce8f1; /* A light blue border to complement background */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    /* Ensure text-align: center is applied if not already by parent */
+    text-align: center;
+}
+
+#share-link-container p:first-child { /* "Share this link:" text */
+    font-weight: bold;
+    color: #0056b3; /* Darker blue for emphasis */
+    margin-bottom: 8px;
+}
+
+#share-link-display {
+    width: calc(100% - 30px); /* Adjust width considering padding of parent */
+    max-width: 400px; /* Max width for the input field */
+    padding: 10px;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    font-size: 1em;
+    color: #333;
+    background-color: #fff; /* Ensure it's easily readable */
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+#copy-share-link-btn {
+    /* Uses .action-button. Can be styled like a primary or secondary action. */
+    background-color: #28a745; /* Green, like a success/confirm button */
+    color: white;
+    border-color: #28a745;
+    padding: 8px 15px; /* Consistent with inline style from HTML */
+}
+#copy-share-link-btn:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+#copy-feedback-msg {
+    /* HTML has: style="font-size: 0.9em; color: green; margin-top: 5px;" */
+    min-height: 1.2em; /* Prevent layout shift when message appears/disappears */
+    font-size: 0.9em;
+    color: green;
+    margin-top: 5px;
+}
+
+.share-link-container p:last-child { /* Expiry info */
+     /* HTML has: style="font-size: 0.8em; color: #555; margin-top: 10px;" */
+    font-style: italic;
+    font-size: 0.8em;
+    color: #555;
+    margin-top: 10px;
+}
+
+/* Readiness Dial Styles */
+.readiness-dial-container {
+    /* Uses .card-style for base if that's defined elsewhere, or add card-like styles here */
+    background-color: #fff; /* Assuming card-style provides this */
+    padding: 15px 20px;    /* Assuming card-style provides this */
+    border-radius: 8px;   /* Assuming card-style provides this */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Assuming card-style provides this */
+    text-align: center;
+    margin-bottom: 20px; /* Space below dial */
+}
+.readiness-label {
+    display: block;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+.progress-bar-container {
+    position: relative;
+    width: 80%;
+    max-width: 300px;
+    margin: 0 auto;
+    height: 25px; /* Height of the progress bar */
+    background-color: #e9ecef; /* Track color */
+    border-radius: 12px; /* Rounded ends for the track */
+    overflow: hidden; /* Ensures fill stays within bounds */
+}
+#readiness-progress {
+    width: 100%;
+    height: 100%;
+    border: none; /* Remove default browser border */
+    border-radius: 12px; /* Match container */
+    appearance: none; /* Remove default browser appearance */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+/* Progress bar fill color - default (can be high readiness) */
+#readiness-progress::-webkit-progress-bar {
+    background-color: #e9ecef; /* Track color for WebKit */
+    border-radius: 12px;
+}
+#readiness-progress::-webkit-progress-value {
+    background-color: #28a745; /* Default/High readiness: Green */
+    border-radius: 12px;
+    transition: width 0.3s ease;
+}
+#readiness-progress::-moz-progress-bar { /* Firefox */
+    background-color: #28a745; /* Default/High readiness: Green */
+    border-radius: 12px;
+    transition: width 0.3s ease;
+}
+
+/* Readiness level specific colors for the progress bar value */
+#readiness-progress.low-readiness::-webkit-progress-value { background-color: #dc3545; } /* Red */
+#readiness-progress.low-readiness::-moz-progress-bar { background-color: #dc3545; }
+
+#readiness-progress.medium-readiness::-webkit-progress-value { background-color: #ffc107; } /* Yellow/Orange */
+#readiness-progress.medium-readiness::-moz-progress-bar { background-color: #ffc107; }
+
+#readiness-progress.high-readiness::-webkit-progress-value { background-color: #28a745; } /* Green */
+#readiness-progress.high-readiness::-moz-progress-bar { background-color: #28a745; }
+
+#readiness-progress.na-readiness::-webkit-progress-value { background-color: #adb5bd; } /* Grey for N/A */
+#readiness-progress.na-readiness::-moz-progress-bar { background-color: #adb5bd; }
+
+
+.progress-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff; /* White text on colored bars */
+    font-weight: bold;
+    font-size: 0.9em;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.2); /* Slight shadow for readability */
+}
+/* Adjust text color for medium readiness if yellow is too light for white text */
+#readiness-progress.medium-readiness + .progress-bar-text {
+    color: #333; /* Darker text for yellow bar */
+    text-shadow: none;
+}
+#readiness-progress.na-readiness + .progress-bar-text {
+    color: #fff;
+}
+
+#low-readiness-message {
+    background-color: #fff3cd; /* Light yellow, common for warnings */
+    color: #856404; /* Dark yellow/brown text */
+    border: 1px solid #ffeeba;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-top: 10px; /* Already set in HTML, but good to have in CSS */
+    font-size: 0.9em;
+    text-align: left; /* Align text to the left for better readability */
+}
+#low-readiness-message p {
+    margin: 0;
+}
+
+
+/* Styles for End Workout Modal */
+.modal {
+
+/* Styles for End Workout Modal */
+.modal {
+    /* display: none; Already handled by inline style initially */
+    position: fixed;
+    z-index: 1000; /* High z-index to appear on top */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if content is too long */
+    background-color: rgba(0,0,0,0.5); /* Dim background */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto; /* Centered, with margin from top */
+    padding: 25px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px; /* Max width for the modal */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.close-modal-btn {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.close-modal-btn:hover,
+.close-modal-btn:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#end-workout-form .form-group {
+    margin-bottom: 18px;
+}
+
+#end-workout-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #333;
+}
+
+#end-workout-form input[type="range"] {
+    width: calc(100% - 80px); /* Adjust width to make space for value display and "hours" text */
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+#end-workout-form input[type="number"],
+#end-workout-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.95em;
+}
+#end-workout-form input[type="number"] {
+     max-width: 120px; /* Specific width for HRV input */
+}
+
+#end-workout-form textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+#end-workout-form span[id$="-value"] { /* For sleep/stress/fatigue value spans */
+    display: inline-block;
+    min-width: 30px; /* Ensure space for the number */
+    text-align: left; /* Align left to be next to slider */
+    font-weight: bold;
+    color: #007bff;
+    padding-left: 5px; /* Space from slider */
+}
+/* Ensure the unit text (e.g. "hours") is aligned with the value span */
+#end-workout-form .form-group span:not([id$="-value"]) {
+    vertical-align: middle;
+    font-size: 0.9em;
+    color: #555;
+    margin-left: 5px;
+}
+
+
+.modal-actions {
+    margin-top: 25px;
+    text-align: right; /* Align buttons to the right */
+}
+
+.modal-actions .action-button {
+    margin-left: 10px;
+}
+.modal-actions .action-button.secondary-action {
+    background-color: #6c757d; /* Standard secondary button color */
+    color: white;
+}
+.modal-actions .action-button.secondary-action:hover {
+    background-color: #5a6268;
+}
+
+/* Styles for End Workout Modal */
+.modal {
+    /* display: none; Already handled by inline style initially */
+    position: fixed;
+    z-index: 1000; /* High z-index to appear on top */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if content is too long */
+    background-color: rgba(0,0,0,0.5); /* Dim background */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto; /* Centered, with margin from top */
+    padding: 25px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px; /* Max width for the modal */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.close-modal-btn {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.close-modal-btn:hover,
+.close-modal-btn:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#end-workout-form .form-group {
+    margin-bottom: 18px;
+}
+
+#end-workout-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #333;
+}
+
+#end-workout-form input[type="range"] {
+    width: calc(100% - 70px); /* Adjust width to make space for value display and "hours" text */
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+#end-workout-form input[type="number"],
+#end-workout-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.95em;
+}
+#end-workout-form input[type="number"] {
+     max-width: 120px; /* Specific width for HRV input */
+}
+
+#end-workout-form textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+#end-workout-form span[id$="-value"] { /* For sleep/stress/fatigue value spans */
+    display: inline-block;
+    min-width: 30px; /* Ensure space for the number */
+    text-align: left; /* Align left to be next to slider */
+    font-weight: bold;
+    color: #007bff;
+    padding-left: 5px; /* Space from slider */
+}
+
+
+.modal-actions {
+    margin-top: 25px;
+    text-align: right; /* Align buttons to the right */
+}
+
+.modal-actions .action-button {
+    margin-left: 10px;
+}
+.modal-actions .action-button.secondary-action {
+    background-color: #6c757d; /* Standard secondary button color */
+    color: white;
+}
+.modal-actions .action-button.secondary-action:hover {
+    background-color: #5a6268;
+}

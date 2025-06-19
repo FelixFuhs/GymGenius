@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, g, abort
 from ..app import get_db_connection, release_db_connection, jwt_required, logger, limiter # Import limiter
 import psycopg2
 import psycopg2.extras
@@ -87,17 +87,21 @@ def login_user():
 
             if bcrypt.checkpw(password.encode('utf-8'), user_record['password_hash'].encode('utf-8')):
                 # Password matches, generate JWT
+                jti = str(uuid.uuid4())
                 token_payload = {
                     'user_id': str(user_record['id']),
-                    'exp': datetime.now(timezone.utc) + current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
+                    'exp': datetime.now(timezone.utc) + current_app.config['JWT_ACCESS_TOKEN_EXPIRES'],
                     # 'iat': datetime.now(timezone.utc) # Optional: Issued at
+                    'jti': jti  # Add JTI (JWT ID) claim to access token
                 }
                 access_token = jwt.encode(token_payload, current_app.config['JWT_SECRET_KEY'], algorithm="HS256")
 
                 # Generate Refresh Token
+                refresh_token_jti = str(uuid.uuid4()) # Also add JTI to refresh token for completeness if needed later
                 refresh_token_payload = {
                     'user_id': str(user_record['id']),
-                    'exp': datetime.now(timezone.utc) + current_app.config['JWT_REFRESH_TOKEN_EXPIRES']
+                    'exp': datetime.now(timezone.utc) + current_app.config['JWT_REFRESH_TOKEN_EXPIRES'],
+                    'jti': refresh_token_jti # JTI for refresh token
                 }
                 refresh_token = jwt.encode(refresh_token_payload, current_app.config['JWT_SECRET_KEY'], algorithm="HS256")
 
@@ -123,6 +127,69 @@ def login_user():
     finally:
         if conn:
             release_db_connection(conn)
+
+
+@auth_bp.route('/v1/auth/logout', methods=['POST'])
+@jwt_required
+@limiter.limit("20/hour")
+def logout_user():
+    user_id = g.current_user_id
+    # Assuming jti is available in g.decoded_token_data after jwt_required modification
+    # This will be g.decoded_token_data['jti']
+    access_token_jti = g.decoded_token_data.get('jti')
+    if not access_token_jti:
+        # This case should ideally not be reached if tokens always have JTI
+        # and jwt_required ensures decoded_token_data is populated.
+        logger.error(f"JTI not found in token for user_id: {user_id} during logout.")
+        return jsonify(error="Token is missing JTI, cannot process logout."), 500
+
+    data = request.get_json()
+    if not data or not data.get('refresh_token'):
+        logger.warning(f"Logout attempt without refresh token for user_id: {user_id}")
+        abort(400, description="Refresh token is required.")
+
+    refresh_token = data['refresh_token']
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # Add access token's JTI to the blocklist
+            cur.execute(
+                "INSERT INTO jwt_blocklist (jti) VALUES (%s) ON CONFLICT (jti) DO NOTHING;",
+                (access_token_jti,)
+            )
+            logger.info(f"Access token JTI {access_token_jti} for user {user_id} added to blocklist.")
+
+            # Delete the provided refresh token from user_refresh_tokens
+            cur.execute(
+                "DELETE FROM user_refresh_tokens WHERE user_id = %s AND token = %s;",
+                (user_id, refresh_token)
+            )
+            deleted_count = cur.rowcount
+            if deleted_count > 0:
+                logger.info(f"Refresh token for user {user_id} deleted from database.")
+            else:
+                logger.warning(f"Refresh token for user {user_id} not found in database during logout.")
+
+            conn.commit()
+
+        return jsonify(msg="Successfully logged out"), 200
+
+    except psycopg2.Error as e:
+        logger.error(f"Database error during logout for user {user_id}: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify(error="Database operation failed during logout"), 500
+    except Exception as e:
+        logger.error(f"Unexpected error during logout for user {user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return jsonify(error="An unexpected error occurred during logout"), 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
 
 @auth_bp.route('/v1/auth/refresh', methods=['POST'])
 @limiter.limit("20 per hour")
@@ -159,9 +226,12 @@ def refresh_token():
                 return jsonify(error="Invalid or expired refresh token"), 401
 
             # Token is valid and found in DB, issue a new access token
+            # Token is valid and found in DB, issue a new access token
+            new_access_token_jti = str(uuid.uuid4())
             access_token_payload = {
                 'user_id': user_id,
-                'exp': datetime.now(timezone.utc) + current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
+                'exp': datetime.now(timezone.utc) + current_app.config['JWT_ACCESS_TOKEN_EXPIRES'],
+                'jti': new_access_token_jti # Add JTI to new access tokens
             }
             new_access_token = jwt.encode(
                 access_token_payload,
@@ -216,7 +286,7 @@ def get_user_profile(user_id):
                 """
                 SELECT id, email, name, birth_date, gender, goal_slider,
                        experience_level, unit_system, available_plates,
-                       created_at, updated_at
+                       created_at, updated_at, rir_bias, rir_bias_lr, rir_bias_error_ema
                 FROM users WHERE id = %s;
                 """, (str(user_id),)
             )

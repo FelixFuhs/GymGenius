@@ -18,54 +18,130 @@ class FakeAuthCursor:
         pass
 
     def execute(self, query, params=None):
-        q = query.lower()
-        if "select id from users" in q:
-            email = params[0].lower()
+        q = query.lower().strip()
+        # Ensure params is a tuple for consistent indexing, even if one param
+        params_tuple = params if isinstance(params, tuple) else (params,)
+
+        if "select id from users where email = %s" in q:
+            email = params_tuple[0].lower()
             user = self.conn.users.get(email)
             self.result = {"id": user["id"]} if user else None
-        elif "insert into users" in q:
-            user_id, email, pw_hash = params
+        elif "insert into users (id, email, password_hash" in q: # Made more specific
+            user_id, email, pw_hash = params_tuple[0], params_tuple[1], params_tuple[2]
+            # When registering, add default rir fields to the mock user record
             self.conn.users[email.lower()] = {
                 "id": user_id,
                 "email": email,
                 "password_hash": pw_hash,
+                "name": None, # Add other fields that get_user_profile might expect
+                "birth_date": None,
+                "gender": None,
+                "goal_slider": 0.5,
+                "experience_level": "beginner",
+                "unit_system": "metric",
+                "available_plates": None,
+                "rir_bias": 0.0,
+                "rir_bias_lr": 0.100,
+                "rir_bias_error_ema": 0.000,
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
             }
-            self.result = {
+            self.result = { # Simulating RETURNING data from registration
                 "id": user_id,
                 "email": email,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
-        elif "select id, password_hash from users" in q:
-            email = params[0].lower()
+        elif "select id, password_hash from users where email = %s" in q:
+            email = params_tuple[0].lower()
             user = self.conn.users.get(email)
             self.result = {
                 "id": user["id"],
                 "password_hash": user["password_hash"],
             } if user else None
-        elif "insert into user_refresh_tokens" in q:
-            user_id, token = params
-            self.conn.refresh_tokens[token] = user_id
+        elif "insert into user_refresh_tokens (user_id, token)" in q: # Made more specific
+            user_id, token = params_tuple[0], params_tuple[1]
+            if user_id not in self.conn.user_refresh_tokens:
+                self.conn.user_refresh_tokens[user_id] = set()
+            self.conn.user_refresh_tokens[user_id].add(token)
+            self.result = None # INSERT typically doesn't return via fetchone in this simple mock
+            self.rowcount = 1
+        elif "select token from user_refresh_tokens where user_id = %s and token = %s" in q: # For refresh logic
+            user_id, token = params_tuple[0], params_tuple[1]
+            user_tokens = self.conn.user_refresh_tokens.get(user_id, set())
+            self.result = {"token": token} if token in user_tokens else None
+        elif "insert into jwt_blocklist (jti)" in q: # For logout
+            jti = params_tuple[0]
+            self.conn.jwt_blocklist.add(jti)
+            self.rowcount = 1
             self.result = None
-        elif "select token from user_refresh_tokens" in q:
-            user_id, token = params
-            self.result = {"token": token} if self.conn.refresh_tokens.get(token) == user_id else None
+        elif "delete from user_refresh_tokens where user_id = %s and token = %s" in q: # For logout
+            user_id, token = params_tuple[0], params_tuple[1]
+            if user_id in self.conn.user_refresh_tokens and token in self.conn.user_refresh_tokens[user_id]:
+                self.conn.user_refresh_tokens[user_id].remove(token)
+                self.rowcount = 1
+            else:
+                self.rowcount = 0
+            self.result = None
+        elif "select exists (select 1 from jwt_blocklist where jti = %s)" in q: # For blocklist check in jwt_required
+            jti = params_tuple[0]
+            self.result = {'exists': jti in self.conn.jwt_blocklist}
+
+        elif "select id, email, name, birth_date, gender, goal_slider" in q and "from users where id = %s" in q:
+            # This is for get_user_profile
+            user_id_param = params_tuple[0]
+            # Find user by ID. This is inefficient in the current mock but ok for tests.
+            found_user_data = None
+            for user_email, user_details_val in self.conn.users.items():
+                if user_details_val['id'] == user_id_param:
+                    # Construct the profile data as expected by the SELECT query
+                    # Ensure all fields selected by the actual query are present here
+                    found_user_data = {
+                        'id': user_details_val['id'],
+                        'email': user_details_val['email'],
+                        'name': user_details_val.get('name'),
+                        'birth_date': user_details_val.get('birth_date'),
+                        'gender': user_details_val.get('gender'),
+                        'goal_slider': user_details_val.get('goal_slider', 0.5),
+                        'experience_level': user_details_val.get('experience_level', 'beginner'),
+                        'unit_system': user_details_val.get('unit_system', 'metric'),
+                        'available_plates': user_details_val.get('available_plates'),
+                        'created_at': user_details_val.get('created_at', datetime.now(timezone.utc)),
+                        'updated_at': user_details_val.get('updated_at', datetime.now(timezone.utc)),
+                        'rir_bias': user_details_val.get('rir_bias', 0.0),
+                        'rir_bias_lr': user_details_val.get('rir_bias_lr', 0.100),
+                        'rir_bias_error_ema': user_details_val.get('rir_bias_error_ema', 0.000)
+                    }
+                    break
+            self.result = found_user_data
         else:
             self.result = None
+            self.rowcount = 0
 
     def fetchone(self):
         return self.result
 
-    def fetchall(self):
-        return []
+    def fetchall(self): # Added for completeness, though not used by current tests
+        return [self.result] if self.result else []
+
+    @property
+    def rowcount(self):
+        return self._rowcount
+
+    @rowcount.setter
+    def rowcount(self, value):
+        self._rowcount = value
 
 
 class FakeAuthConn:
     def __init__(self):
-        self.users = {}
-        self.refresh_tokens = {}
+        self.users = {} # email -> user_dict
+        self.user_refresh_tokens = {} # user_id -> set of refresh_token_strings
+        self.jwt_blocklist = set() # set of JTI strings
 
-    def cursor(self, cursor_factory=None):
-        return FakeAuthCursor(self)
+    def cursor(self, cursor_factory=None): # cursor_factory is ignored for the fake
+        cur = FakeAuthCursor(self)
+        cur.rowcount = 0 # Initialize rowcount
+        return cur
 
     def commit(self):
         pass
@@ -98,6 +174,10 @@ def mock_auth_db(monkeypatch):
     app.config['JWT_SECRET_KEY'] = 'test-secret-key'
     monkeypatch.setattr(auth_bp, 'get_db_connection', lambda: conn)
     monkeypatch.setattr(auth_bp, 'release_db_connection', lambda _conn: None)
+
+    # Also mock for engine.app's db connection for the jwt_required decorator's blocklist check
+    monkeypatch.setattr('engine.app.get_db_connection', lambda: conn)
+    monkeypatch.setattr('engine.app.release_db_connection', lambda _conn: None)
     yield conn
 
 @pytest.fixture(scope='function')
@@ -260,3 +340,183 @@ def test_refresh_token_no_token_provided(client):
 # So, an old refresh token can be used multiple times until it expires.
 # If rotation were implemented, we'd check for a new refresh_token in the response and
 # then verify the old one no longer works.
+
+
+# --- Logout Tests ---
+
+def test_logout_success(client, test_user, mock_auth_db): # mock_auth_db is used to inspect its state
+    """Test successful logout invalidates access token and removes refresh token."""
+    access_token = test_user['access_token']
+    refresh_token = test_user['refresh_token']
+    user_id = test_user['user_id']
+
+    # Pre-check: Refresh token should exist for the user
+    assert refresh_token in mock_auth_db.user_refresh_tokens.get(user_id, set())
+
+    decoded_access_token = jwt.decode(access_token, app.config['JWT_SECRET_KEY'], algorithms=["HS256"])
+    jti = decoded_access_token.get('jti')
+    assert jti is not None, "Access token must have a JTI for logout to function."
+
+    response = client.post('/v1/auth/logout', headers={
+        'Authorization': f'Bearer {access_token}'
+    }, json={
+        'refresh_token': refresh_token
+    })
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['msg'] == "Successfully logged out"
+
+    # Verify JTI is in blocklist
+    assert jti in mock_auth_db.jwt_blocklist
+
+    # Verify refresh token is removed from DB for that user
+    assert refresh_token not in mock_auth_db.user_refresh_tokens.get(user_id, set())
+    if not mock_auth_db.user_refresh_tokens.get(user_id, set()): # if the set is empty
+        assert user_id not in mock_auth_db.user_refresh_tokens or not mock_auth_db.user_refresh_tokens[user_id]
+
+
+def test_logout_revokes_token_access(client, test_user, mock_auth_db):
+    """Test that a blocklisted access token cannot access protected routes."""
+    access_token = test_user['access_token']
+    refresh_token = test_user['refresh_token']
+    user_id = test_user['user_id']
+
+    # First, log out the user to blocklist the token
+    logout_response = client.post('/v1/auth/logout', headers={
+        'Authorization': f'Bearer {access_token}'
+    }, json={
+        'refresh_token': refresh_token
+    })
+    assert logout_response.status_code == 200, "Logout failed during setup for revoke test"
+
+    # Now, attempt to use the blocklisted access_token on a protected route
+    # Assuming '/v1/users/{user_id}/profile' is a protected route from auth.py or another blueprint.
+    # We need to ensure such a route exists and is decorated with @jwt_required.
+    # For this test, we'll assume such a route exists and is set up like:
+    # @auth_bp.route('/v1/users/<uuid:user_id>/profile', methods=['GET'])
+    # @jwt_required
+    # def get_user_profile(user_id): return jsonify(message="Profile data"), 200
+    # This route is actually in auth.py, so it should work with the mock_auth_db.
+
+    profile_response = client.get(f'/v1/users/{user_id}/profile', headers={
+        'Authorization': f'Bearer {access_token}'
+    })
+
+    assert profile_response.status_code == 401
+    data = profile_response.get_json()
+    assert data.get('message') == "Token has been revoked"
+
+
+def test_logout_missing_refresh_token(client, test_user):
+    """Test logout attempt without providing a refresh token in the body."""
+    access_token = test_user['access_token']
+
+    response = client.post('/v1/auth/logout', headers={
+        'Authorization': f'Bearer {access_token}'
+    }, json={}) # Empty JSON body
+
+    assert response.status_code == 400
+    data = response.get_json()
+    assert "Refresh token is required" in data.get('description', data.get('error', ''))
+
+
+def test_logout_invalid_or_unknown_refresh_token(client, test_user, mock_auth_db):
+    """
+    Test logout with a valid access token but an invalid/unknown refresh token.
+    The access token's JTI should still be blocklisted.
+    The unknown refresh token should just be ignored (not found for deletion).
+    """
+    access_token = test_user['access_token']
+    user_id = test_user['user_id']
+    original_refresh_token = test_user['refresh_token'] # Keep track of the valid one
+    invalid_refresh_token = "this.is.a.madeup.refresh.token.does.not.exist"
+
+    decoded_access_token = jwt.decode(access_token, app.config['JWT_SECRET_KEY'], algorithms=["HS256"])
+    jti = decoded_access_token.get('jti')
+    assert jti is not None
+
+    # Ensure the original refresh token is in the "DB" before logout
+    assert original_refresh_token in mock_auth_db.user_refresh_tokens.get(user_id, set())
+
+    response = client.post('/v1/auth/logout', headers={
+        'Authorization': f'Bearer {access_token}'
+    }, json={
+        'refresh_token': invalid_refresh_token
+    })
+
+    assert response.status_code == 200 # Logout of AT should succeed
+    data = response.get_json()
+    assert data['msg'] == "Successfully logged out"
+
+    # Verify JTI of access token is in blocklist
+    assert jti in mock_auth_db.jwt_blocklist
+
+    # Verify the original, valid refresh token was NOT deleted because an invalid one was provided
+    assert original_refresh_token in mock_auth_db.user_refresh_tokens.get(user_id, set()), \
+        "Original refresh token should not be deleted when an invalid one is supplied for logout."
+
+def test_logout_without_jti_in_access_token(client, test_user, mock_auth_db):
+    """Test logout attempt if access token somehow has no JTI. Should ideally not happen."""
+    # Create a new access token for the user *without* a JTI
+    payload_no_jti = {
+        'user_id': test_user['user_id'],
+        'exp': datetime.now(timezone.utc) + app.config['JWT_ACCESS_TOKEN_EXPIRES']
+    }
+    access_token_no_jti = jwt.encode(payload_no_jti, app.config['JWT_SECRET_KEY'], algorithm="HS256")
+
+    response = client.post('/v1/auth/logout', headers={
+        'Authorization': f'Bearer {access_token_no_jti}'
+    }, json={
+        'refresh_token': test_user['refresh_token']
+    })
+
+    # The logout route currently expects g.decoded_token_data.get('jti')
+    # If jti is None, it returns 500 "Token is missing JTI"
+    assert response.status_code == 500
+    data = response.get_json()
+    assert "Token is missing JTI" in data.get('error', '')
+
+    # Also check that the refresh token was NOT deleted in this case
+    assert test_user['refresh_token'] in mock_auth_db.user_refresh_tokens.get(test_user['user_id'], set())
+
+
+# --- User Profile GET Test ---
+def test_get_user_profile_success_includes_rir_fields(client, test_user, mock_auth_db):
+    """Test that GET /profile returns the new RIR bias related fields."""
+    user_id = test_user['user_id']
+    access_token = test_user['access_token']
+
+    response = client.get(f'/v1/users/{user_id}/profile', headers={
+        'Authorization': f'Bearer {access_token}'
+    })
+
+    assert response.status_code == 200
+    data = response.get_json()
+
+    assert 'id' in data and data['id'] == user_id
+    assert 'email' in data and data['email'] == test_user['email']
+
+    # Check for existing fields (sample)
+    assert 'experience_level' in data
+    assert 'unit_system' in data
+
+    # Check for new RIR bias fields
+    assert 'rir_bias' in data
+    assert 'rir_bias_lr' in data
+    assert 'rir_bias_error_ema' in data
+
+    # Check default values (assuming test_user fixture creates a new user via mock INSERT)
+    # These defaults are set in the modified FakeAuthCursor's INSERT INTO users logic
+    assert data['rir_bias'] == pytest.approx(0.0)
+    assert data['rir_bias_lr'] == pytest.approx(0.100)
+    assert data['rir_bias_error_ema'] == pytest.approx(0.000)
+
+    # Verify that the mock_auth_db provided these values from its internal store
+    # This is an indirect check, the main check is the API response.
+    # For direct check of mock_db state:
+    mock_user_record = mock_auth_db.users.get(test_user['email'])
+    assert mock_user_record is not None
+    assert mock_user_record.get('rir_bias') == pytest.approx(0.0)
+    assert mock_user_record.get('rir_bias_lr') == pytest.approx(0.100)
+    assert mock_user_record.get('rir_bias_error_ema') == pytest.approx(0.000)
