@@ -2,284 +2,362 @@
 /* body, header, footer base styles are now inherited from style.css */
 
 main {
-    padding: 20px; /* Or 1.5rem to match global main padding */
-    display: flex;
-    flex-wrap: nowrap; /* Prevent wrapping of main panels */
-    gap: 20px;
+  padding: 20px; /* Or 1.5rem to match global main padding */
+  display: flex;
+  flex-wrap: nowrap; /* Prevent wrapping of main panels */
+  gap: 20px;
 }
 
 aside#left-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 320px; /* Fixed width for the left panel */
-    flex-shrink: 0; /* Prevent left panel from shrinking */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 320px; /* Fixed width for the left panel */
+  flex-shrink: 0; /* Prevent left panel from shrinking */
 }
 
 section#plan-creation-area {
-    flex-grow: 1; /* Center panel takes remaining space */
-    /* min-width: 300px; already set */
+  flex-grow: 1; /* Center panel takes remaining space */
+  /* min-width: 300px; already set */
 }
 
 /* Styles for the touch device message */
 
 /* Styling for the feedback panel */
 .feedback-panel {
-    margin-top: 15px;
-    padding: 15px; /* Adjusted from 10px for better spacing */
-    border: 1px solid #dee2e6; /* Use theme border */
-    background-color: #f8f9fa; /* Light theme background */
-    border-radius: 6px; /* Theme radius */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Theme shadow */
+  margin-top: 15px;
+  padding: 20px; /* Standard Card Padding */
+  border: 1px solid #e5e5e7; /* Light Border */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  border-radius: 16px; /* Updated */
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
 }
-.feedback-panel h4 { /* Assuming h4 is inside */
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: #2c3e50; /* Theme heading color */
-    font-size: 1.1em; /* Appropriate size */
-    border-bottom: 1px solid #e9ecef;
-    padding-bottom: 8px;
-    font-weight: 600; /* Added for consistency */
+.feedback-panel h4 {
+  /* Assuming h4 is inside */
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #1d1d1f; /* Primary Dark */
+  font-size: 1.1em; /* Appropriate size */
+  border-bottom: 1px solid #e5e5e7; /* Light Border */
+  padding-bottom: 8px;
+  font-weight: 600; /* Added for consistency */
 }
 .feedback-panel p {
-    margin-bottom: 5px;
-    font-size: 0.9em;
-    color: #34495e; /* Consistent text color */
+  margin-bottom: 5px;
+  font-size: 0.9em;
+  color: #1d1d1f; /* Primary Dark */
 }
 .feedback-panel ul {
-    list-style-position: inside;
-    padding-left: 5px; /* Slight indent */
-    font-size: 0.9em;
-    margin-bottom: 0;
-    color: #34495e; /* Consistent text color */
+  list-style-position: inside;
+  padding-left: 5px; /* Slight indent */
+  font-size: 0.9em;
+  margin-bottom: 0;
+  color: #1d1d1f; /* Primary Dark */
 }
 .feedback-panel ul li {
-    margin-bottom: 3px;
+  margin-bottom: 3px;
 }
 
 /* Responsive adjustments for Plan Builder */
-@media screen and (max-width: 992px) { /* Breakpoint for tablets and smaller desktops */
-    main {
-        flex-direction: column; /* Stack panels vertically */
-        align-items: stretch; /* Stretch panels to full width */
-    }
+@media screen and (max-width: 992px) {
+  /* Breakpoint for tablets and smaller desktops */
+  main {
+    flex-direction: column; /* Stack panels vertically */
+    align-items: stretch; /* Stretch panels to full width */
+  }
 
-    aside#left-panel,
-    div#right-panel {
-        width: 100%; /* Make side panels full width */
-        margin-bottom: 20px; /* Add space between stacked panels */
-    }
-    div#right-panel {
-        margin-bottom: 0; /* No bottom margin for the last panel */
-    }
+  aside#left-panel,
+  div#right-panel {
+    width: 100%; /* Make side panels full width */
+    margin-bottom: 20px; /* Add space between stacked panels */
+  }
+  div#right-panel {
+    margin-bottom: 0; /* No bottom margin for the last panel */
+  }
 
-    #exercise-list, #plan-templates-list {
-        max-height: 250px; /* Adjust max-height for smaller viewports if needed */
-    }
+  #exercise-list,
+  #plan-templates-list {
+    max-height: 250px; /* Adjust max-height for smaller viewports if needed */
+  }
 }
 
-@media screen and (max-width: 767px) { /* Additional adjustments for smaller mobile if needed */
-    main {
-        padding: 15px; /* Reduce padding on very small screens */
-        gap: 15px;
-    }
-    section {
-        padding: 15px;
-    }
-    #plan-controls button {
-        padding: 12px 15px; /* Slightly larger tap target for mobile */
-    }
+@media screen and (max-width: 767px) {
+  /* Additional adjustments for smaller mobile if needed */
+  main {
+    padding: 15px; /* Reduce padding on very small screens */
+    gap: 15px;
+  }
+  section {
+    padding: 15px;
+  }
+  /* #plan-controls button padding override removed to use global button styles */
 }
 #touch-device-message {
-    background-color: #fff3cd; /* Consistent with global warning */
-    color: #856404; /* Consistent with global warning */
-    border: 1px solid #ffeeba; /* Consistent with global warning */
-    padding: 10px 15px; /* Standardized padding */
-    border-radius: 4px; /* Standardized radius */
-    margin-bottom: 20px; /* Space below the message - existing, seems fine */
-    text-align: center;
+  background-color: #ffffff; /* Surface */
+  color: #ff9500; /* Warning Orange */
+  border: 1px solid #ff9500; /* Warning Orange */
+  padding: 10px 15px; /* Standardized padding */
+  border-radius: 10px; /* Updated */
+  margin-bottom: 20px; /* Space below the message - existing, seems fine */
+  text-align: center;
 }
 
 #touch-device-message p {
-    margin: 0;
-    font-size: 0.95em;
+  margin: 0;
+  font-size: 0.95em;
 }
 
 #touch-device-message strong {
-    color: #664d03; /* Slightly darker for emphasis */
+  color: #ff9500; /* Warning Orange */
+  font-weight: 600;
 }
 
 div#right-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 280px; /* Fixed width for the right panel */
-    flex-shrink: 0; /* Prevent right panel from shrinking */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 280px; /* Fixed width for the right panel */
+  flex-shrink: 0; /* Prevent right panel from shrinking */
 }
 
-section { /* Common styling for all sections */
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
-    border-radius: 6px; /* Global card radius */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Global card shadow */
-    padding: 20px; /* Retain existing padding */
-    margin-bottom: 20px; /* Add margin between sections */
+section {
+  /* Common styling for all sections */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border: 1px solid #e5e5e7; /* Light Border */
+  border-radius: 16px; /* Updated */
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
+  padding: 20px; /* Retain existing padding */
+  margin-bottom: 20px; /* Add margin between sections */
+  position: relative;
+  overflow: hidden;
 }
 section:last-child {
-    margin-bottom: 0; /* No margin for the last section in a panel */
+  margin-bottom: 0; /* No margin for the last section in a panel */
 }
 
-
-#exercise-list-container, #plan-templates-section {
-    /* Styles for sections within the left panel */
-    /* flex-basis: 300px; No longer needed due to fixed panel width */
+#exercise-list-container,
+#plan-templates-section {
+  /* Styles for sections within the left panel */
+  /* flex-basis: 300px; No longer needed due to fixed panel width */
 }
 
-#exercise-list, #plan-templates-list {
-    list-style-type: none;
-    padding: 0;
-    max-height: 300px; /* Adjusted max-height */
-    overflow-y: auto;
+#exercise-list,
+#plan-templates-list {
+  list-style-type: none;
+  padding: 0;
+  max-height: 300px; /* Adjusted max-height */
+  overflow-y: auto;
 }
 
 /* Styling for #exercise-list and #plan-templates-list */
-#exercise-list li, #plan-templates-list li {
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: box-shadow 0.2s ease-in-out; /* Subtle hover effect */
+#exercise-list li,
+#plan-templates-list li {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border: 1px solid #e5e5e7; /* Light Border */
+  padding: 15px; /* Standardized smaller card/item padding */
+  margin-bottom: 8px;
+  border-radius: 10px; /* Updated */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 20px 40px rgba(0, 0, 0, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7); /* Standard Card */
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease-in-out; /* Subtle hover effect */
 }
-#exercise-list li:hover, #plan-templates-list li:hover {
-    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+#exercise-list li:hover,
+#plan-templates-list li:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Elevated/Hover (Secondary/Cards on hover) */
 }
 
 #exercise-list li {
-    cursor: grab; /* Only exercise list items are grabbable */
+  cursor: grab; /* Only exercise list items are grabbable */
 }
 
 /* Default button styles will be applied via .button-secondary, .button-sm */
 .load-template-btn {
-    /* Ensure specificity or rely on global .button-secondary and .button-sm */
-    /* padding: 5px 10px; font-size: 0.875em; are now part of .button-sm */
-    margin-left: 10px; /* Keep specific margin if needed */
+  /* Ensure specificity or rely on global .button-secondary and .button-sm */
+  /* padding: 5px 10px; font-size: 0.875em; are now part of .button-sm */
+  margin-left: 10px; /* Keep specific margin if needed */
 }
 
 /* Styling for Plan Details/Summary section - text lists */
-#plan-details h5 { /* These are sub-headings within sections */
-    margin-top: 15px;
-    margin-bottom: 10px; /* Increased margin */
-    color: #2c3e50; /* Global heading color */
-    font-size: 1.1em; /* Slightly larger */
-    font-weight: 600; /* Consistent with other headings */
-    border-bottom: 1px solid #e9ecef; /* Subtle separator */
-    padding-bottom: 8px;
+#plan-details h5 {
+  /* These are sub-headings within sections */
+  margin-top: 15px;
+  margin-bottom: 10px; /* Increased margin */
+  color: #1d1d1f; /* Primary Dark */
+  font-size: 1.1em; /* Slightly larger */
+  font-weight: 600; /* Consistent with other headings */
+  border-bottom: 1px solid #e5e5e7; /* Light Border */
+  padding-bottom: 8px;
 }
 
-#volume-list, #frequency-list, #user-plans-list, #feedback-frequency-list {
-    list-style-position: inside;
-    padding-left: 0; /* Remove default padding */
-    margin-top: 0; /* Remove default margin */
+#volume-list,
+#frequency-list,
+#user-plans-list,
+#feedback-frequency-list {
+  list-style-position: inside;
+  padding-left: 0; /* Remove default padding */
+  margin-top: 0; /* Remove default margin */
 }
 
-#volume-list li, #frequency-list li, #user-plans-list li, #feedback-frequency-list li {
-    margin-bottom: 8px; /* Increased spacing */
-    color: #34495e; /* Global label/secondary text color */
-    font-size: 0.95em;
-    padding-left: 5px; /* Indent text slightly */
+#volume-list li,
+#frequency-list li,
+#user-plans-list li,
+#feedback-frequency-list li {
+  margin-bottom: 8px; /* Increased spacing */
+  color: #1d1d1f; /* Primary Dark */
+  font-size: 0.95em;
+  padding-left: 5px; /* Indent text slightly */
 }
 /* Specific style for user plans list if they are interactive */
 #user-plans-list li {
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 3px;
-    transition: background-color 0.2s ease;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px; /* Updated */
+  transition: background-color 0.2s ease;
 }
 #user-plans-list li:hover {
-    background-color: #f0f0f0;
+  background-color: #fafbfc; /* Off White */
 }
 
 #drop-zone {
-    border: 2px dashed #ced4da; /* Global border color */
-    padding: 20px;
-    min-height: 200px; /* Keep existing min-height */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f8f9fa; /* Light grey, consistent with table headers/AI box */
-    text-align: center;
-    color: #7f8c8d; /* Consistent with footer text or other secondary text */
-    border-radius: 6px; /* Consistent radius */
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+  border: 2px dashed #e5e5e7; /* Light Border */
+  padding: 20px;
+  min-height: 200px; /* Keep existing min-height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fafbfc; /* Off White */
+  text-align: center;
+  color: #515154; /* Medium Gray */
+  border-radius: 16px; /* Updated */
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 #drop-zone.drag-over {
-    background-color: #e9ecef; /* Slightly darker grey on drag over */
-    border-color: #adb5bd; /* Darker border on drag over */
-    color: #495057; /* Darker text on drag over */
+  background-color: #e5e5e7; /* Light Border (as hover background) */
+  border-color: #86868b; /* Light Gray (Tertiary) */
+  color: #1d1d1f; /* Primary Dark */
 }
 
 /* Styling for items in the exercise list that are being dragged */
 #exercise-list li.dragging {
-    opacity: 0.5;
-    border-style: dashed;
+  opacity: 0.5;
+  border-style: dashed;
 }
 
 /* Styling for the list of exercises within the plan drop zone */
 #plan-exercise-list {
-    list-style-type: none;
-    padding: 0;
-    width: 100%; /* Occupy full width of drop-zone */
+  list-style-type: none;
+  padding: 0;
+  width: 100%; /* Occupy full width of drop-zone */
 }
 
 #plan-exercise-list li {
-    background-color: #f0f8ff; /* Light blue */
-    border: 1px solid #cce0ff; /* Light blue border */
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: background-color 0.2s ease; /* Smooth transition */
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.95) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 251, 252, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  border: 1px solid #e5e5e7; /* Light Border */
+  padding: 15px; /* Standardized smaller card/item padding */
+  margin-bottom: 8px;
+  border-radius: 10px; /* Updated */
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease; /* Smooth transition */
 }
 #plan-exercise-list li:hover {
-    background-color: #e6f2ff; /* Slightly darker blue on hover */
+  background-color: #fafbfc; /* Off White */
 }
-
 
 /* Default button styles will be applied via .button-error, .button-sm */
 .remove-exercise-btn {
-    /* Ensure specificity or rely on global .button-error and .button-sm */
-    /* padding: 5px 10px; font-size: 0.875em; are now part of .button-sm */
+  /* Ensure specificity or rely on global .button-error and .button-sm */
+  /* padding: 5px 10px; font-size: 0.875em; are now part of .button-sm */
 }
 
-#plan-details, #plan-controls {
-    /* Sections within the right panel */
-    /* flex-basis: 100%; No longer needed due to fixed panel width */
-    margin-top: 0; /* Reset margin-top if not needed */
+#plan-details,
+#plan-controls {
+  /* Sections within the right panel */
+  /* flex-basis: 100%; No longer needed due to fixed panel width */
+  margin-top: 0; /* Reset margin-top if not needed */
 }
 
 /* #plan-details p style removed as it was too general and margin is handled by other elements or text defaults */
 
 /* Styling for buttons container in plan-controls, not the buttons themselves */
 #plan-controls {
-    /* Add any specific container styling if needed */
+  /* Add any specific container styling if needed */
 }
 
 /* Keep layout styles for buttons within #plan-controls */
 #plan-controls button {
-    display: block;
-    width: 100%;
-    margin-bottom: 10px; /* Updated for consistent spacing, from 8px */
+  display: block;
+  width: 100%;
+  margin-bottom: 10px; /* Updated for consistent spacing, from 8px */
 }
 
 #plan-controls button:last-child {
-    margin-bottom: 0; /* Remove margin from last button */
+  margin-bottom: 0; /* Remove margin from last button */
 }
 
 /* Specific hover/background/color/border styles are now handled by global button classes (.button-primary, .button-secondary) */

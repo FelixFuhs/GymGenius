@@ -8,56 +8,43 @@ This style guide provides a reference for the visual design language used across
 
 The color palette is designed to be clean, accessible, and provide clear visual hierarchy.
 
-| Role              | Color Name      | Hex Code   | Usage Examples                                  |
-|-------------------|-----------------|------------|-------------------------------------------------|
-| **Primary Text**  | Near Black      | `#212529`  | Main body text, paragraph content.              |
-| **Heading Text**  | Dark Blue/Charcoal | `#2c3e50`  | All headings (h1-h6).                         |
-| **Secondary Text**| Medium Gray     | `#7f8c8d`  | Subtext, placeholder text, footer text.         |
-| **Label Text**    | Dark Slate Gray | `#34495e`  | Form labels, descriptive text.                  |
-|                   | Muted Gray      | `#495057`  | Table headers, some secondary info.             |
-| **Accent**        | Primary Blue    | `#007bff`  | Links, primary buttons, active indicators.      |
-| **Accent Hover**  | Darker Blue     | `#0056b3`  | Hover state for links and primary buttons.      |
-| **Background**    | Light Gray      | `#f4f6f8`  | Main page body background.                      |
-| **Content Area**  | White           | `#ffffff`  | Cards, modals, input fields, sections.          |
-| **Border**        | Light Gray      | `#dee2e6`  | Borders for cards, sections, tables, inputs.    |
-|                   | Medium Gray     | `#ced4da`  | Alternative border (e.g., default input border).|
-| **Feedback (Success)** | Green      | `#28a745`  | Success messages, positive indicators.          |
-|                   | Light Green BG  | `#d4edda`  | Background for success messages.                |
-|                   | Dark Green Text | `#155724`  | Text color for success messages.                |
-| **Feedback (Error)**   | Red        | `#dc3545`  | Error messages, destructive action buttons.     |
-|                   | Light Red BG    | `#f8d7da`  | Background for error messages.                  |
-|                   | Dark Red Text   | `#721c24`  | Text color for error messages.                  |
-| **Feedback (Warning)** | Yellow     | `#ffc107`  | Warning messages (e.g., plateau notifications). |
-|                   | Light Yellow BG | `#fff3cd`  | Background for warning messages.                |
-|                   | Dark Yellow Text| `#856404`  | Text color for warning messages.                |
-| **Disabled**      | Gray            | `#adb5bd`  | Disabled buttons, inactive elements.            |
-| **Subtle BG**     | Very Light Gray | `#f8f9fa`  | Subtle backgrounds (e.g., table headers, AI box).|
+|Role                |Color Name    |Hex Code |Usage Examples                              |
+|--------------------|--------------|---------|--------------------------------------------|
+|**Primary Text**    |Primary Dark  |`#1d1d1f`|Main body text, headings, primary content   |
+|**Secondary Text**  |Medium Gray   |`#515154`|Hover states, secondary interactive elements|
+|**Tertiary Text**   |Light Gray    |`#86868b`|Placeholder text, captions, disabled states |
+|**Accent (Success)**|Success Green |`#30d158`|Success messages, positive indicators       |
+|**Accent (Error)**  |Error Red     |`#ff3b30`|Error messages, destructive actions         |
+|**Accent (Warning)**|Warning Orange|`#ff9500`|Warning messages, attention states          |
+|**Background**      |Off White     |`#fafbfc`|Main page background                        |
+|**Surface**         |Pure White    |`#ffffff`|Cards, modals, input fields, content areas  |
+|**Border**          |Light Border  |`#e5e5e7`|Borders, dividers, subtle separations       |
 
 ## 3. Typography
 
 Consistent typography enhances readability and user experience.
 
-*   **Font Family**: `"Segoe UI", Roboto, Helvetica, Arial, sans-serif` (sans-serif stack)
+*   **Font Family**: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif` (sans-serif stack)
 *   **Base Font Size**: `1em` (typically 16px)
-*   **Line Height (Body)**: `1.5`
+*   **Line Height (Body)**: `1.6`
 
 ### Headings
 
 | Element | Font Size | Font Weight | Color     | Margin Bottom |
 |---------|-----------|-------------|-----------|---------------|
-| `h1`    | `2.5em`   | `600`       | `#2c3e50` | `0.75rem`     |
-| `h2`    | `2em`     | `600`       | `#2c3e50` | `0.75rem`     |
-| `h3`    | `1.75em`  | `600`       | `#2c3e50` | `0.5rem`      |
-| `h4`    | `1.5em`   | `600`       | `#2c3e50` | `0.5rem`      |
-| `h5`    | `1.25em`  | `600`       | `#2c3e50` | `0.5rem`      |
-| `h6`    | `1em`     | `600`       | `#2c3e50` | `0.5rem`      |
-*Header H1 (`header > h1`)*: `1.75em`, `600`, `#2c3e50`, `margin: 0`.
+| `h1`    | `2.5em`   | `700`       | `#1d1d1f` | `0.75rem`     |
+| `h2`    | `2em`     | `700`       | `#1d1d1f` | `0.75rem`     |
+| `h3`    | `1.75em`  | `600`       | `#1d1d1f` | `0.5rem`      |
+| `h4`    | `1.5em`   | `600`       | `#1d1d1f` | `0.5rem`      |
+| `h5`    | `1.25em`  | `600`       | `#1d1d1f` | `0.5rem`      |
+| `h6`    | `1em`     | `600`       | `#1d1d1f` | `0.5rem`      |
+*Header H1 (`header > h1`)*: `1.75em`, `700`, `#1d1d1f`, `margin: 0`.
 
 ### Text Elements
 
-*   **Body Text (`p`, general text)**: `1em`, `normal` weight, `#212529` color, `line-height: 1.5`.
-*   **Labels (`label`)**: `1em` (or `0.95em` in specific contexts like profile forms), `500` weight, `#34495e` color, `margin-bottom: 8px`.
-*   **Links (`a`)**: Inherit font size, `normal` or `500` weight, `#007bff` color. Hover: `#0056b3`. No text decoration by default, underline on hover for some links (e.g., `.form-link`).
+*   **Body Text (`p`, general text)**: `1em`, `400` weight, `#1d1d1f` color, `line-height: 1.6`.
+*   **Labels (`label`)**: `1em` (or `0.95em` in specific contexts like profile forms), `500` weight, `#1d1d1f` color, `margin-bottom: 8px`.
+*   **Links (`a`)**: Inherit font size, `400` or `500` weight, `#1d1d1f` color. Hover: `#0056b3`. No text decoration by default, underline on hover for some links (e.g., `.form-link`).
 *   **Small Text (`small`)**: `0.85em` - `0.9em`.
 
 ## 4. Spacing
@@ -80,47 +67,92 @@ Consistent spacing creates visual rhythm and balance.
 *   **Standard Border**: `1px solid #dee2e6` (for cards, sections, tables).
 *   **Input Border**: `1px solid #ced4da` (default for inputs, can also use `#dee2e6`).
 *   **Border Radius**:
-    *   Cards, Modals, Major Sections: `6px`.
-    *   Buttons, Inputs, Smaller Elements: `4px`.
+    *   Cards, Major Sections: `16px`.
+    *   Modals: `20px`.
+    *   Tables: `16px`.
+    *   Buttons, Inputs, Smaller Elements: `10px`.
     *   Pill-shaped elements (e.g., mesocycle phase items): `15px` or larger.
 
 ### Shadows
 
-*   **Standard Card Shadow**: `0 1px 3px rgba(0,0,0,0.04)` (very subtle).
-*   **Elevated Shadow (e.g., on hover or modals)**: `0 4px 8px rgba(0,0,0,0.1)` or `0 2px 4px rgba(0,0,0,0.05)`.
-    Shadows should be used sparingly to indicate elevation or interactivity.
+- Standard Card: `0 1px 3px rgba(0,0,0,0.02), 0 20px 40px rgba(0,0,0,0.015), inset 0 1px 0 rgba(255, 255, 255, 0.7)`
+- Elevated/Hover: `0 8px 25px rgba(0,0,0,0.15)` for buttons, `0 6px 20px rgba(0,0,0,0.08)` for secondary
+- Modal: `0 32px 64px rgba(0,0,0,0.12), 0 8px 32px rgba(0,0,0,0.08), inset 0 2px 0 rgba(255, 255, 255, 0.8)`
 
-## 6. Component Styling
+## 6. Glassmorphism & Texture Effects
+
+### Glassmorphism Effects
+
+- **Cards:** `background: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.95) 50%), linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 251, 252, 0.95) 100%); backdrop-filter: blur(20px);`
+- **Buttons (Primary):** `background: linear-gradient(135deg, #1d1d1f 0%, #2d2d30 100%);`
+- **Buttons (Secondary):** `background: linear-gradient(135deg, rgba(245, 245, 247, 0.95) 0%, rgba(250, 251, 252, 0.98) 100%); backdrop-filter: blur(10px);`
+- **Form Inputs:** `background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 251, 252, 0.98) 100%); backdrop-filter: blur(10px);`
+
+### Sparkle Texture Effects
+
+- **Diamond Dust for Primary Buttons:** Add `::before` pseudo-element with `radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 2px), radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.08) 0%, transparent 1px), radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 1px); background-size: 20px 20px, 30px 30px, 25px 25px;`
+- **Special Cards:** Option for `.sparkle` class with animated sparkle background
+- **Table Headers:** Subtle sparkle overlay using `::after` pseudo-element
+
+## 7. Component Styling
 
 ### Buttons
 
-Base `button` style includes `cursor: pointer; border: 1px solid transparent; padding: 10px 15px; font-size: 1em; border-radius: 4px; font-weight: 500;`.
+```css
+button, .button {
+    cursor: pointer;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1em;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-family: inherit; /* Will inherit from body or a more specific rule */
+}
 
-| Class                   | Background      | Text Color | Border Color    | Hover Background | Hover Border    | Notes                                      |
-|-------------------------|-----------------|------------|-----------------|------------------|-----------------|--------------------------------------------|
-| `.button-primary`       | `#007bff`       | `white`    | `#007bff`       | `#0056b3`        | `#0056b3`       | Primary actions.                           |
-| `.button-secondary`     | `#6c757d`       | `white`    | `#6c757d`       | `#5a6268`        | `#545b62`       | Secondary actions.                         |
-| `.button-error`         | `#dc3545`       | `white`    | `#dc3545`       | `#c82333`        | `#bd2130`       | Destructive actions (e.g., delete).        |
-| `.button-danger-outline`| `transparent`   | `#dc3545`  | `#dc3545`       | `#dc3545`        | `#dc3545`       | (Hover text becomes white) Less prominent destructive. |
-| `.button-link`          | `transparent`   | `#007bff`  | `none`          | `transparent`    | `none`          | (Hover text `#0056b3`, underline) Link-like. |
-| `.button-sm`            | (Inherits base) | (Inherits) | (Inherits)      | (Inherits)       | (Inherits)      | `padding: 5px 10px; font-size: 0.875em;`     |
+.button-primary {
+    background: linear-gradient(135deg, #1d1d1f 0%, #2d2d30 100%);
+    color: white;
+    position: relative; /* Needed for pseudo-elements like sparkle */
+    overflow: hidden; /* Helps contain pseudo-elements */
+}
 
-*   **Disabled State**: Buttons use `background-color: #adb5bd; cursor: not-allowed;` when disabled.
-*   **Button with Loader**: `<span class="loader"></span>` can be placed inside a button.
+.button-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15); /* From new shadow definitions */
+}
+
+.button-secondary {
+    background: linear-gradient(135deg, rgba(245, 245, 247, 0.95) 0%, rgba(250, 251, 252, 0.98) 100%);
+    backdrop-filter: blur(10px); /* From new glassmorphism effects */
+    border: 1px solid rgba(229, 229, 231, 0.8); /* New border color */
+    /* Note: text color for secondary button not specified, defaults to Primary Dark via inheritance or body style */
+}
+
+/* Add notes for other button types if necessary, or remove old ones if they are no longer relevant.
+   The prompt focuses on primary and secondary.
+   Remove old button classes like .button-error, .button-danger-outline, .button-link, .button-sm if they are not part of the new design.
+   The provided CSS only defines `button`, `.button`, `.button-primary`, and `.button-secondary`.
+*/
+```
 
 ### Forms
 
-*   **Labels (`label`)**: `display: block; margin-bottom: 8px; font-weight: 500; color: #34495e;`.
+*   **Labels (`label`)**: `display: block; margin-bottom: 8px; font-weight: 500; color: #1d1d1f;`.
 *   **Inputs (`input[type="text"]`, `input[type="password"]`, `input[type="email"]`, `input[type="number"]`, `textarea`, `select`)**:
     *   `width: 100%;` (within their container).
-    *   `padding: 10px;`
-    *   `border: 1px solid #ced4da;`
-    *   `border-radius: 4px;`
+    *   `padding: 12px 16px;`
+    *   `border: 1px solid rgba(229, 229, 231, 0.8);` /* Light Border with 0.8 alpha */
+    *   `border-radius: 10px;` (consistent with overall border strategy)
     *   `box-sizing: border-box;`
     *   `font-size: 1em;`
-    *   `background-color: #ffffff;`
+    *   `background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 251, 252, 0.98) 100%);` (Glassmorphism effect)
+    *   `backdrop-filter: blur(10px);`
+    *   `color: #1d1d1f;` (Primary Dark for text)
+    *   Placeholder text color: `#86868b;` (Light Gray)
+    *   Focus state: `box-shadow: 0 0 0 3px rgba(29, 29, 31, 0.05); outline: none;` (Outline removed for cleaner focus)
 *   **`.form-control` class**: Can be added to inputs/selects to explicitly apply the above styling.
-*   **Checkboxes**: Standard browser appearance with `vertical-align: middle; margin-right: 5px;`. Labels are `display: inline-block; font-weight: normal;`.
+*   **Checkboxes**: Standard browser appearance with `vertical-align: middle; margin-right: 5px;`. Labels are `display: inline-block; font-weight: normal; color: #1d1d1f;`.
 *   **Form Groups (`form div`)**: Provide basic structure; spacing is primarily managed by label margins and input margins.
 
 ### Modals
@@ -129,7 +161,7 @@ Base `button` style includes `cursor: pointer; border: 1px solid transparent; pa
 *   **Content Box (`.modal-content`)**:
     *   `background: #ffffff;`
     *   `padding: 25px;`
-    *   `border-radius: 6px;`
+    *   `border-radius: 20px;`
     *   `box-shadow: 0 4px 8px rgba(0,0,0,0.1);`
     *   Typically `text-align: center;` (can be overridden).
     *   `max-width: 500px; width: 90%;`.
@@ -137,7 +169,7 @@ Base `button` style includes `cursor: pointer; border: 1px solid transparent; pa
 ### Message Boxes / Notifications
 
 Classes: `.success-message`, `.error-message`, `.warning-message` (can also use generic `.message` for success).
-*   **Common Styles**: `padding: 10px 15px; border-radius: 4px; margin-bottom: 1rem; display: none;` (toggled by JS).
+*   **Common Styles**: `padding: 10px 15px; border-radius: 10px; margin-bottom: 1rem; display: none;` (toggled by JS).
 *   **Success (`.success-message`)**: Light green background (`#d4edda`), dark green text (`#155724`), green border (`#c3e6cb`).
 *   **Error (`.error-message`)**: Light red background (`#f8d7da`), dark red text (`#721c24`), red border (`#f5c6cb`).
 *   **Warning (`.warning-message`, e.g., Plateau Notifications, Touch Device Message)**: Light yellow background (`#fff3cd`), dark yellow text (`#856404`), yellow border (`#ffeeba`).
@@ -145,11 +177,16 @@ Classes: `.success-message`, `.error-message`, `.warning-message` (can also use 
 ### Cards / Panels
 
 Used for dashboard sections, plan builder panels, profile sections, workout execution modules.
-*   `background-color: #ffffff;`
-*   `border: 1px solid #dee2e6;`
-*   `border-radius: 6px;`
-*   `box-shadow: 0 1px 3px rgba(0,0,0,0.04);`
-*   `padding: 20px;` (or `25px` for larger dashboard sections).
+*   `background: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.95) 50%), linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 251, 252, 0.95) 100%);` (Glassmorphism effect)
+*   `backdrop-filter: blur(20px);`
+*   `border: 1px solid #e5e5e7;` (Light Border)
+*   `border-radius: 16px;` (Consistent with overall border strategy)
+*   `box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 20px 40px rgba(0,0,0,0.015), inset 0 1px 0 rgba(255, 255, 255, 0.7);` (Standard Card shadow)
+*   Padding:
+    *   Standard: `20px`.
+    *   Large option (for larger cards/sections): `32px`.
+*   May include `::before` pseudo-elements for subtle texture overlays.
+*   Special cards can use a `.sparkle` class for an animated sparkle background (see Sparkle Texture Effects).
 
 ### Navigation
 
@@ -168,12 +205,30 @@ Used for dashboard sections, plan builder panels, profile sections, workout exec
 
 ### Tables
 
-*   **`table`**: `width: 100%; border-collapse: collapse; margin-bottom: 1rem;`.
-*   **`th, td`**: `padding: 0.75rem; text-align: left; border: 1px solid #dee2e6; vertical-align: top;`.
-*   **`th`**: `background-color: #f8f9fa; font-weight: 600; color: #495057;`.
+*   **`table`**:
+    *   `width: 100%;`
+    *   `margin-bottom: 1rem;`
+    *   `border-collapse: separate;` (to allow `border-radius` on the table with cell borders)
+    *   `border-spacing: 0;`
+    *   `background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 251, 252, 0.95) 100%);` (Glassmorphism)
+    *   `backdrop-filter: blur(10px);`
+    *   `border-radius: 16px;` (Consistent with overall border strategy)
+    *   `overflow: hidden;` (Ensures child elements respect the table's border radius)
+*   **`th, td`**:
+    *   `padding: 16px 20px;`
+    *   `text-align: left;`
+    *   `border: 1px solid #e5e5e7;` (Light Border)
+    *   `vertical-align: top;`
+*   **`th` (Table Header Cells)**:
+    *   `background-color: transparent;` (Allows table's glassmorphism to show through)
+    *   `font-weight: 600;` (Consistent with typography)
+    *   `color: #1d1d1f;` (Primary Dark)
+    *   Can use `::after` pseudo-element for a subtle sparkle overlay (see Sparkle Texture Effects).
+*   **`td` (Table Data Cells)**:
+    *   `color: #1d1d1f;` (Primary Dark)
 *   Workout Execution Set Tracker Table (`.set-tracker`): `text-align: center` for cells, more specific padding, uppercase headers.
 
-## 7. Utility Classes
+## 8. Utility Classes
 
 *   **`.hidden`**: `display: none !important;`
 *   **`.loader`**: Animated loading spinner.
@@ -181,7 +236,7 @@ Used for dashboard sections, plan builder panels, profile sections, workout exec
 *   **Button variants**: `.button-primary`, `.button-secondary`, `.button-error`, `.button-danger-outline`, `.button-link`, `.button-sm`.
 *   **Message variants**: `.success-message`, `.error-message`, `.warning-message`.
 
-## 8. Responsive Design
+## 9. Responsive Design
 
 The application aims for a responsive design:
 *   **Mobile-First Considerations**: Layouts are generally fluid.
@@ -191,12 +246,14 @@ The application aims for a responsive design:
 *   **Full-Width Elements**: Form inputs and some buttons become full-width on smaller screens for easier interaction.
 *   **Table Scrolling**: Workout Execution set logging table allows horizontal scroll on small screens.
 
-## 9. Accessibility
+## 10. Accessibility
 
 While not exhaustively audited, considerations include:
-*   **Color Contrast**: Striving for sufficient contrast between text and background colors, especially for primary content and interactive elements.
+*   **Contrast Ratios**: Ensure all text and interactive elements meet WCAG AA contrast ratios with the new color palette. Particular attention should be paid to combinations like text on glassmorphic backgrounds. Strive for sufficient contrast, especially for primary content and interactive elements.
 *   **Font Readability**: Using clear, sans-serif fonts with adequate sizing and line height.
-*   **Interactive Elements**: Buttons and links are styled to be clearly identifiable. Focus states should be default browser states unless specifically overridden.
+*   **Readability with Effects**: Verify that glassmorphism effects, textures, and sparkle details do not impede readability or obscure important information. Test with various content types.
+*   **Interactive Elements**: Buttons and links are styled to be clearly identifiable. Focus states should be clear and meet accessibility standards (note: default browser states are a baseline but custom focus states like the new input `box-shadow` should also be tested for clarity).
+*   **Reduced Motion for Animations**: For sparkle animations and other significant motion effects, provide a mechanism or respect user preferences for reduced motion (e.g., via `prefers-reduced-motion` media query) to prevent discomfort for sensitive users.
 *   **Semantic HTML**: Using appropriate HTML5 elements for structure where possible.
 
 This style guide should evolve with the application.
