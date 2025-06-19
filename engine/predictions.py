@@ -394,3 +394,147 @@ def calculate_mti(weight: float, reps: int, rir: int) -> tuple[int, int]:
     mti_value = round(weight * effective_reps) # Round MTI to nearest integer
 
     return effective_reps, int(mti_value) # Ensure mti_value is int
+
+
+# --- Main Recommendation Function (incorporating readiness) ---
+# This is a simplified placeholder. A full implementation would involve more factors.
+from .readiness import calculate_readiness_multiplier # Import from readiness.py
+# Assuming app context for logger and db helpers might be tricky if this file is purely computational.
+# For now, let's assume db_conn is passed in, or this function is called from a route that handles DB.
+# from ..app import get_db_connection, release_db_connection, logger # Would need careful handling of app context
+
+def recommend_next_set_parameters(
+    user_id: str,
+    exercise_id: str,
+    db_conn, # Expect an active database connection
+    user_current_e1rm: float, # User's current estimated 1RM for this exercise
+    user_goal_strength_fraction: float, # User's goal (0.0 hyper, 1.0 strength)
+    user_rir_bias: float, # User's current RIR bias
+    exercise_equipment_type: str | None = 'barbell', # From exercises table
+    user_available_plates_kg: list[float] | None = None, # From users table
+    user_barbell_weight_kg: float | None = None # From users table
+    ):
+    """
+    Recommends parameters for the next set, applying readiness multiplier.
+    This is a simplified version for integration.
+    """
+    from engine.app import logger # Local import to avoid circular dependencies at module level if app imports predictions
+
+    # 1. Determine target parameters based on goal (from learning_models.calculate_training_params)
+    # This function is in learning_models.py, so it needs to be imported or its logic replicated/called.
+    # For now, let's assume we get some base targets from it.
+    # from .learning_models import calculate_training_params # This creates a circular import if learning_models imports predictions
+    # Simplified:
+    # target_load_percentage = 0.75 # Example: 75% of 1RM
+    # target_reps_for_calc = 8      # Example: Target 8 reps
+    # target_rir_for_calc = 2       # Example: Target RIR 2
+
+    # Using a simplified version of calculate_training_params logic here
+    # to avoid direct import issues for now.
+    # In a refactor, this might be structured differently.
+    if not 0.0 <= user_goal_strength_fraction <= 1.0:
+        user_goal_strength_fraction = 0.5 # Default to balanced if invalid
+
+    target_load_percentage = 0.60 + 0.35 * user_goal_strength_fraction
+    # target_rir_float = 2.5 - 1.5 * user_goal_strength_fraction
+    # For recommending weight, we often work towards a target rep and RIR.
+    # Let's assume a common target of 8-12 reps for hypertrophy, 3-6 for strength.
+    # And RIR 1-3.
+    # The `calculate_training_params` in learning_models gives these.
+    # For this example, let's fix target_reps and target_rir for simplicity of demonstration.
+    target_reps_for_recommendation = 8
+    target_rir_for_recommendation = 2
+
+
+    # 2. Calculate initial recommended weight based on e1RM, target reps, and target RIR
+    # This is effectively reversing the e1RM formula: Weight = e1RM * ( (30 - (Reps + RIR_adj)) / 30 )
+    # Or more directly: Weight = e1RM / (1 + ( (Reps + RIR_adj) / 30) )
+    # Using the formula from estimate_1rm_with_rir_bias: estimated_1rm = weight / (1 - 0.0333 * total_reps_adjusted_for_rir)
+    # So, weight = estimated_1rm * (1 - 0.0333 * total_reps_adjusted_for_rir)
+
+    # Adjust target_rir by user's bias for calculation:
+    # If user underestimates RIR (positive bias), they are stronger, so for a *true* RIR 2, they might report RIR 0.
+    # Or, if they report RIR 2, their true RIR is 2 + bias.
+    # When recommending, we want them to *achieve* a true RIR.
+    # So, if we want them to hit true RIR 2, and their bias is +1 (they underestimate by 1),
+    # we should tell them to aim for RIR 1 (because 1 - (+1) = 0 in their perception for e1RM calc, but that's for *input*.
+    # For *output* recommendation: target effective RIR for calculation = target_reported_RIR - user_rir_bias
+    # This is the RIR value the Epley formula expects if it were raw.
+    effective_rir_for_calc = max(0, target_rir_for_recommendation - user_rir_bias)
+
+    total_reps_for_e1rm_formula = target_reps_for_recommendation + effective_rir_for_calc
+    if total_reps_for_e1rm_formula >= 30: total_reps_for_e1rm_formula = 29 # Cap for formula stability
+
+    denominator_for_weight_calc = 1 - (0.0333 * total_reps_for_e1rm_formula)
+
+    if user_current_e1rm <= 0 or denominator_for_weight_calc <= 0:
+        recommended_weight_before_readiness = 40.0 # Default fallback or error
+        logger.warning(f"User {user_id}, Ex {exercise_id}: Invalid e1RM ({user_current_e1rm}) or calc error for initial weight. Defaulting.")
+    else:
+        recommended_weight_before_readiness = user_current_e1rm * denominator_for_weight_calc
+
+    logger.info(f"User {user_id}, Ex {exercise_id}: Initial recommended weight {recommended_weight_before_readiness:.2f}kg (e1RM: {user_current_e1rm}kg, GoalFrac: {user_goal_strength_fraction}, Bias: {user_rir_bias})")
+
+
+    # 3. Fetch latest workout's readiness data
+    readiness_multiplier_val = 1.0
+    try:
+        with db_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT sleep_hours, stress_level, hrv_ms
+                FROM workouts
+                WHERE user_id = %s AND completed_at IS NOT NULL
+                ORDER BY completed_at DESC LIMIT 1;
+                """,
+                (user_id,)
+            )
+            latest_workout_data = cur.fetchone()
+
+        if latest_workout_data and \
+           latest_workout_data['sleep_hours'] is not None and \
+           latest_workout_data['stress_level'] is not None:
+
+            # hrv_ms can be None, calculate_readiness_multiplier handles it
+            readiness_multiplier_val = calculate_readiness_multiplier(
+                sleep_h=float(latest_workout_data['sleep_hours']),
+                stress_lvl=int(latest_workout_data['stress_level']), # Assuming stress stored as int/float convertible
+                hrv_ms=float(latest_workout_data['hrv_ms']) if latest_workout_data['hrv_ms'] is not None else None,
+                user_id=user_id, # Pass as UUID if type hinting expects it, else str
+                db_conn=db_conn
+            )
+            logger.info(f"User {user_id}, Ex {exercise_id}: Readiness multiplier {readiness_multiplier_val:.4f} applied.")
+        else:
+            logger.info(f"User {user_id}, Ex {exercise_id}: No recent-enough readiness data found or sleep/stress missing, multiplier is 1.0.")
+            # readiness_multiplier_val remains 1.0
+
+    except Exception as e:
+        logger.error(f"User {user_id}, Ex {exercise_id}: Error fetching readiness data or calculating multiplier: {e}", exc_info=True)
+        readiness_multiplier_val = 1.0 # Default to neutral on error
+
+    # 4. Apply readiness multiplier
+    final_recommended_weight = recommended_weight_before_readiness * readiness_multiplier_val
+
+    # 5. Round to available plates (using the existing function)
+    # Ensure user_available_plates_kg and user_barbell_weight_kg are correctly passed if needed for barbell
+    rounded_weight = round_to_available_plates(
+        target_weight_kg=final_recommended_weight,
+        available_plates_kg=user_available_plates_kg,
+        barbell_weight_kg=user_barbell_weight_kg,
+        equipment_type=exercise_equipment_type
+    )
+    logger.info(f"User {user_id}, Ex {exercise_id}: Final recommended weight {rounded_weight:.2f}kg (pre-round: {final_recommended_weight:.2f}kg)")
+
+    return {
+        "recommended_weight_kg": rounded_weight,
+        "target_reps_low": target_reps_for_recommendation -1, # Example rep range
+        "target_reps_high": target_reps_for_recommendation +1,
+        "target_rir": target_rir_for_recommendation,
+        "explanation": f"Based on e1RM {user_current_e1rm:.1f}kg, goal ({user_goal_strength_fraction}), and readiness ({readiness_multiplier_val:.3f}). Initial: {recommended_weight_before_readiness:.1f}kg."
+        # Add confidence score later if needed
+    }
+
+# Placeholder for a more sophisticated fatigue model if needed
+# def apply_fatigue_adjustment(recommended_weight, fatigue_metrics):
+#     # ...
+#     return adjusted_weight

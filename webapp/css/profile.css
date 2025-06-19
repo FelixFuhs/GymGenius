@@ -1,0 +1,170 @@
+/* General Profile Page Styles */
+body {
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+    margin: 0;
+}
+
+header {
+    background: #ffffff;
+    color: #212529;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.75em;
+    font-weight: 600;
+}
+
+header nav a {
+    color: #007bff;
+    text-decoration: none;
+    margin-right: 20px;
+}
+
+#profile-page-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+h2 {
+    font-size: 1.5em;
+    color: #343a40;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+h4 {
+    font-size: 1.1em;
+    color: #495057;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+/* Form elements from existing profile.js */
+#equipment-form label,
+#equipment-form p {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+#equipment-form input[type="text"],
+#equipment-form input[type="number"],
+#equipment-form select {
+    width: 100%;
+    max-width: 300px; /* Limit width of inputs */
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#plate-selection label {
+    display: inline-block; /* Allow multiple checkboxes per line with spacing */
+    margin-right: 15px;
+    margin-bottom: 5px;
+    font-weight: normal;
+}
+#plate-selection input[type="checkbox"] {
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+
+/* General button styling (if not covered by global style.css) */
+.button-primary {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+}
+.button-primary:hover {
+    background-color: #0056b3;
+}
+.button-primary:disabled {
+    background-color: #adb5bd;
+    cursor: not-allowed;
+}
+
+
+/* Message area styling */
+.message-area {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.message-area.success { /* Example, if JS adds class */
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.message-area.error { /* Example */
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+
+/* Styles for Data Export Functionality */
+#export-data-btn {
+    /* Uses .button-primary, can add specifics if needed */
+    display: inline-block; /* Or block if it should take full width of its container */
+}
+
+#export-feedback-msg {
+    margin-top: 10px;
+    font-weight: bold;
+    min-height: 1.5em; /* Prevent layout shift */
+}
+
+/* Small loader for buttons (re-defined here if not global, or ensure profile.css loads after common css) */
+.loader-small {
+    display: inline-block;
+    border: 3px solid #f3f3f3; /* Light grey */
+    border-top: 3px solid #fff; /* White for contrast on colored buttons */
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 30px;
+    font-size: 0.9em;
+    color: #6c757d;
+}

@@ -16,9 +16,92 @@ function getToken() {
 
 function removeToken() {
     localStorage.removeItem('jwtToken');
+    // Also remove refresh token if stored separately
+    localStorage.removeItem('refreshToken'); // Added for logout
+    localStorage.removeItem('workoutFlowState'); // Clear any active workout state
+    // Add any other specific app data stored in localStorage that needs clearing on logout
+    // For a more thorough cleanup, consider iterating keys or using a prefix if applicable
+
     currentUserId = null; // Clear global userId on logout
     currentWorkoutId = null; // Clear global workoutId on logout
+    // window.workoutFlowManager?._clearState(); // Also ensure workout flow manager state is cleared
 }
+
+// --- Logout Function ---
+async function handleLogout() {
+    console.log("Handling logout...");
+    showGlobalLoader(); // Show loader during logout process
+
+    const accessToken = getToken(); // Gets 'jwtToken'
+    const refreshToken = localStorage.getItem('refreshToken'); // Assuming it's stored with this key
+
+    // Regardless of API call success, clear local data and redirect.
+    const cleanupAndRedirect = async () => {
+        removeToken(); // Clears access token, refresh token, and other relevant app data
+
+        // 3. Implement Service Worker Cache Clearing / Unregistration
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    await registration.unregister();
+                    console.log('Service worker unregistered successfully.');
+                } else {
+                    console.log('No active service worker registration found to unregister.');
+                }
+            } catch (error) {
+                console.error('Error unregistering service worker:', error);
+            }
+        }
+
+        // Clear caches explicitly - this is more aggressive
+        if (window.caches) {
+            try {
+                const keys = await window.caches.keys();
+                await Promise.all(keys.map(key => window.caches.delete(key)));
+                console.log('All caches deleted successfully.');
+            } catch (error) {
+                console.error('Error deleting caches:', error);
+            }
+        }
+
+        console.log("Tokens and local data cleared. Redirecting to login.");
+        window.location.hash = '#login'; // Navigate to login page
+        // The navigate() function in DOMContentLoaded should hide the loader
+        // but if not, or if logout happens before full load:
+        hideGlobalLoader();
+    };
+
+    if (accessToken && refreshToken) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/v1/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ refresh_token: refreshToken })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Logout successful on server:', data.msg);
+            } else {
+                // Log error but proceed with client-side logout anyway
+                const errorData = await response.json().catch(() => ({ error: "Logout failed, unknown server error" }));
+                console.warn('Server logout failed or encountered an error:', response.status, errorData.error);
+            }
+        } catch (error) {
+            // Log error but proceed with client-side logout anyway
+            console.error('Error during logout API call:', error);
+        }
+    } else {
+        console.log("No access or refresh token found, proceeding with client-side cleanup.");
+    }
+
+    await cleanupAndRedirect();
+}
+
 
 function getAuthHeaders() {
     const token = getToken();
@@ -357,6 +440,30 @@ document.addEventListener('DOMContentLoaded', () => {
             navLinks.classList.toggle('active');
         });
     }
+
+    // Stale Tab Protection
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            const currentToken = getToken(); // Checks for 'jwtToken'
+            const currentRefreshToken = localStorage.getItem('refreshToken');
+            const nonAuthPages = ['#login', '#signup']; // Pages accessible without login
+            const currentPathRoot = window.location.hash.split('?')[0] || '#login';
+
+            if (!currentToken || !currentRefreshToken) {
+                // If tokens are missing and we are not on a non-auth page
+                if (!nonAuthPages.includes(currentPathRoot)) {
+                    console.log('Tokens missing on visible tab. Likely logged out in another tab. Redirecting to login.');
+                    alert('You have been logged out. Please log in again.'); // Optional user message
+
+                    // Clear any potentially remaining local state just in case
+                    removeToken(); // Ensures all local auth-related items are cleared
+                    window.location.hash = '#login';
+                    // The navigate() function will handle rendering the login page
+                    // and also calling updateFooterNav()
+                }
+            }
+        }
+    });
 });
 
 function LoginPage() {
@@ -400,20 +507,37 @@ function LoginPage() {
             body: JSON.stringify({ email, password })
         })
         .then(response => response.json().then(data => ({ status: response.status, body: data })))
-        .then(({ status, body }) => {
-            if (status === 200 && body.access_token) {
-                storeToken(body.access_token);
+        .then(async ({ status, body }) => { // Made async
+            if (status === 200 && body.access_token && body.refresh_token) { // Ensure refresh_token is present
+                storeToken(body.access_token); // Stores access_token as 'jwtToken'
+                localStorage.setItem('refreshToken', body.refresh_token); // Store refresh_token
+
                 const decodedToken = decodeJWT(body.access_token);
                 if (decodedToken && decodedToken.user_id) {
                     currentUserId = decodedToken.user_id;
                     console.log('Login successful, user ID:', currentUserId);
+
+                    // Attempt to load user profile after login to get preferences like unit_system
+                    // This assumes ProfileManager and loadUserProfile are defined elsewhere and globally accessible
+                    if (window.ProfileManager && typeof window.ProfileManager.loadUserProfile === 'function') {
+                        try {
+                            await window.ProfileManager.loadUserProfile(currentUserId);
+                            console.log("User profile loaded after login.");
+                        } catch (profileError) {
+                            console.warn("Failed to load user profile immediately after login:", profileError);
+                            // Non-critical, app can proceed. Profile might be loaded later.
+                        }
+                    }
+
                 } else {
                     console.error('Login successful, but user_id not found in token.');
-                    // Fallback or error handling if user_id is crucial immediately
                 }
                 window.location.hash = '#exercises'; // Navigate to exercises page on successful login
             } else {
-                console.error('Login failed:', body.error || 'Unknown error');
+                if (status === 200 && !body.refresh_token) {
+                    console.error('Login successful, but refresh_token missing in response.');
+                }
+                console.error('Login failed:', body.error || 'Unknown error or missing tokens');
                 errorDiv.textContent = body.error || 'Login failed. Please check your credentials.';
                 errorDiv.style.display = 'block';
             }
@@ -861,11 +985,14 @@ function updateFooterNav() {
             <a id="feedback-link" target="_blank">Beta Feedback</a>
             <a href="#" id="logout-link">Logout</a>
         `;
-        footerNav.querySelector('#logout-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            removeToken();
-            window.location.hash = '#login'; // Triggers navigation and clears page
-        });
+        // Attach the new handleLogout function
+        const logoutLink = footerNav.querySelector('#logout-link');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await handleLogout();
+            });
+        }
     } else {
         footerNav.innerHTML = `
             <a href="#login">Login</a>

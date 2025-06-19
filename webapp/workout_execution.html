@@ -23,6 +23,17 @@
             <h2>Exercise: <span id="exercise-name-placeholder">[Exercise Name]</span></h2>
         </div>
 
+        <div id="readiness-dial-container" class="readiness-dial-container card-style"> <!-- Added card-style for common look -->
+            <label for="readiness-progress" class="readiness-label">Overall Readiness:</label>
+            <div class="progress-bar-container">
+                <progress id="readiness-progress" value="0" max="100"></progress>
+                <span id="readiness-score-text" class="progress-bar-text">0%</span>
+            </div>
+            <div id="low-readiness-message" class="warning-message" style="display:none; margin-top: 8px;">
+                <p>Due to lower readiness, today's recommended loads may be slightly reduced to support recovery and long-term progress.</p>
+            </div>
+        </div>
+
         <div class="ai-recommendation-card">
             <h2>AI Recommends</h2>
             <div class="weight-display">80 kg</div>
@@ -86,12 +97,63 @@
         <div class="workout-controls">
              <button id="next-exercise-btn" class="action-button primary-action">Next Exercise</button>
              <button id="end-workout-btn" class="action-button secondary-action">End Workout</button>
+             <button id="share-workout-btn" class="action-button">Share Workout</button>
+        </div>
+
+        <div id="share-link-container" class="share-link-container" style="display:none; margin-top: 20px; padding: 15px; background-color: #e9f5ff; border-radius: 6px; text-align: center;">
+            <p style="margin-bottom: 8px; font-weight: bold;">Share this link:</p>
+            <input type="text" id="share-link-display" readonly style="width: 80%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;">
+            <button id="copy-share-link-btn" class="action-button" style="padding: 8px 15px;">Copy</button>
+            <p id="copy-feedback-msg" style="font-size: 0.9em; color: green; margin-top: 5px;"></p>
+            <p style="font-size: 0.8em; color: #555; margin-top: 10px;">This link will expire in 7 days.</p> <!-- Info about expiry -->
         </div>
     </main>
 
     <footer>
         <p>&copy; 2024 GymGenius. All rights reserved.</p>
     </footer>
+
+    <!-- End Workout Modal -->
+    <div id="end-workout-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-modal-btn" id="close-end-workout-modal">&times;</span>
+            <h2>Finalize Workout</h2>
+            <form id="end-workout-form">
+                <div class="form-group">
+                    <label for="end-workout-fatigue">Overall Fatigue Level (1-10):</label>
+                    <input type="range" id="end-workout-fatigue" name="fatigue_level" min="1" max="10" step="1" value="5">
+                    <span id="end-workout-fatigue-value">5</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="end-workout-sleep">Sleep last night (hours):</label>
+                    <input type="range" id="end-workout-sleep" name="sleep_hours" min="0" max="12" step="0.5" value="7.5">
+                    <span id="end-workout-sleep-value">7.5</span> hours
+                </div>
+
+                <div class="form-group">
+                    <label for="end-workout-hrv">HRV (ms, optional):</label>
+                    <input type="number" id="end-workout-hrv" name="hrv_ms" min="0" step="0.1" placeholder="e.g., 45.5">
+                </div>
+
+                <div class="form-group">
+                    <label for="end-workout-stress">Stress Level (1-10):</label>
+                    <input type="range" id="end-workout-stress" name="stress_level" min="1" max="10" step="1" value="5">
+                    <span id="end-workout-stress-value">5</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="end-workout-notes">Workout Notes (optional):</label>
+                    <textarea id="end-workout-notes" name="notes" rows="3" placeholder="Any general notes about the workout..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" id="save-and-end-workout-btn" class="action-button primary-action">Save & End Workout</button>
+                    <button type="button" id="cancel-end-workout-btn" class="action-button secondary-action">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Basic JS placeholder, actual logic will be in a separate file -->
     <script src="js/workout_execution_ui.js"></script> <!-- Added UI script for canvas placeholder -->

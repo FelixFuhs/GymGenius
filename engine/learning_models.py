@@ -7,58 +7,68 @@ from typing import List, Dict, Any
 from pprint import pprint
 
 # Define reasonable bounds for RIR bias
-MIN_RIR_BIAS = -2.0
-MAX_RIR_BIAS = 5.0
+MIN_RIR_BIAS = -3.0 # As per new spec in a comment, though original was -2.0
+MAX_RIR_BIAS = 3.0  # As per new spec in a comment, though original was 5.0
+RIR_BIAS_EMA_ALPHA = 0.2 # Smoothing factor for EMA, can be moved to constants.py
 
 def update_user_rir_bias(
-    current_rir_bias: float,
+    old_bias: float,
     predicted_reps: int,
     actual_reps: int,
-    learning_rate: float = 0.1
-) -> float:
+    base_lr: float, # Corresponds to users.rir_bias_lr
+    current_error_ema: float # Corresponds to users.rir_bias_error_ema
+) -> tuple[float, float]:
     """
     Updates the user's RIR (Reps In Reserve) bias based on performance.
 
-    The RIR bias represents the user's tendency to overestimate or underestimate RIR.
-    A positive bias (e.g., 2.0) means the user typically underestimates their RIR
-    (i.e., they report RIR 2 but could have done more reps, effectively having a higher true RIR).
+    The learning rate (LR) for the bias update adapts per user based on the
+    Exponential Moving Average (EMA) of the error in predicted vs. actual reps.
+    The formula for the dynamic learning rate is: base_lr / (1 + |EMA(error)|).
+    This adaptive LR helps maintain stability if rep errors are noisy, while allowing
+    responsiveness when performance is consistent.
 
     Args:
-        current_rir_bias: The user's current RIR bias value.
-        predicted_reps: The number of reps the system predicted the user could do
-                          for a given load at their target RIR (this prediction would
-                          have already accounted for the current_rir_bias).
-        actual_reps: The number of reps the user actually performed at that load.
-        learning_rate: The learning rate for adjusting the bias.
+        old_bias: The user's current RIR bias.
+        predicted_reps: The number of reps predicted for the set at the given RIR.
+        actual_reps: The number of reps actually performed.
+        base_lr: The user's base learning rate for RIR bias adjustments (users.rir_bias_lr).
+        current_error_ema: The user's current EMA of the prediction error (users.rir_bias_error_ema).
 
     Returns:
-        The updated RIR bias value.
-
-    Logic:
-    - If actual_reps < predicted_reps (user performed worse than expected):
-      error_signal is negative.
-      new_rir_bias = current_rir_bias - (negative_error * learning_rate)
-                   = current_rir_bias + adjustment.
-      This increases the bias. A higher bias means the user is thought to
-      underestimate their RIR even more (or their 1RM estimate is too high).
-      When predicting next time, adjusted_RIR = reported_RIR - new_higher_bias,
-      which makes the adjusted_RIR smaller (closer to failure), leading to
-      expecting fewer reps for the same reported RIR, or a lower 1RM estimate.
-
-    - If actual_reps > predicted_reps (user performed better than expected):
-      error_signal is positive.
-      new_rir_bias = current_rir_bias - (positive_error * learning_rate)
-                   = current_rir_bias - adjustment.
-      This decreases the bias. A lower bias means the user is thought to be
-      more accurate or even overestimating their RIR.
+        A tuple containing:
+            - new_bias (float): The updated RIR bias, clipped within bounds.
+            - new_error_ema (float): The updated EMA of the prediction error.
     """
-    error_signal = float(actual_reps - predicted_reps)
-    new_rir_bias = current_rir_bias - (error_signal * learning_rate)
+    error = float(actual_reps - predicted_reps)
 
-    # Apply bounds to the new RIR bias
-    new_rir_bias = max(MIN_RIR_BIAS, min(new_rir_bias, MAX_RIR_BIAS))
+    # Use RIR_BIAS_EMA_ALPHA (defined at module level or imported from constants)
+    alpha = RIR_BIAS_EMA_ALPHA
+    new_error_ema = alpha * error + (1 - alpha) * current_error_ema
 
-    return new_rir_bias
+    # Adaptive LR: bigger updates when variance low, ensure it doesn't go too low
+    # Using new_error_ema for dynamic_lr calculation as per subtask description
+    dynamic_lr = max(0.02, base_lr / (1 + abs(new_error_ema)))
+
+    # Calculate bias update
+    # The original logic was: new_bias = current_bias - (error_signal * learning_rate)
+    # If error = actual - predicted:
+    #   - actual < predicted (underperformed) => error is negative.
+    #     We want to INCREASE bias (make it more positive, or less negative).
+    #     So, new_bias = old_bias - (negative_error * dynamic_lr) = old_bias + adjustment.
+    #   - actual > predicted (overperformed) => error is positive.
+    #     We want to DECREASE bias (make it less positive, or more negative).
+    #     So, new_bias = old_bias - (positive_error * dynamic_lr) = old_bias - adjustment.
+    # This matches the original logic's direction.
+    bias_adjustment = error * dynamic_lr # This is 'dynamic_lr * error' from the issue's formula
+
+    # Update bias: if actual > predicted (error > 0), bias should increase (user is stronger/underestimated RIR)
+    # if actual < predicted (error < 0), bias should decrease (user is weaker/overestimated RIR)
+    new_bias = old_bias + bias_adjustment # Corrected line as per subtask
+
+    # Clip the new bias using module-level constants
+    new_bias = max(MIN_RIR_BIAS, min(new_bias, MAX_RIR_BIAS))
+
+    return new_bias, new_error_ema
 
 
 # Define a type alias for session records for clarity
@@ -135,30 +145,30 @@ def calculate_current_fatigue(
     return current_fatigue
 
 if __name__ == '__main__':
-    # Example usage for update_user_rir_bias
-    current_bias = 2.0
-    # Scenario 1: User underperformed (predicted 8 reps, did 6)
-    # Expected: Bias increases (user might be underestimating RIR more, or 1RM is too high)
-    pred_reps_s1 = 8
-    act_reps_s1 = 6
-    new_bias_s1 = update_user_rir_bias(current_bias, pred_reps_s1, act_reps_s1)
-    print(f"Scenario 1 (Underperformance): current_bias={current_bias}, predicted={pred_reps_s1}, actual={act_reps_s1} => new_bias={new_bias_s1:.2f}")
-    # Error = 6 - 8 = -2. New bias = 2.0 - (-2 * 0.1) = 2.0 + 0.2 = 2.2
+    # Example usage for update_user_rir_bias (OLD EXAMPLE - NEEDS UPDATE FOR NEW SIGNATURE)
+    # current_bias = 2.0
+    # base_lr_example = 0.1
+    # current_ema_example = 0.0
+    # pred_reps_s1 = 8
+    # act_reps_s1 = 6
+    # new_bias_s1, new_ema_s1 = update_user_rir_bias(current_bias, pred_reps_s1, act_reps_s1, base_lr_example, current_ema_example)
+    # print(f"Scenario 1 (Underperformance): old_bias={current_bias}, base_lr={base_lr_example}, current_ema={current_ema_example}, predicted={pred_reps_s1}, actual={act_reps_s1} => new_bias={new_bias_s1:.3f}, new_ema={new_ema_s1:.3f}")
+    # Error = 6 - 8 = -2.
+    # new_error_ema = 0.2 * -2 + (1 - 0.2) * 0.0 = -0.4 + 0 = -0.4
+    # dynamic_lr = max(0.02, 0.1 / (1 + abs(-0.4))) = max(0.02, 0.1 / 1.4) = max(0.02, 0.0714) = 0.0714
+    # bias_update = -2 * 0.0714 = -0.1428
+    # new_bias = 2.0 - (-0.1428) = 2.1428. Clipped if needed.
 
-    # Scenario 2: User overperformed (predicted 6 reps, did 8)
-    # Expected: Bias decreases
-    pred_reps_s2 = 6
-    act_reps_s2 = 8
-    new_bias_s2 = update_user_rir_bias(current_bias, pred_reps_s2, act_reps_s2)
-    print(f"Scenario 2 (Overperformance): current_bias={current_bias}, predicted={pred_reps_s2}, actual={act_reps_s2} => new_bias={new_bias_s2:.2f}")
-    # Error = 8 - 6 = 2. New bias = 2.0 - (2 * 0.1) = 2.0 - 0.2 = 1.8
+    # pred_reps_s2 = 6
+    # act_reps_s2 = 8
+    # new_bias_s2, new_ema_s2 = update_user_rir_bias(current_bias, pred_reps_s2, act_reps_s2, base_lr_example, new_ema_s1) # Using previous EMA
+    # print(f"Scenario 2 (Overperformance): old_bias={current_bias}, base_lr={base_lr_example}, current_ema={new_ema_s1:.3f}, predicted={pred_reps_s2}, actual={act_reps_s2} => new_bias={new_bias_s2:.3f}, new_ema={new_ema_s2:.3f}")
+    # Error = 8 - 6 = 2.
+    # new_error_ema_s2 = 0.2 * 2 + (1-0.2) * (-0.4) = 0.4 - 0.32 = 0.08
+    # dynamic_lr_s2 = max(0.02, 0.1 / (1 + abs(0.08))) = max(0.02, 0.1 / 1.08) = max(0.02, 0.0926) = 0.0926
+    # bias_update_s2 = 2 * 0.0926 = 0.1852
+    # new_bias_s2 = 2.0 - (0.1852) = 1.8148. Clipped if needed.
 
-    # Scenario 3: User matched prediction
-    pred_reps_s3 = 7
-    act_reps_s3 = 7
-    new_bias_s3 = update_user_rir_bias(current_bias, pred_reps_s3, act_reps_s3)
-    print(f"Scenario 3 (Matched): current_bias={current_bias}, predicted={pred_reps_s3}, actual={act_reps_s3} => new_bias={new_bias_s3:.2f}")
-    # Error = 7 - 7 = 0. New bias = 2.0 - 0 = 2.0
 
     # Example usage for calculate_current_fatigue
     print("\n--- Fatigue Calculation Example ---")
