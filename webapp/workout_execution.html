@@ -41,7 +41,7 @@
             <div class="confidence-bar">
                 <div class="confidence-fill" style="width: 85%;">85% confident</div>
             </div>
-            <button class="why-button action-button">Why this weight?</button> <!-- Added action-button class for base styling -->
+            <button class="button-link why-button">Why this weight?</button>
             <div class="why-explanation" style="display: none;">
                 <p>Based on your last session for Squats (75kg for 3 sets of 10 reps @ 3 RIR) and your current readiness score, we predict you can lift 80kg for 8-10 reps while maintaining good form (2 RIR). This aligns with your current goal of hypertrophy in the 8-12 rep range.</p>
             </div>
@@ -78,7 +78,7 @@
                     </tr>
                 </tbody>
             </table>
-            <button id="add-set-btn" class="action-button primary-action">Add Set</button> <!-- Ensured primary-action class -->
+            <button id="add-set-btn" class="button-primary">Add Set</button>
         </div>
 
         <div class="rest-timer-widget">
@@ -88,24 +88,24 @@
                 <div id="rest-timer-display" class="timer-display">1:30</div> <!-- Updated placeholder -->
             </div>
             <div class="timer-controls">
-                <button id="start-timer-btn" class="action-button primary-action">Start</button> <!-- Added primary-action -->
-                <button id="pause-timer-btn" class="action-button">Pause</button>
-                <button id="reset-timer-btn" class="action-button">Reset</button>
+                <button id="start-timer-btn" class="button-primary">Start</button>
+                <button id="pause-timer-btn" class="button-secondary">Pause</button>
+                <button id="reset-timer-btn" class="button-secondary">Reset</button>
             </div>
         </div>
 
         <div class="workout-controls">
-             <button id="next-exercise-btn" class="action-button primary-action">Next Exercise</button>
-             <button id="end-workout-btn" class="action-button secondary-action">End Workout</button>
-             <button id="share-workout-btn" class="action-button">Share Workout</button>
+             <button id="next-exercise-btn" class="button-primary">Next Exercise</button>
+             <button id="end-workout-btn" class="button-secondary">End Workout</button>
+             <button id="share-workout-btn" class="button-secondary">Share Workout</button>
         </div>
 
-        <div id="share-link-container" class="share-link-container" style="display:none; margin-top: 20px; padding: 15px; background-color: #e9f5ff; border-radius: 6px; text-align: center;">
-            <p style="margin-bottom: 8px; font-weight: bold;">Share this link:</p>
-            <input type="text" id="share-link-display" readonly style="width: 80%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;">
-            <button id="copy-share-link-btn" class="action-button" style="padding: 8px 15px;">Copy</button>
-            <p id="copy-feedback-msg" style="font-size: 0.9em; color: green; margin-top: 5px;"></p>
-            <p style="font-size: 0.8em; color: #555; margin-top: 10px;">This link will expire in 7 days.</p> <!-- Info about expiry -->
+        <div id="share-link-container" class="share-link-container"> {/* Removed inline styles */}
+            <p>Share this link:</p> {/* Removed inline style */}
+            <input type="text" id="share-link-display" readonly class="form-control"> {/* Removed inline style, added form-control */}
+            <button id="copy-share-link-btn" class="button-primary">Copy</button> {/* Removed inline style */}
+            <p id="copy-feedback-msg"></p> {/* Removed inline style */}
+            <p>This link will expire in 7 days.</p> {/* Removed inline style */}
         </div>
     </main>
 
@@ -114,7 +114,7 @@
     </footer>
 
     <!-- End Workout Modal -->
-    <div id="end-workout-modal" class="modal" style="display: none;">
+    <div id="end-workout-modal" class="modal"> {/* Removed style="display: none;" */}
         <div class="modal-content">
             <span class="close-modal-btn" id="close-end-workout-modal">&times;</span>
             <h2>Finalize Workout</h2>
@@ -148,8 +148,8 @@
                 </div>
 
                 <div class="modal-actions">
-                    <button type="submit" id="save-and-end-workout-btn" class="action-button primary-action">Save & End Workout</button>
-                    <button type="button" id="cancel-end-workout-btn" class="action-button secondary-action">Cancel</button>
+                    <button type="submit" id="save-and-end-workout-btn" class="button-primary">Save & End Workout</button>
+                    <button type="button" id="cancel-end-workout-btn" class="button-secondary">Cancel</button>
                 </div>
             </form>
         </div>

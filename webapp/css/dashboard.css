@@ -1,44 +1,40 @@
 /* Enhanced styling for a cleaner, spreadsheet-inspired aesthetic */
-body {
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Modern, clean font stack */
-    line-height: 1.5; /* Improved readability */
-    margin: 0;
-    padding: 0;
-    background-color: #f4f6f8; /* Lighter grey background */
-    color: #212529; /* Darker text for better contrast */
-}
+/* body, header, footer base styles are now inherited from style.css */
 
-header {
-    background: #ffffff; /* White background for a cleaner look */
-    color: #212529;
-    padding: 1rem 2rem; /* More padding */
-    text-align: left; /* Align to left for a more standard app feel */
-    border-bottom: 1px solid #dee2e6; /* Subtle border */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow */
-}
+/* Specific dashboard header adjustments if needed */
+/* The global header style includes:
+    background-color: #ffffff;
+    color: #2c3e50;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    text-align: left;
+   Global h1 in header: font-size: 1.75em; font-weight: 600; margin: 0;
+   Global nav a: color: #007bff; text-decoration: none; padding: 0.5em 1em; margin: 0 0.5em;
+   Global nav a:hover: color: #0056b3;
+*/
 
-header h1 {
-    margin: 0;
-    font-size: 1.75em; /* Slightly reduced size */
-    font-weight: 600; /* Bolder */
-}
-
-header nav {
-    display: flex; /* Align nav items horizontally */
+/* Dashboard header might have its nav items styled slightly differently or additional items */
+header nav { /* This is from dashboard.css, may need adjustment */
+    display: flex;
     align-items: center;
+    /* Potentially adjust flex properties if layout differs from global header */
 }
 
+/* Override for dashboard nav links if global style isn't quite right for this context */
 header nav a {
-    color: #007bff; /* Standard link blue */
-    text-decoration: none;
-    margin-right: 20px; /* Spacing for nav items */
-    font-size: 1em;
-    font-weight: 500;
+    /* color: #007bff; */ /* Inherited */
+    /* text-decoration: none; */ /* Inherited */
+    margin-right: 20px; /* Specific to dashboard.css, global is margin: 0 0.5em; */
+    font-size: 1em; /* Global is based on 0.5em padding, this is explicit font-size */
+    font-weight: 500; /* Global has no specific font-weight for nav links */
+    /* padding: 0.5em 1em; */ /* Inherited, but margin-right might make it look different */
 }
 header nav a:hover {
-    text-decoration: underline;
-    color: #0056b3;
+    /* text-decoration: underline; */ /* Global is 'none', dashboard.css adds underline */
+    /* color: #0056b3; */ /* Inherited */
+    text-decoration: underline; /* Explicitly keep underline for dashboard nav hover */
 }
+
 
 #dashboard-main {
     padding: 25px;
@@ -48,15 +44,15 @@ header nav a:hover {
 }
 
 .dashboard-section {
-    background: #ffffff;
+    background: #ffffff; /* Consistent with global card backgrounds */
     padding: 25px;
-    border-radius: 6px; /* Slightly reduced border-radius */
-    border: 1px solid #e9ecef; /* Subtle border for sections */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Very subtle shadow */
+    border-radius: 6px; /* Consistent with modal/card radius */
+    border: 1px solid #dee2e6; /* Consistent global border color */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Consistent subtle shadow */
 }
 
 .dashboard-section h2 {
-    color: #343a40; /* Darker heading color */
+    color: #2c3e50; /* Updated to global heading color */
     margin-top: 0;
     margin-bottom: 20px; /* More space below heading */
     border-bottom: 1px solid #dee2e6; /* Lighter border */
@@ -80,7 +76,7 @@ header nav a:hover {
 .dashboard-section div > label { /* General label styling */
     margin-right: 10px;
     font-weight: 500; /* Medium weight */
-    color: #495057; /* Slightly lighter text color */
+    color: #34495e; /* Updated to global label color */
 }
 
 .chart-container {
@@ -109,7 +105,7 @@ header nav a:hover {
     padding: 12px 15px; /* More padding */
     margin-bottom: 10px; /* More space between items */
     border-radius: 4px;
-    border: 1px solid #e9ecef; /* Subtle border */
+    border: 1px solid #dee2e6; /* Consistent global border color */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -145,15 +141,21 @@ header nav a:hover {
 .trend-down { background-color: #dc3545; /* Bootstrap danger red */ }
 .trend-neutral { background-color: #6c757d; /* Bootstrap secondary grey */ }
 
-footer {
+/* Footer base styles are inherited from style.css */
+/* The global footer style includes:
+    background-color: #ffffff;
+    color: #7f8c8d;
+    padding: 1.5rem 2rem;
     text-align: center;
-    padding: 25px; /* More padding */
-    background: #ffffff; /* White footer */
-    color: #6c757d; /* Grey text */
+    border-top: 1px solid #dee2e6;
+*/
+/* If dashboard footer has specific needs, add them here. Otherwise, remove. */
+/* For example, if font-size or margin-top needs to be different:
+footer {
     margin-top: 30px;
-    border-top: 1px solid #dee2e6; /* Border top */
     font-size: 0.9em;
 }
+*/
 
 /* Specific styling for chart axes and gridlines for spreadsheet feel */
 /* This will be applied via Chart.js options, but we can define some CSS variables or defaults if needed */
@@ -176,7 +178,7 @@ footer {
 #plateau-analysis-section h4 {
     margin-top: 0;
     margin-bottom: 10px;
-    color: #343a40;
+    color: #2c3e50; /* Updated to global heading color */
     font-weight: 600;
 }
 #plateau-analysis-section p {
@@ -202,7 +204,7 @@ footer {
 /* General Info Card Style (can be specialized) */
 .info-card {
     background-color: #ffffff;
-    border: 1px solid #e9ecef; /* Consistent with section borders */
+    border: 1px solid #dee2e6; /* Consistent global border color */
     border-radius: 6px; /* Consistent with section border-radius */
     padding: 20px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Consistent subtle shadow */
@@ -220,7 +222,7 @@ footer {
     margin-top: 0;
     margin-bottom: 12px; /* More space */
     font-size: 1.2em; /* Slightly larger exercise name */
-    color: #343a40; /* Darker heading color */
+    color: #2c3e50; /* Updated to global heading color */
     font-weight: 600;
 }
 
@@ -269,14 +271,14 @@ footer {
 
 #mesocycle-indicator-container .phase-name { /* Actual H3 or H4 for phase name */
     font-size: 1.6em; /* Larger phase name */
-    color: #343a40; /* Darker color */
+    color: #2c3e50; /* Updated to global heading color */
     margin-bottom: 8px;
     font-weight: 600;
 }
 
 #mesocycle-indicator-container .phase-week-progress { /* Paragraph for "Week X of Y" */
     font-size: 1.1em;
-    color: #495057; /* Slightly lighter text */
+    color: #34495e; /* Updated to global label/secondary text color */
     margin-bottom: 15px;
 }
 
@@ -321,16 +323,16 @@ footer {
 }
 
 #mesocycle-indicator-container .phase-list-item {
-    background-color: #e9ecef;
+    background-color: #e9ecef; /* This is a light grey, fine for inactive items */
     padding: 8px 15px;
     border-radius: 15px; /* Pill shape */
     font-size: 0.85em;
-    color: #495057;
+    color: #495057; /* Text color for inactive items */
     border: 1px solid #dee2e6;
 }
 
 #mesocycle-indicator-container .phase-list-item.current {
-    background-color: #007bff; /* Primary blue */
+    background-color: #007bff; /* Accent color for current item */
     color: white;
     font-weight: bold;
     border-color: #0056b3;
@@ -342,17 +344,25 @@ footer {
 }
 
 .plateau-notification {
-    background-color: #ffffe0; /* Light yellow */
-    border: 1px solid #e6e6c3; /* Darker yellow/beige for border */
-    padding: 15px; /* More padding */
-    margin-bottom: 15px; /* More margin */
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
-    transition: opacity 0.5s ease-out; /* For fade-out effects if implemented */
+    background-color: #fff3cd; /* Light yellow - from Bootstrap warning, or use #ffffe0 if preferred */
+    border: 1px solid #ffeeba; /* Border for Bootstrap warning, or #e6e6c3 */
+    color: #856404; /* Text color for Bootstrap warning */
+    padding: 10px 15px; /* Consistent with global message boxes */
+    margin-bottom: 1rem; /* Consistent margin */
+    border-radius: 4px; /* Consistent radius */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Lighter shadow */
+    transition: opacity 0.5s ease-out;
+    display: flex; /* For aligning button if kept inside */
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plateau-notification .content {
+    flex-grow: 1; /* Allow text content to take space */
 }
 
 .plateau-notification p {
-    margin: 0 0 8px 0; /* Consistent paragraph spacing */
+    margin: 0 0 8px 0;
     line-height: 1.4;
 }
 .plateau-notification p:last-child {
@@ -360,42 +370,29 @@ footer {
 }
 
 .plateau-notification strong {
-    color: #555;
+    /* color: #555; */ /* Inherits from .plateau-notification color now */
 }
 
 .plateau-notification small {
     font-size: 0.85em;
-    color: #777;
+    /* color: #777; */ /* Inherits */
 }
 
-.plateau-notification button.acknowledge-btn { /* More specific selector */
-    margin-left: 15px;
-    padding: 6px 12px; /* Slightly adjusted padding */
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.9em;
-    float: right; /* Align button to the right */
-    transition: background-color 0.2s ease;
-}
-
-.plateau-notification button.acknowledge-btn:hover {
-    background-color: #0056b3;
-}
+/* Removing custom button style, will use .button-secondary or .button-sm */
+/* .plateau-notification button.acknowledge-btn { ... } */
 
 /* Style for error messages within a notification, if any */
-.plateau-notification .ack-error {
-    color: red;
+.plateau-notification .ack-error { /* This class might not be used if JS handles errors differently */
+    color: #721c24; /* Match global error message text */
     font-size: 0.8em;
     margin-top: 5px;
 }
 
-/* Style for error notification itself */
-.plateau-notification.error {
-    background-color: #ffe0e0; /* Light red for error notifications */
-    border-color: #c3c0c0;
+/* Style for error notification itself, if a .plateau-notification.error is used */
+.plateau-notification.error { /* This would override the yellow for an error variant */
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
 }
 
 /* Mobile notice for charts */

@@ -1,33 +1,16 @@
 /* General page styling for workout_execution.html */
-body.workout-execution-page { /* Add class to body in HTML for specificity if needed */
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #f4f6f8; /* Light grey background */
-    color: #333;
-    margin: 0;
-    padding: 0; /* Header/footer might have their own padding */
+/* body, .page-header (if HTML uses <header>), footer base styles are now inherited from style.css */
+/* Add .workout-execution-page to body tag in HTML if page-specific body styles are ever needed beyond global */
+body.workout-execution-page {
+    /* Retain if specific overrides are needed, e.g. different default font for this page only. */
+    /* For now, assuming global body styles are sufficient. */
 }
 
-.page-header { /* Assuming a similar header structure to analytics_dashboard */
-    background: #ffffff;
-    color: #212529;
-    padding: 1rem 2rem;
-    border-bottom: 1px solid #dee2e6;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    margin-bottom: 20px; /* Space below header */
-}
-
-.page-header h1 {
-    margin: 0;
-    font-size: 1.75em;
-    font-weight: 600;
-}
-
-.page-header nav a {
-    color: #007bff;
-    text-decoration: none;
-    margin-right: 20px;
-    font-size: 1em;
-    font-weight: 500;
+/* If HTML uses <header class="page-header">, this class can be removed if global <header> styles are enough.
+   If specific margin or other properties are needed for this page's header, keep the class and only override those. */
+.page-header {
+    margin-bottom: 20px; /* Keep specific margin if needed */
+    /* Other properties like background, padding, color, border, shadow, h1, nav a should be inherited. */
 }
 
 /* Workout Execution Container Layout */
@@ -51,11 +34,13 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
     grid-area: exercise-title;
     text-align: center;
     margin-bottom: 0; /* Gap will handle spacing */
-    font-size: 1.5em;
-    color: #343a40;
+    /* font-size for h2 will be inherited, color needs update */
 }
 #current-exercise-name-display h2 {
     margin: 0; /* Remove default h2 margin */
+    color: #2c3e50; /* Updated to global heading color */
+    font-size: 1.75em; /* Consistent H2 size */
+    font-weight: 600; /* Consistent H2 weight */
 }
 
 .ai-recommendation-card { grid-area: ai-rec; }
@@ -69,25 +54,33 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
 .ai-recommendation-card,
 .performance-comparison,
 .set-logging-section,
-.rest-timer-widget {
+.rest-timer-widget,
+.readiness-dial-container { /* Added .readiness-dial-container here */
     background-color: #ffffff;
-    padding: 20px; /* Increased padding */
-    border-radius: 8px; /* Consistent rounded corners */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Slightly more pronounced shadow */
-    border: 1px solid #e9ecef; /* Subtle border */
-    text-align: center; /* Center content like title, button */
+    padding: 20px;
+    border-radius: 6px; /* Updated to global card radius */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Updated to global card shadow */
+    border: 1px solid #dee2e6; /* Updated to global card border */
+    text-align: center; /* Keep text-align center for these cards */
+    margin-bottom: 25px; /* Ensure consistent spacing between cards, was gap in grid */
+}
+/* Remove individual margin-bottom from .readiness-dial-container if set elsewhere and conflicts */
+.readiness-dial-container {
+    margin-bottom: 25px; /* Explicitly ensure it has the margin if not covered by grid gap */
 }
 
-.ai-recommendation-card h2, /* This style was already decent, minor tweaks if needed */
+
+.ai-recommendation-card h2,
 .performance-comparison h3,
 .set-logging-section h3,
 .rest-timer-widget h3 {
     margin-top: 0;
     margin-bottom: 15px;
-    font-size: 1.4em; /* Slightly larger for card titles */
-    color: #333; /* Standard dark color */
-    border-bottom: 1px solid #dee2e6;
+    font-size: 1.4em; /* Custom size for these cards is fine */
+    color: #2c3e50; /* Updated to global heading color */
+    border-bottom: 1px solid #dee2e6; /* Consistent border */
     padding-bottom: 10px;
+    font-weight: 600; /* Ensure consistent weight */
 }
 
 /* AI Recommendation Card Specifics - Refined */
@@ -130,23 +123,20 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
 
 /* Styling for the .why-button, ensuring it uses .action-button styles if desired */
 .why-button {
-    /* .action-button provides base. Add specifics if needed. */
-    /* Example: make it less prominent than primary actions if it's secondary */
-    /* background-color: transparent; */
-    /* color: #007bff; */
-    /* border: 1px solid #007bff; */
+    /* This button should get a class like .button-link or .button-secondary.button-sm in HTML. */
+    /* Removing specific style here. Ensure HTML is updated. */
     margin-top: 15px;
     margin-bottom: 10px;
-    font-weight: 500; /* Medium weight */
+    /* font-weight: 500; */ /* This would be part of the button class if needed */
 }
 /* .why-button:hover {
-    background-color: #e7f3ff; /* Light blue hover for secondary-like button
+    background-color: #e7f3ff;
 }*/
 
 .why-explanation {
     background-color: #f8f9fa; /* Light background for explanation box */
-    border: 1px solid #e0e0e0; /* Softer border */
-    padding: 15px; /* More padding */
+    border: 1px solid #dee2e6; /* Consistent global border */
+    padding: 15px;
     margin-top: 10px;
     border-radius: 6px; /* Consistent rounding */
     text-align: left; /* Explanation text usually left-aligned */
@@ -171,14 +161,14 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
 }
 
 .performance-comparison .last-time-performance {
-    font-size: 1em; /* Standard readable size */
-    color: #495057; /* Dark grey for good contrast */
-    padding: 10px; /* More padding */
-    background-color: #f8f9fa; /* Light background to subtly offset */
-    border: 1px solid #e9ecef; /* Soft border */
+    font-size: 1em;
+    color: #495057;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6; /* Consistent global border */
     border-radius: 4px;
-    margin-bottom: 10px; /* Space before improvement metric */
-    text-align: left; /* Ensure text is left aligned */
+    margin-bottom: 10px;
+    text-align: left;
 }
 
 .performance-comparison .improvement-metric {
@@ -207,6 +197,7 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
     color: #343a40;
     margin-bottom: 15px; /* Standard spacing */
     text-align: left; /* Override card's text-align:center if needed for this title */
+    color: #2c3e50; /* Ensure this was updated */
 }
 
 .set-tracker {
@@ -217,33 +208,33 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
 }
 
 .set-tracker th, .set-tracker td {
-    padding: 12px 8px; /* Increased padding for better spacing */
-    text-align: center; /* Center align most content */
-    border: 1px solid #e0e0e0; /* Lighter border for all cells */
-    vertical-align: middle; /* Ensure vertical centering */
+    padding: 12px 8px; /* Keep existing padding, seems reasonable for a table */
+    text-align: center;
+    border: 1px solid #dee2e6; /* Updated to global border color */
+    vertical-align: middle;
 }
 
 .set-tracker th {
-    background-color: #f8f9fa; /* Light grey background for headers */
-    font-weight: 600;
-    color: #343a40; /* Darker header text */
-    font-size: 0.9em; /* Slightly smaller header text */
-    text-transform: uppercase; /* Uppercase headers for distinction */
+    background-color: #f8f9fa; /* Consistent light grey background */
+    font-weight: 600; /* Global heading weight */
+    color: #495057; /* Consistent table header text color */
+    font-size: 0.9em;
+    text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .set-tracker td.set-number {
     font-weight: bold;
-    color: #495057;
+    color: #495057; /* Consistent secondary text color */
 }
 
 .set-input {
-    width: 100%; /* Inputs take full cell width */
-    max-width: 80px; /* Max width to keep them neat, esp for numbers */
-    padding: 8px 5px;
-    border: 1px solid #ced4da; /* Standard input border */
-    border-radius: 4px;
-    font-size: 1em; /* Match table cell font size */
+    width: 100%;
+    max-width: 80px;
+    padding: 8px 10px; /* Adjusted padding for better consistency with global inputs */
+    border: 1px solid #ced4da; /* Consistent global input border */
+    border-radius: 4px; /* Consistent global input radius */
+    font-size: 1em;
     text-align: center;
     box-sizing: border-box; /* Important for width calculation with padding */
     -moz-appearance: textfield; /* Remove spinners on Firefox */
@@ -261,13 +252,24 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
 }
 
 .log-set-row-btn {
-    /* Uses .action-button for base */
-    padding: 6px 12px; /* Smaller button for table row */
-    font-size: 0.85em; /* Smaller font */
-    min-width: 60px; /* Ensure it's not too small */
+    /* Should be styled by .button-primary and .button-sm classes in HTML */
+    /* Remove specific styles here if HTML is updated, or make these align with .button-primary.button-sm */
+    /* Forcing alignment here if HTML class change is deferred: */
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    padding: 5px 10px; /* from .button-sm */
+    font-size: 0.875em; /* from .button-sm */
+    border-radius: 4px; /* global button radius */
+    min-width: 60px;
+    cursor: pointer;
+}
+.log-set-row-btn:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
 }
 .log-set-row-btn:disabled {
-    background-color: #adb5bd; /* Greyer when disabled */
+    background-color: #adb5bd; /* Keep disabled style distinct */
     border-color: #adb5bd;
     cursor: not-allowed;
     opacity: 0.7;
@@ -289,8 +291,8 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
 }
 .rest-timer-widget h3 {
     /* Consistent with other panel titles */
-    font-size: 1.3em;
-    color: #343a40;
+    font-size: 1.3em; /* Keep custom size if desired */
+    color: #2c3e50; /* Updated color */
     margin-bottom: 20px; /* More space before timer circle */
 }
 
@@ -314,7 +316,7 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
     transform: translate(-50%, -50%);
     font-size: 2.2em; /* Larger timer text */
     font-weight: 600; /* Bolder */
-    color: #343a40; /* Dark text for timer */
+    color: #2c3e50; /* Updated color */
     white-space: nowrap; /* Prevent wrapping if font size is very large */
 }
 
@@ -327,51 +329,30 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
 
 /* Buttons already use .action-button. Specifics if needed: */
 #start-timer-btn {
-    /* .primary-action class will style this if added in HTML */
+    /* .primary-action class will style this if added in HTML - should be .button-primary */
 }
 #pause-timer-btn {
-    /* Standard action-button styling */
+    /* Standard action-button styling - should be .button-secondary */
 }
 #reset-timer-btn {
     /* Uses .action-button. Add .secondary-action if desired, or specific styles: */
-    background-color: #6c757d; /* Example secondary color */
-    color: white;
+    /* background-color: #6c757d; */ /* These will be covered by .button-secondary if class is applied in HTML */
+    /* color: white; */
 }
-#reset-timer-btn:hover {
+/* #reset-timer-btn:hover {
     background-color: #5a6268;
-}
+} */
 
+/* Removed all .action-button, .action-button.primary-action, .action-button.secondary-action rules.
+   These are replaced by global .button-primary, .button-secondary, etc. applied in the HTML. */
 
-/* General Action Buttons (can be reused) */
-.action-button {
-    padding: 10px 20px;
-    font-size: 1em;
-    border-radius: 5px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-.action-button.primary-action {
-    background-color: #007bff;
-    color: white;
-    border-color: #007bff;
-}
-.action-button.primary-action:hover {
-    background-color: #0056b3;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.action-button.secondary-action {
-    background-color: #6c757d;
-    color: white;
-    border-color: #6c757d;
-}
-.action-button.secondary-action:hover {
-    background-color: #545b62;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-#add-set-btn { /* Specific styling if needed, or use .action-button */
+#add-set-btn { /* Specific layout styling for this button, appearance from .button-primary */
     display: block;
-    margin: 0 auto; /* Center if it's the only button in its direct parent */
+    margin: 10px auto; /* Center button, keep from original */
+    /* width: auto; */ /* from original, handled by button content + padding */
+    padding: 12px 25px; /* Keep larger padding for this main action button */
+    min-width: 150px; /* Keep min-width */
+    /* Ensure #add-set-btn in HTML has .button-primary class */
 }
 
 
@@ -433,88 +414,76 @@ body.workout-execution-page { /* Add class to body in HTML for specificity if ne
     }
 }
 
-
-/* Footer styling */
-footer {
-    text-align: center;
-    padding: 20px;
-    background: #ffffff;
-    color: #6c757d;
-    margin-top: 30px;
-    border-top: 1px solid #dee2e6;
-    font-size: 0.9em;
-}
+/* Footer styling is now inherited from style.css */
+/* Remove local footer rule */
 
 /* Styles for Edit/Delete Set Functionality */
 
 .set-actions button {
     margin: 0 3px; /* Add small margin between action buttons */
-    padding: 5px 8px; /* Adjust padding for smaller icon buttons */
+    padding: 5px 8px;
     font-size: 0.9em;
-    line-height: 1.2; /* Ensure text/icons are centered well */
+    line-height: 1.2;
 }
 
 .icon-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 1.2em; /* Make icons a bit larger */
-    color: #007bff; /* Default icon color */
-    padding: 2px 4px;
+    padding: 2px 4px; /* Keep padding minimal */
+    font-size: 1.1em; /* Slightly smaller for less prominence, or keep 1.2em if preferred */
+    color: #007bff; /* Default icon/text action color - Accent */
+    transition: color 0.2s ease;
 }
-
 .icon-btn:hover {
-    color: #0056b3; /* Darker on hover */
+    color: #0056b3; /* Darker accent on hover */
 }
 
-.delete-set-btn.icon-btn {
-    color: #dc3545; /* Red for delete */
+.delete-set-btn.icon-btn { /* This class is used in HTML */
+    color: #dc3545; /* Error/Danger color */
 }
 .delete-set-btn.icon-btn:hover {
-    color: #a71d2a; /* Darker red on hover */
+    color: #c82333; /* Darker Error/Danger color */
 }
+
+/* Save and Cancel buttons in edit mode */
+.save-set-btn.icon-btn { /* Assuming .icon-btn is also on save/cancel for consistency */
+    color: #28a745; /* Success color */
+}
+.save-set-btn.icon-btn:hover {
+    color: #1e7e34; /* Darker Success */
+}
+
+.cancel-edit-btn.icon-btn { /* Assuming .icon-btn is also on save/cancel */
+    color: #6c757d; /* Secondary/muted color */
+}
+.cancel-edit-btn.icon-btn:hover {
+    color: #545b62; /* Darker secondary/muted */
+}
+
 
 /* Styling for rows in edit mode */
 tr.editing {
-    background-color: #f8f9fa; /* Lightly highlight the row being edited */
+    background-color: #e9f5ff; /* Light blue highlight for editing row, or #f8f9fa for subtle grey */
 }
 
 tr.editing .set-input,
 tr.editing .notes-input {
-    border: 1px solid #007bff; /* Highlight input fields in edit mode */
-    background-color: #fff; /* Ensure white background for inputs */
+    border: 1px solid #007bff; /* Highlight input fields in edit mode with accent color */
+    background-color: #fff;
 }
 
 tr.editing .notes-input {
-    width: 100%; /* Notes textarea should take more space */
-    min-width: 120px; /* Minimum width for notes */
-    max-width: 200px; /* Max width for notes */
-    height: auto;     /* Auto height based on content */
-    min-height: 38px; /* Match other inputs roughly */
-    resize: vertical; /* Allow vertical resize */
+    width: 100%;
+    min-width: 120px;
+    max-width: 200px;
+    height: auto;
+    min-height: 38px;
+    resize: vertical;
     box-sizing: border-box;
-    padding: 6px;
+    padding: 8px 10px; /* Match .set-input padding */
     text-align: left;
-}
-
-/* Specifics for save/cancel buttons if needed beyond .action-button */
-.save-set-btn {
-    /* Potentially use action-button primary-action if it's a main action */
-    color: #28a745; /* Green for save */
-    font-weight: bold;
-    font-size: 1.2em; /* Match other icons */
-}
-.save-set-btn:hover {
-    color: #1e7e34;
-}
-
-.cancel-edit-btn {
-    color: #6c757d; /* Secondary/grey for cancel */
-    font-weight: bold;
-    font-size: 1.2em; /* Match other icons */
-}
-.cancel-edit-btn:hover {
-    color: #545b62;
+    border-radius: 4px; /* Match .set-input radius */
 }
 
 /* Small loader for inline buttons like "Log" in new set rows */
@@ -549,75 +518,73 @@ tr.editing .notes-input {
 
 .share-link-container {
     /* HTML has: style="display:none; margin-top: 20px; padding: 15px; background-color: #e9f5ff; border-radius: 6px; text-align: center;" */
-    /* Adding some more robust styles here in case inline styles are removed or to enhance */
-    border: 1px solid #bce8f1; /* A light blue border to complement background */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    /* Ensure text-align: center is applied if not already by parent */
+    /* These will be applied if inline styles are removed from HTML. */
+    background-color: #e9f5ff; /* Light blue info background */
+    padding: 15px;
+    border-radius: 6px; /* Consistent radius */
+    border: 1px solid #bce8f1; /* Light blue border */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Global card shadow */
     text-align: center;
+    margin-top: 20px; /* Keep existing margin */
 }
 
 #share-link-container p:first-child { /* "Share this link:" text */
-    font-weight: bold;
-    color: #0056b3; /* Darker blue for emphasis */
+    font-weight: 600; /* Consistent heading weight */
+    color: #0056b3; /* Darker blue for emphasis - this is fine, or use #2c3e50 for global heading color */
     margin-bottom: 8px;
 }
 
-#share-link-display {
-    width: calc(100% - 30px); /* Adjust width considering padding of parent */
-    max-width: 400px; /* Max width for the input field */
+#share-link-display { /* Will be styled by global input styles if class is added in HTML */
+    /* Assuming it gets class="form-control" or similar in HTML for global styling */
+    max-width: 400px; /* Keep max-width if desired */
+    /* Ensure global input styles are applied in HTML, otherwise explicitly style here: */
     padding: 10px;
-    border: 1px solid #007bff;
+    border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 1em;
-    color: #333;
-    background-color: #fff; /* Ensure it's easily readable */
+    color: #212529;
+    background-color: #fff;
     margin-bottom: 12px;
     box-sizing: border-box;
+    width: 100%; /* Inputs are typically full width within their container */
 }
 
 #copy-share-link-btn {
-    /* Uses .action-button. Can be styled like a primary or secondary action. */
-    background-color: #28a745; /* Green, like a success/confirm button */
-    color: white;
-    border-color: #28a745;
-    padding: 8px 15px; /* Consistent with inline style from HTML */
+    /* This should get .button-primary or .button-success in HTML */
+    /* Remove specific styles, rely on global button classes */
+    /* padding: 8px 15px; */ /* This would be part of .button-sm if used */
 }
-#copy-share-link-btn:hover {
+/* #copy-share-link-btn:hover {
     background-color: #218838;
     border-color: #1e7e34;
-}
+} */
 
 #copy-feedback-msg {
-    /* HTML has: style="font-size: 0.9em; color: green; margin-top: 5px;" */
-    min-height: 1.2em; /* Prevent layout shift when message appears/disappears */
+    min-height: 1.2em;
     font-size: 0.9em;
-    color: green;
+    color: #155724; /* Global success text color */
     margin-top: 5px;
 }
 
 .share-link-container p:last-child { /* Expiry info */
-     /* HTML has: style="font-size: 0.8em; color: #555; margin-top: 10px;" */
     font-style: italic;
     font-size: 0.8em;
-    color: #555;
+    color: #495057; /* Consistent secondary text color */
     margin-top: 10px;
 }
 
 /* Readiness Dial Styles */
 .readiness-dial-container {
-    /* Uses .card-style for base if that's defined elsewhere, or add card-like styles here */
-    background-color: #fff; /* Assuming card-style provides this */
-    padding: 15px 20px;    /* Assuming card-style provides this */
-    border-radius: 8px;   /* Assuming card-style provides this */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Assuming card-style provides this */
+    /* Card styles are applied via class in HTML or general section rules */
+    /* background-color, padding, border-radius, box-shadow are now part of the common rule above */
     text-align: center;
-    margin-bottom: 20px; /* Space below dial */
+    /* margin-bottom: 20px; */ /* Now handled by common rule or grid gap */
 }
 .readiness-label {
     display: block;
-    font-size: 1.1em;
-    font-weight: 600;
-    color: #333;
+    font-size: 1.1em; /* Keep custom size */
+    font-weight: 500; /* Global label weight */
+    color: #34495e; /* Global label color */
     margin-bottom: 10px;
 }
 .progress-bar-container {
@@ -682,22 +649,21 @@ tr.editing .notes-input {
 }
 /* Adjust text color for medium readiness if yellow is too light for white text */
 #readiness-progress.medium-readiness + .progress-bar-text {
-    color: #333; /* Darker text for yellow bar */
+    color: #34495e; /* Darker text for yellow bar, consistent with label color */
     text-shadow: none;
 }
 #readiness-progress.na-readiness + .progress-bar-text {
-    color: #fff;
+    color: #fff; /* White text on grey bar */
 }
 
 #low-readiness-message {
-    background-color: #fff3cd; /* Light yellow, common for warnings */
-    color: #856404; /* Dark yellow/brown text */
-    border: 1px solid #ffeeba;
-    padding: 10px 15px;
-    border-radius: 4px;
-    margin-top: 10px; /* Already set in HTML, but good to have in CSS */
-    font-size: 0.9em;
-    text-align: left; /* Align text to the left for better readability */
+    /* This will be styled by .warning-message class from global style.css
+       Ensure class="warning-message" is added to this div in HTML.
+       Default styles for .warning-message are already applied globally.
+    */
+    margin-top: 10px; /* Keep specific margin if needed */
+    font-size: 0.9em; /* Keep specific font size */
+    text-align: left; /* Keep specific text align */
 }
 #low-readiness-message p {
     margin: 0;
@@ -705,213 +671,83 @@ tr.editing .notes-input {
 
 
 /* Styles for End Workout Modal */
-.modal {
+/* Most .modal and .modal-content styling will come from global style.css.
+   Local overrides should be minimal or for specific structural differences. */
 
-/* Styles for End Workout Modal */
-.modal {
-    /* display: none; Already handled by inline style initially */
-    position: fixed;
-    z-index: 1000; /* High z-index to appear on top */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto; /* Enable scroll if content is too long */
-    background-color: rgba(0,0,0,0.5); /* Dim background */
-}
+/* Example: If this modal needs a slightly different max-width than global */
+/* #end-workout-modal .modal-content {
+    max-width: 550px;
+} */
 
-.modal-content {
-    background-color: #fefefe;
-    margin: 10% auto; /* Centered, with margin from top */
-    padding: 25px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 500px; /* Max width for the modal */
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    position: relative;
-}
-
-.close-modal-btn {
+.close-modal-btn { /* Specific styling for this close button can remain if distinct */
     color: #aaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
     line-height: 1;
 }
-
 .close-modal-btn:hover,
 .close-modal-btn:focus {
-    color: black;
+    color: #2c3e50;
     text-decoration: none;
     cursor: pointer;
 }
 
 #end-workout-form .form-group {
-    margin-bottom: 18px;
+    margin-bottom: 1rem; /* Consistent spacing from global forms */
 }
 
-#end-workout-form label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #333;
-}
+/* Labels will pick up global styles: display: block; margin-bottom: 8px; font-weight: 500; color: #34495e; */
+/* Inputs (text, number, textarea, select) will pick up global styles:
+   width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; etc. */
 
 #end-workout-form input[type="range"] {
-    width: calc(100% - 80px); /* Adjust width to make space for value display and "hours" text */
+    width: calc(100% - 90px); /* Adjusted to allow more space for text after value */
     margin-right: 10px;
     vertical-align: middle;
+    /* Custom styling for range inputs is often needed for cross-browser consistency
+       but is outside the scope of simple color/padding changes. For now, default browser style. */
 }
 
-#end-workout-form input[type="number"],
-#end-workout-form textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-    font-size: 0.95em;
-}
-#end-workout-form input[type="number"] {
-     max-width: 120px; /* Specific width for HRV input */
+#end-workout-form input[type="number"] { /* Specific override for HRV input width */
+     max-width: 120px;
 }
 
-#end-workout-form textarea {
-    resize: vertical;
-    min-height: 60px;
+#end-workout-form textarea { /* Override for min-height if global is different */
+    min-height: 80px;
 }
 
-#end-workout-form span[id$="-value"] { /* For sleep/stress/fatigue value spans */
+#end-workout-form span[id$="-value"] { /* For sleep/stress/fatigue value display */
     display: inline-block;
-    min-width: 30px; /* Ensure space for the number */
-    text-align: left; /* Align left to be next to slider */
-    font-weight: bold;
-    color: #007bff;
-    padding-left: 5px; /* Space from slider */
+    min-width: 25px;
+    text-align: right;
+    font-weight: 600;
+    color: #007bff; /* Accent color for the value */
+    padding-right: 5px;
+    vertical-align: middle;
 }
-/* Ensure the unit text (e.g. "hours") is aligned with the value span */
-#end-workout-form .form-group span:not([id$="-value"]) {
+#end-workout-form .form-group span:not([id$="-value"]):not(.label-unit) { /* Text like "hours" */
     vertical-align: middle;
     font-size: 0.9em;
-    color: #555;
-    margin-left: 5px;
+    color: #495057; /* Secondary text color */
 }
-
-
-.modal-actions {
-    margin-top: 25px;
-    text-align: right; /* Align buttons to the right */
-}
-
-.modal-actions .action-button {
-    margin-left: 10px;
-}
-.modal-actions .action-button.secondary-action {
-    background-color: #6c757d; /* Standard secondary button color */
-    color: white;
-}
-.modal-actions .action-button.secondary-action:hover {
-    background-color: #5a6268;
-}
-
-/* Styles for End Workout Modal */
-.modal {
-    /* display: none; Already handled by inline style initially */
-    position: fixed;
-    z-index: 1000; /* High z-index to appear on top */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto; /* Enable scroll if content is too long */
-    background-color: rgba(0,0,0,0.5); /* Dim background */
-}
-
-.modal-content {
-    background-color: #fefefe;
-    margin: 10% auto; /* Centered, with margin from top */
-    padding: 25px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 500px; /* Max width for the modal */
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    position: relative;
-}
-
-.close-modal-btn {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    line-height: 1;
-}
-
-.close-modal-btn:hover,
-.close-modal-btn:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-#end-workout-form .form-group {
-    margin-bottom: 18px;
-}
-
-#end-workout-form label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #333;
-}
-
-#end-workout-form input[type="range"] {
-    width: calc(100% - 70px); /* Adjust width to make space for value display and "hours" text */
-    margin-right: 10px;
+/* Added a class for units to be more specific if needed */
+#end-workout-form .form-group .label-unit {
     vertical-align: middle;
+    font-size: 0.9em;
+    color: #495057;
+    margin-left: 2px;
 }
-
-#end-workout-form input[type="number"],
-#end-workout-form textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-    font-size: 0.95em;
-}
-#end-workout-form input[type="number"] {
-     max-width: 120px; /* Specific width for HRV input */
-}
-
-#end-workout-form textarea {
-    resize: vertical;
-    min-height: 60px;
-}
-
-#end-workout-form span[id$="-value"] { /* For sleep/stress/fatigue value spans */
-    display: inline-block;
-    min-width: 30px; /* Ensure space for the number */
-    text-align: left; /* Align left to be next to slider */
-    font-weight: bold;
-    color: #007bff;
-    padding-left: 5px; /* Space from slider */
-}
-
 
 .modal-actions {
-    margin-top: 25px;
-    text-align: right; /* Align buttons to the right */
+    margin-top: 1.5rem;
+    text-align: right; /* Buttons are typically right-aligned in modals */
 }
-
-.modal-actions .action-button {
-    margin-left: 10px;
-}
-.modal-actions .action-button.secondary-action {
-    background-color: #6c757d; /* Standard secondary button color */
-    color: white;
-}
-.modal-actions .action-button.secondary-action:hover {
-    background-color: #5a6268;
+/* Buttons inside .modal-actions should use global classes like .button-primary, .button-secondary in HTML.
+   Any margin between buttons should be handled by button classes themselves or utility margin classes if available.
+   e.g., <button class="button-secondary mr-2">Cancel</button> <button class="button-primary">Save</button>
+   If no utility classes, add simple margin here:
+*/
+.modal-actions .button-secondary { /* Or a more generic .modal-actions button */
+    margin-right: 0.5rem; /* Space between cancel and save buttons */
 }

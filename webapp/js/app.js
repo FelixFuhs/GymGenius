@@ -481,12 +481,13 @@ function LoginPage() {
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Login</button>
+            <button type="submit" class="button-primary">Login</button>
         </form>
-        <p>Don't have an account? <a href="#signup">Sign Up</a></p>
+        <p class="form-link-container">Don't have an account? <a href="#signup" class="form-link">Sign Up</a></p>
     `;
 
     const errorDiv = page.querySelector('#login-error');
+    // errorDiv already has 'error-message' class from innerHTML
     const loginForm = page.querySelector('#login-form');
     const submitButton = loginForm.querySelector('button[type="submit"]');
 
@@ -561,7 +562,7 @@ function SignupPage() {
     page.className = 'page active';
     page.innerHTML = `
         <h2>Sign Up</h2>
-        <div id="signup-message" class="message" style="display:none;"></div>
+        <div id="signup-message" class="success-message" style="display:none;"></div>
         <div id="signup-error" class="error-message" style="display:none;"></div>
         <form id="signup-form">
             <div>
@@ -576,13 +577,13 @@ function SignupPage() {
                 <label for="signup-confirm-password">Confirm Password:</label>
                 <input type="password" id="signup-confirm-password" name="confirm_password" minlength="8" required>
             </div>
-            <button type="submit">Sign Up</button>
+            <button type="submit" class="button-primary">Sign Up</button>
         </form>
-        <p>Already have an account? <a href="#login">Login</a></p>
+        <p class="form-link-container">Already have an account? <a href="#login" class="form-link">Login</a></p>
     `;
 
-    const errorDiv = page.querySelector('#signup-error');
-    const messageDiv = page.querySelector('#signup-message');
+    const errorDiv = page.querySelector('#signup-error'); // Already has error-message
+    const messageDiv = page.querySelector('#signup-message'); // Now has success-message
     const signupForm = page.querySelector('#signup-form');
     const submitButton = signupForm.querySelector('button[type="submit"]');
 
@@ -644,10 +645,12 @@ function WorkoutListPage() {
         <h2>My Workouts</h2>
         <div id="workout-list-container"><div class="loader-container"><span class="loader"></span> Loading workouts...</div></div>
         <div id="workout-list-error" class="error-message" style="display:none;"></div>
-        <button onclick="window.location.hash='#exercises'">Start New Workout (Browse Exercises)</button>
+        <button class="button-primary" onclick="window.location.hash='#exercises'">Start New Workout (Browse Exercises)</button>
     `;
 
     const container = page.querySelector('#workout-list-container');
+    // Ensure errorDiv gets its class if not already set (it is in innerHTML)
+    // const errorDiv = page.querySelector('#workout-list-error');
     const errorDiv = page.querySelector('#workout-list-error');
 
     if (!currentUserId) {
@@ -666,12 +669,14 @@ function WorkoutListPage() {
     .then(({ status, body }) => {
         if (status === 200) {
             if (body.data && body.data.length > 0) {
-                let ul = '<ul>';
+                let ul = '<ul class="item-list">'; // Added item-list class
                 body.data.forEach(workout => {
                     ul += `<li>
-                        <strong>Workout started: ${new Date(workout.started_at).toLocaleString()}</strong>
-                        (ID: ${workout.id.substring(0,8)})
-                        <button onclick="resumeWorkout('${workout.id}')">View/Resume</button>
+                        <div> <!-- Added div for text content -->
+                            <strong>Workout started: ${new Date(workout.started_at).toLocaleString()}</strong>
+                            (ID: ${workout.id.substring(0,8)})
+                        </div>
+                        <button class="button-secondary" onclick="resumeWorkout('${workout.id}')">View/Resume</button>
                     </li>`;
                 });
                 ul += '</ul>';
@@ -716,11 +721,14 @@ function ExerciseListPage() {
     .then(({ status, body }) => {
         if (status === 200) {
             if (body.data && body.data.length > 0) {
-                let listHTML = '<ul>';
+                let listHTML = '<ul class="item-list">'; // Added item-list class
                 body.data.forEach(ex => {
+                    // Added div for text content to help with flex layout
                     listHTML += `<li>
-                        <strong>${ex.name}</strong> (${ex.category} / ${ex.equipment || 'N/A'})
-                        <button onclick="navigateToLogSet('${ex.id}', '${ex.name}')">Log this Exercise</button>
+                        <div>
+                            <strong>${ex.name}</strong> (${ex.category} / ${ex.equipment || 'N/A'})
+                        </div>
+                        <button class="button-secondary" onclick="navigateToLogSet('${ex.id}', '${ex.name}')">Log this Exercise</button>
                     </li>`;
                 });
                 listHTML += '</ul>';
@@ -775,10 +783,10 @@ function LogSetPage() {
 
     page.innerHTML = `
         <h2>Log Set <span id="current-set-number-display">1</span> for ${exerciseName}</h2>
-        <div id="logset-message" class="message" style="display:none;"></div>
+        <div id="logset-message" class="success-message" style="display:none;"></div>
         <div id="logset-error" class="error-message" style="display:none;"></div>
 
-        <div id="ai-recommendation" style="border: 1px solid #eee; padding: 10px; margin-bottom: 15px; background-color: #f9f9f9;">
+        <div id="ai-recommendation" class="ai-recommendation-box">
             <h4>AI Recommendation:</h4>
             <p>
                 Weight: <strong id="rec-weight" style="font-size: 1.1em;">Loading...</strong> kg
@@ -802,12 +810,13 @@ function LogSetPage() {
                 <label for="rir">RIR (Reps In Reserve):</label>
                 <input type="number" id="rir" name="rir" min="0" max="5">
             </div>
-            <button type="submit">Log Set</button>
+            <button type="submit" class="button-primary">Log Set</button>
         </form>
-        <button onclick="window.location.hash='#workouts'">Back to Workouts</button>
+        <button class="button-secondary" onclick="window.location.hash='#workouts'">Back to Workouts</button>
     `;
 
     const recWeightEl = page.querySelector('#rec-weight');
+    // Ensure message/error divs get their classes (already done in innerHTML)
     const recRepsEl = page.querySelector('#rec-reps');
     const recRirEl = page.querySelector('#rec-rir');
     const tooltipTriggerEl = page.querySelector('#rec-tooltip-trigger');
@@ -1009,7 +1018,7 @@ function updateFooterNav() {
 
 function NotFoundPage() {
     const page = document.createElement('div');
-    page.className = 'page active';
+    page.className = 'page active not-found-page-container'; // Added class for styling
     page.innerHTML = '<h2>404 - Page Not Found</h2>';
     return page;
 }
@@ -1018,11 +1027,13 @@ function NotFoundPage() {
 function ProfilePage() {
     const page = document.createElement('div');
     page.className = 'page active';
+    // The content below is largely a placeholder as profile.js and profile.html manage the actual details.
+    // Applying classes here ensures this basic structure aligns if ever directly rendered.
     page.innerHTML = `
         <h2>User Profile</h2>
         <section id="equipment-management">
             <h3>My Equipment</h3>
-            <div id="equipment-message" style="display:none;"></div>
+            <div id="equipment-message" class="message" style="display:none;"></div> {/* Default to .message, can be changed by profile.js */}
             <form id="equipment-form">
                 <h4>Weight Plates</h4>
                 <div id="plate-selection">
@@ -1049,7 +1060,7 @@ function ProfilePage() {
                     <input type="number" id="adjustable-dumbbell-max-weight" step="0.5">
                 </div>
 
-                <button type="submit">Save Equipment</button>
+                <button type="submit" class="button-primary">Save Equipment</button>
             </form>
         </section>
     `;
@@ -1105,16 +1116,16 @@ function RirWeightInputPage() {
             <div>
                 <label for="calculated-weight">Calculated Target Weight (kg):</label>
                 <input type="number" id="calculated-weight" name="calculated-weight" step="0.1" value="100" required>
-                <button type="button" id="round-weight-btn">Round to Nearest Plate</button>
+                <button type="button" id="round-weight-btn" class="button-secondary">Round to Nearest Plate</button>
             </div>
             <div>
                 <label for="rounded-weight">Rounded Weight (kg):</label>
                 <input type="text" id="rounded-weight" name="rounded-weight" readonly>
             </div>
             <p id="plate-breakdown"></p>
-            <button type="submit">Use This Weight</button>
+            <button type="submit" class="button-primary">Use This Weight</button>
         </form>
-        <button onclick="window.location.hash='#workouts'">Back to Workouts</button>
+        <button class="button-secondary" onclick="window.location.hash='#workouts'">Back to Workouts</button>
     `;
 
     const form = page.querySelector('#rir-weight-form');
