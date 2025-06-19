@@ -1,46 +1,82 @@
 body {
-    font-family: sans-serif;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: #f4f4f4;
-    color: #333;
+    background-color: #f4f6f8; /* Updated */
+    color: #212529; /* Updated */
+    line-height: 1.5; /* Added */
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: #2c3e50; /* Updated */
+    margin-top: 0; /* Assuming a default reset, adjust as needed */
+    margin-bottom: 0.5rem; /* Consistent spacing */
+    padding: 0; /* Assuming a default reset */
+    font-weight: 600; /* Default weight, can be overridden per heading */
+}
+
+h1 { font-size: 2.5em; margin-bottom: 0.75rem; } /* Example sizes, adjust from guide */
+h2 { font-size: 2em; margin-bottom: 0.75rem; }
+h3 { font-size: 1.75em; margin-bottom: 0.5rem; }
+h4 { font-size: 1.5em; margin-bottom: 0.5rem; }
+h5 { font-size: 1.25em; margin-bottom: 0.5rem; }
+h6 { font-size: 1em; margin-bottom: 0.5rem; }
+    color: #495057; /* Updated to match new palette if needed, or remove if h2 style is enough */
 }
 
 header {
-    background-color: #333;
-    color: white;
-    padding: 1em;
-    text-align: center;
+    background-color: #ffffff; /* Updated */
+    color: #2c3e50; /* Updated */
+    padding: 1rem 2rem; /* Updated */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Added */
+    text-align: left; /* Updated */
+}
+
+header h1 { /* Specific style for h1 within header */
+    font-size: 1.75em;
+    font-weight: 600;
+    margin: 0;
 }
 
 main {
     flex-grow: 1;
-    padding: 1em;
-    max-width: 800px;
+    padding: 1.5rem; /* Updated (or 20px) */
+    max-width: 1200px; /* Updated */
     margin: 0 auto;
     width: 100%;
 }
 
 footer {
-    background-color: #333;
-    color: white;
-    padding: 1em 0;
+    background-color: #ffffff; /* Updated */
+    color: #7f8c8d; /* Updated */
+    padding: 1.5rem 2rem; /* Updated */
     text-align: center;
-    position: sticky;
+    border-top: 1px solid #dee2e6; /* Added */
+    /* position: sticky; Removed for now */
     bottom: 0;
 }
 
-footer nav a {
-    color: white;
-    margin: 0 1em;
+/* Navigation Links */
+header nav a, footer nav a {
+    color: #007bff; /* Accent color */
     text-decoration: none;
+    padding: 0.5em 1em; /* Added padding for clickable area */
+    margin: 0 0.5em; /* Adjust margin as needed */
 }
 
-footer nav a:hover {
-    text-decoration: underline;
+header nav a:hover, footer nav a:hover {
+    color: #0056b3; /* Hover color */
+    text-decoration: none; /* Ensure no underline on hover unless desired */
 }
+
+/* Ensure header nav a specific styles if different from footer */
+header nav a {
+    /* Example: header might have slightly different padding or margin */
+}
+
 
 .hamburger-menu {
     display: none; /* Hidden by default */
@@ -51,7 +87,7 @@ footer nav a:hover {
 .hamburger-menu .bar {
     width: 25px;
     height: 3px;
-    background-color: white;
+    background-color: #2c3e50; /* Updated for contrast against white footer */
     margin: 5px 0;
     transition: 0.4s;
 }
@@ -73,7 +109,7 @@ footer nav a:hover {
 /* Loader Styles */
 .loader {
     border: 4px solid #f3f3f3; /* Light grey */
-    border-top: 4px solid #3498db; /* Blue */
+    border-top: 4px solid #007bff; /* Updated Blue to new accent color */
     border-radius: 50%;
     width: 30px;
     height: 30px;
@@ -161,77 +197,323 @@ button .loader {
         margin: 10px 0; /* Adjust margin for vertical layout */
         display: block; /* Make links take full width for easier clicking */
         width: 100%;
+        /* Link color and hover are already handled by the global 'footer nav a' styles */
     }
 }
 
-h2 {
-    color: #333;
-}
+/* The specific h2 rule (color: #333;) is removed. Global h1-h6 styles will apply. */
 
+/* Form Styling */
 form div {
-    margin-bottom: 10px;
+    /* margin-bottom: 10px; This might be removed or adjusted based on new label margins */
+    /* Consider if this rule is still needed or if label margins are sufficient */
 }
 
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px; /* Updated */
+    font-weight: 500; /* Added */
+    color: #34495e; /* Added */
 }
 
 input[type="text"],
 input[type="password"],
 input[type="email"],
-input[type="number"] {
-    width: calc(100% - 22px);
+input[type="number"],
+textarea,
+select {
+    width: 100%; /* Updated */
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid #ced4da; /* Updated */
     border-radius: 4px;
+    box-sizing: border-box; /* Added */
+    font-size: 1em; /* Added */
+    background-color: #ffffff; /* Added */
 }
 
+/* General Button Reset (optional, if you want all buttons to share some very basic properties) */
 button {
-    background-color: #5cb85c;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
     cursor: pointer;
+    border: 1px solid transparent; /* Default border */
+    padding: 10px 15px; /* Default padding */
+    font-size: 1em; /* Consistent font size */
+    border-radius: 4px; /* Default border radius */
+    text-transform: none; /* Default */
+    font-weight: 500; /* Default */
 }
 
-button:hover {
-    background-color: #4cae4c;
+/* Primary Button */
+.button-primary {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+    /* padding, border-radius, cursor, text-transform, font-weight are inherited or set above */
+}
+
+.button-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+/* Secondary Button */
+.button-secondary {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.button-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+/* Remove old green button styles by ensuring any 'button' specific styles above are generic enough
+   or by specifically overriding them if they were more specific than the new classes.
+   The existing 'button' styles are now more of a baseline. */
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
 }
 
 #workout-list ul {
     list-style-type: none;
     padding: 0;
+    margin: 0; /* Resetting browser default margin */
 }
 
 #workout-list li {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 4px;
+    background-color: #ffffff; /* Consistent with new card/element backgrounds */
+    border: 1px solid #dee2e6; /* Consistent with new border color */
+    padding: 1rem; /* Consistent padding (e.g., 16px or 1rem) */
+    margin-bottom: 1rem; /* Consistent spacing */
+    border-radius: 6px; /* Consistent with new border-radius (e.g., modal) */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Optional: subtle shadow like header */
 }
 
+/* Modal Styles */
 #onboarding-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: none;
+    background-color: rgba(0, 0, 0, 0.6); /* Updated overlay */
+    display: none; /* Handled by JS */
     align-items: center;
     justify-content: center;
+    z-index: 1000; /* Ensure modals are above other content */
 }
 
 #onboarding-modal.show {
     display: flex;
 }
 
+/* Generic modal content class */
+.modal-content {
+    background: #ffffff; /* Updated */
+    padding: 25px; /* Updated */
+    border-radius: 6px; /* Updated */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Added */
+    text-align: center; /* Assuming this is desired for onboarding, can be overridden */
+    max-width: 500px; /* Example, adjust as needed */
+    width: 90%; /* Responsive width */
+}
+
+/* Specific adjustments for onboarding if needed, otherwise covered by .modal-content */
 #onboarding-modal .modal-content {
-    background: #fff;
-    padding: 1em;
+    /* Inherits from .modal-content. Add specific overrides here if necessary. */
+    /* For example, if onboarding modal needs a different max-width or text-align. */
+}
+
+/* Message Styling */
+.error-message, .success-message, .message { /* Combined for common properties */
+    padding: 10px 15px;
     border-radius: 4px;
+    margin-bottom: 1rem; /* 15px or 1rem */
+    display: none; /* Default to hidden, toggled by JS */
+    /* Consider text-align: left; if not inheriting properly */
+}
+
+.error-message {
+    color: #721c24; /* Dark red */
+    background-color: #f8d7da; /* Light red */
+    border: 1px solid #f5c6cb; /* Reddish border */
+}
+
+.success-message, .message { /* .message can be used as a general purpose or success message style */
+    color: #155724; /* Dark green */
+    background-color: #d4edda; /* Light green */
+    border: 1px solid #c3e6cb; /* Greenish border */
+}
+
+/* Form Link Styling (e.g., "Don't have an account? Sign Up") */
+.form-link-container {
     text-align: center;
+    margin-top: 1rem;
+}
+
+.form-link {
+    color: #007bff; /* Use accent color */
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.form-link:hover {
+    color: #0056b3; /* Darker accent color on hover */
+    text-decoration: underline;
+}
+
+/* Generic .form-control class */
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+    background-color: #ffffff;
+}
+
+/* Item List Styling (for WorkoutListPage, ExerciseListPage) */
+ul.item-list {
+    list-style: none;
+    padding: 0;
+    margin: 0; /* Overriding potential browser defaults */
+}
+
+ul.item-list li {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    padding: 15px; /* Or 1rem */
+    margin-bottom: 10px; /* Or 0.75rem */
+    border-radius: 4px; /* Consistent with other elements */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px; /* Adds a small gap between text div and button */
+}
+
+ul.item-list li > div { /* Target the div containing text */
+    flex-grow: 1; /* Allow text div to take available space */
+}
+
+/* Responsive adjustment for list items if buttons stack awkwardly */
+@media screen and (max-width: 600px) {
+    ul.item-list li {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    ul.item-list li button {
+        width: 100%; /* Make buttons full width on small screens */
+        margin-top: 10px; /* Add some space above button when stacked */
+    }
+}
+
+/* AI Recommendation Box Styling */
+.ai-recommendation-box {
+    background-color: #f8f9fa; /* Light grey, similar to table headers */
+    border: 1px solid #dee2e6; /* Consistent border */
+    padding: 15px; /* Or 1rem */
+    margin-bottom: 1.5rem; /* Space below the box */
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Subtle shadow */
+}
+
+.ai-recommendation-box h4 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #2c3e50; /* Match heading colors */
+}
+
+.ai-recommendation-box p {
+    margin-bottom: 0.5rem;
+    font-size: 0.95em;
+}
+
+.ai-recommendation-box strong {
+    font-weight: 600;
+}
+
+.ai-recommendation-box #rec-error {
+    font-size: 0.85em;
+    margin-top: 0.5rem;
+}
+
+/* Not Found Page Styling */
+.not-found-page-container {
+    text-align: center;
+    padding-top: 2rem; /* Add some spacing from the top */
+    padding-bottom: 2rem;
+}
+
+.not-found-page-container h2 {
+    color: #2c3e50; /* Ensure it uses the main heading color */
+}
+
+/* Button Variants */
+.button-sm {
+    padding: 5px 10px;
+    font-size: 0.875em;
+    /* Adjust line-height if necessary, though usually fine with padding */
+}
+
+.button-error {
+    background-color: #dc3545; /* Bootstrap danger red */
+    color: white;
+    border-color: #dc3545;
+}
+
+.button-error:hover {
+    background-color: #c82333; /* Darker red on hover */
+    border-color: #bd2130;
+}
+
+/* Optional: Outline variant for less prominent destructive actions */
+.button-danger-outline {
+    background-color: transparent;
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.button-danger-outline:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Link Button Style */
+.button-link {
+    background-color: transparent;
+    color: #007bff; /* Accent color */
+    border: none;
+    padding: 0; /* No padding, behaves like a link */
+    text-decoration: none; /* Standard link appearance */
+    cursor: pointer;
+    font-size: 1em; /* Match default text size or specific component size */
+    font-weight: 500; /* Consistent with other buttons/actions */
+    text-align: left; /* Or center, depending on usage */
+}
+
+.button-link:hover,
+.button-link:focus {
+    color: #0056b3; /* Darker accent on hover */
+    text-decoration: underline;
+    background-color: transparent; /* Ensure no background on hover */
 }

@@ -1,44 +1,20 @@
 /* General Profile Page Styles */
-body {
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #f4f6f8;
-    color: #333;
-    margin: 0;
-}
-
-header {
-    background: #ffffff;
-    color: #212529;
-    padding: 1rem 2rem;
-    border-bottom: 1px solid #dee2e6;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-header h1 {
-    margin: 0;
-    font-size: 1.75em;
-    font-weight: 600;
-}
-
-header nav a {
-    color: #007bff;
-    text-decoration: none;
-    margin-right: 20px;
-}
+/* body, header, footer base styles are now inherited from style.css */
 
 #profile-page-container {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    max-width: 800px; /* Keep specific max-width */
+    margin: 20px auto; /* Keep specific margin */
+    padding: 20px; /* Keep specific padding */
+    background-color: #fff; /* Consistent with global card background */
+    border-radius: 6px; /* Updated to global card radius */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Updated to global card shadow */
+    border: 1px solid #dee2e6; /* Updated to global card border */
 }
 
 section {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 30px; /* Keep existing margin */
+    padding-bottom: 20px; /* Keep existing padding */
+    border-bottom: 1px solid #dee2e6; /* Updated border color */
 }
 section:last-child {
     border-bottom: none;
@@ -46,45 +22,54 @@ section:last-child {
     padding-bottom: 0;
 }
 
-h2 {
-    font-size: 1.5em;
-    color: #343a40;
+h2 { /* This is for section titles within the profile page container */
+    font-size: 1.75em; /* Align with H3 global style or choose appropriate level */
+    color: #2c3e50; /* Global heading color */
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: 20px; /* Consistent spacing */
+    padding-bottom: 10px; /* Add padding if a border is also added */
+    /* border-bottom: 1px solid #e9ecef; Optional: if sections need titled separators */
 }
 
-h4 {
-    font-size: 1.1em;
-    color: #495057;
+h4 { /* This is for sub-headings within sections, e.g., "Weight Plates", "Dumbbells" */
+    font-size: 1.25em; /* Align with H5 global style or choose appropriate level */
+    color: #2c3e50; /* Global heading color */
     margin-top: 20px;
-    margin-bottom: 10px;
+    margin-bottom: 15px; /* Consistent spacing */
+    font-weight: 600; /* Consistent heading weight */
 }
 
 /* Form elements from existing profile.js */
 #equipment-form label,
-#equipment-form p {
+#equipment-form p { /* Assuming 'p' tags here are used like labels or descriptive text for form groups */
     display: block;
-    margin-bottom: 8px;
-    font-size: 0.95em;
+    margin-bottom: 8px; /* Global label style */
+    font-size: 0.95em; /* Keep slightly smaller font if desired for this page */
+    color: #34495e; /* Global label color */
+    font-weight: 500; /* Global label weight */
 }
 
 #equipment-form input[type="text"],
 #equipment-form input[type="number"],
 #equipment-form select {
     width: 100%;
-    max-width: 300px; /* Limit width of inputs */
-    padding: 8px;
-    margin-bottom: 15px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
+    max-width: 300px; /* Limit width of inputs - keep this layout choice */
+    padding: 10px; /* Global input padding */
+    margin-bottom: 15px; /* Keep specific margin */
+    border: 1px solid #ced4da; /* Global input border color */
+    border-radius: 4px; /* Global input radius */
     box-sizing: border-box;
+    background-color: #ffffff; /* Global input background */
+    font-size: 1em; /* Global input font size */
 }
 
+/* Specific styling for labels within plate-selection if they need to be different from general form labels */
 #plate-selection label {
-    display: inline-block; /* Allow multiple checkboxes per line with spacing */
+    display: inline-block;
     margin-right: 15px;
     margin-bottom: 5px;
-    font-weight: normal;
+    font-weight: normal; /* Override global label weight for checkbox labels if desired lighter */
+    color: #34495e; /* Ensure consistency */
 }
 #plate-selection input[type="checkbox"] {
     margin-right: 5px;
@@ -92,43 +77,20 @@ h4 {
 }
 
 
-/* General button styling (if not covered by global style.css) */
-.button-primary {
-    background-color: #007bff;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s ease;
-}
-.button-primary:hover {
-    background-color: #0056b3;
-}
-.button-primary:disabled {
-    background-color: #adb5bd;
-    cursor: not-allowed;
-}
+/* General button styling (.button-primary) is now global. Remove local definition. */
 
 
 /* Message area styling */
 .message-area {
     padding: 10px;
     margin-top: 10px;
-    border-radius: 4px;
+    border-radius: 4px; /* Consistent with global message boxes */
     font-size: 0.9em;
+    /* This base class can be kept for general message layout on this page.
+       Specific success/error styling will come from global .success-message / .error-message
+       when those classes are added to the element in HTML by JS. */
 }
-.message-area.success { /* Example, if JS adds class */
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-.message-area.error { /* Example */
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
+/* Removed local .message-area.success and .message-area.error as global styles will be used. */
 
 
 /* Styles for Data Export Functionality */
@@ -143,28 +105,8 @@ h4 {
     min-height: 1.5em; /* Prevent layout shift */
 }
 
-/* Small loader for buttons (re-defined here if not global, or ensure profile.css loads after common css) */
-.loader-small {
-    display: inline-block;
-    border: 3px solid #f3f3f3; /* Light grey */
-    border-top: 3px solid #fff; /* White for contrast on colored buttons */
-    border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    animation: spin 1s linear infinite;
-    vertical-align: middle;
-    margin-right: 5px;
-}
+/* Small loader for buttons (.loader-small and @keyframes spin) are now global (or should be). Remove local definition. */
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
 
-footer {
-    text-align: center;
-    padding: 20px;
-    margin-top: 30px;
-    font-size: 0.9em;
-    color: #6c757d;
-}
+/* Footer base styles are inherited from style.css */
+/* Local footer rule removed to fully utilize global footer style. */

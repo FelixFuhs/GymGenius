@@ -1,32 +1,8 @@
 /* Basic styling for the Plan Builder page */
-body {
-    font-family: sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-    color: #333;
-}
-
-header {
-    background: #333;
-    color: #fff;
-    padding: 1rem 0;
-    text-align: center;
-}
-
-header h1 {
-    margin: 0;
-}
-
-header nav a {
-    color: #fff;
-    text-decoration: none;
-    margin: 0 10px;
-}
+/* body, header, footer base styles are now inherited from style.css */
 
 main {
-    padding: 20px;
+    padding: 20px; /* Or 1.5rem to match global main padding */
     display: flex;
     flex-wrap: nowrap; /* Prevent wrapping of main panels */
     gap: 20px;
@@ -46,13 +22,81 @@ section#plan-creation-area {
 }
 
 /* Styles for the touch device message */
+
+/* Styling for the feedback panel */
+.feedback-panel {
+    margin-top: 15px;
+    padding: 15px; /* Adjusted from 10px for better spacing */
+    border: 1px solid #dee2e6; /* Use theme border */
+    background-color: #f8f9fa; /* Light theme background */
+    border-radius: 6px; /* Theme radius */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Theme shadow */
+}
+.feedback-panel h4 { /* Assuming h4 is inside */
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #2c3e50; /* Theme heading color */
+    font-size: 1.1em; /* Appropriate size */
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 8px;
+    font-weight: 600; /* Added for consistency */
+}
+.feedback-panel p {
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: #34495e; /* Consistent text color */
+}
+.feedback-panel ul {
+    list-style-position: inside;
+    padding-left: 5px; /* Slight indent */
+    font-size: 0.9em;
+    margin-bottom: 0;
+    color: #34495e; /* Consistent text color */
+}
+.feedback-panel ul li {
+    margin-bottom: 3px;
+}
+
+/* Responsive adjustments for Plan Builder */
+@media screen and (max-width: 992px) { /* Breakpoint for tablets and smaller desktops */
+    main {
+        flex-direction: column; /* Stack panels vertically */
+        align-items: stretch; /* Stretch panels to full width */
+    }
+
+    aside#left-panel,
+    div#right-panel {
+        width: 100%; /* Make side panels full width */
+        margin-bottom: 20px; /* Add space between stacked panels */
+    }
+    div#right-panel {
+        margin-bottom: 0; /* No bottom margin for the last panel */
+    }
+
+    #exercise-list, #plan-templates-list {
+        max-height: 250px; /* Adjust max-height for smaller viewports if needed */
+    }
+}
+
+@media screen and (max-width: 767px) { /* Additional adjustments for smaller mobile if needed */
+    main {
+        padding: 15px; /* Reduce padding on very small screens */
+        gap: 15px;
+    }
+    section {
+        padding: 15px;
+    }
+    #plan-controls button {
+        padding: 12px 15px; /* Slightly larger tap target for mobile */
+    }
+}
 #touch-device-message {
-    background-color: #fff3cd; /* Light yellow background */
-    color: #856404; /* Dark yellow text */
-    border: 1px solid #ffeeba; /* Yellow border */
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 20px; /* Space below the message */
+    background-color: #fff3cd; /* Consistent with global warning */
+    color: #856404; /* Consistent with global warning */
+    border: 1px solid #ffeeba; /* Consistent with global warning */
+    padding: 10px 15px; /* Standardized padding */
+    border-radius: 4px; /* Standardized radius */
+    margin-bottom: 20px; /* Space below the message - existing, seems fine */
     text-align: center;
 }
 
@@ -73,13 +117,18 @@ div#right-panel {
     flex-shrink: 0; /* Prevent right panel from shrinking */
 }
 
-
 section { /* Common styling for all sections */
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px; /* Global card radius */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* Global card shadow */
+    padding: 20px; /* Retain existing padding */
+    margin-bottom: 20px; /* Add margin between sections */
 }
+section:last-child {
+    margin-bottom: 0; /* No margin for the last section in a panel */
+}
+
 
 #exercise-list-container, #plan-templates-section {
     /* Styles for sections within the left panel */
@@ -93,70 +142,85 @@ section { /* Common styling for all sections */
     overflow-y: auto;
 }
 
+/* Styling for #exercise-list and #plan-templates-list */
 #exercise-list li, #plan-templates-list li {
-    padding: 10px;
-    border: 1px solid #ddd;
-    margin-bottom: 5px;
-    background-color: #f9f9f9;
-    display: flex; /* For aligning items if needed, like template name and button */
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: box-shadow 0.2s ease-in-out; /* Subtle hover effect */
+}
+#exercise-list li:hover, #plan-templates-list li:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
 }
 
 #exercise-list li {
     cursor: grab; /* Only exercise list items are grabbable */
 }
 
-
-/* Styling for Load Template buttons */
+/* Default button styles will be applied via .button-secondary, .button-sm */
 .load-template-btn {
-    padding: 5px 10px;
-    background-color: #4CAF50; /* Green */
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    margin-left: 10px; /* Space it from template name */
+    /* Ensure specificity or rely on global .button-secondary and .button-sm */
+    /* padding: 5px 10px; font-size: 0.875em; are now part of .button-sm */
+    margin-left: 10px; /* Keep specific margin if needed */
 }
 
-.load-template-btn:hover {
-    background-color: #45a049;
-}
-
-/* Styling for Plan Details/Summary section */
-#plan-details h5 {
+/* Styling for Plan Details/Summary section - text lists */
+#plan-details h5 { /* These are sub-headings within sections */
     margin-top: 15px;
-    margin-bottom: 5px;
-    color: #333;
+    margin-bottom: 10px; /* Increased margin */
+    color: #2c3e50; /* Global heading color */
+    font-size: 1.1em; /* Slightly larger */
+    font-weight: 600; /* Consistent with other headings */
+    border-bottom: 1px solid #e9ecef; /* Subtle separator */
+    padding-bottom: 8px;
+}
+
+#volume-list, #frequency-list, #user-plans-list, #feedback-frequency-list {
+    list-style-position: inside;
+    padding-left: 0; /* Remove default padding */
+    margin-top: 0; /* Remove default margin */
+}
+
+#volume-list li, #frequency-list li, #user-plans-list li, #feedback-frequency-list li {
+    margin-bottom: 8px; /* Increased spacing */
+    color: #34495e; /* Global label/secondary text color */
     font-size: 0.95em;
+    padding-left: 5px; /* Indent text slightly */
 }
-
-#plan-details ul {
-    list-style-type: none;
-    padding-left: 10px;
-    font-size: 0.9em;
+/* Specific style for user plans list if they are interactive */
+#user-plans-list li {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
 }
-
-#plan-details ul li {
-    padding: 3px 0;
-    color: #555;
+#user-plans-list li:hover {
+    background-color: #f0f0f0;
 }
 
 #drop-zone {
-    border: 2px dashed #ccc;
+    border: 2px dashed #ced4da; /* Global border color */
     padding: 20px;
-    min-height: 200px;
+    min-height: 200px; /* Keep existing min-height */
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f0f0f0;
-    text-align: center; /* Center placeholder text */
+    background-color: #f8f9fa; /* Light grey, consistent with table headers/AI box */
+    text-align: center;
+    color: #7f8c8d; /* Consistent with footer text or other secondary text */
+    border-radius: 6px; /* Consistent radius */
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 #drop-zone.drag-over {
-    background-color: #e0e0e0;
-    border-color: #aaa;
+    background-color: #e9ecef; /* Slightly darker grey on drag over */
+    border-color: #adb5bd; /* Darker border on drag over */
+    color: #495057; /* Darker text on drag over */
 }
 
 /* Styling for items in the exercise list that are being dragged */
@@ -173,28 +237,25 @@ section { /* Common styling for all sections */
 }
 
 #plan-exercise-list li {
-    background-color: #e9e9e9;
-    padding: 8px 12px;
+    background-color: #f0f8ff; /* Light blue */
+    border: 1px solid #cce0ff; /* Light blue border */
+    padding: 10px 15px;
     margin-bottom: 8px;
-    border: 1px solid #ccc;
     border-radius: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: background-color 0.2s ease; /* Smooth transition */
+}
+#plan-exercise-list li:hover {
+    background-color: #e6f2ff; /* Slightly darker blue on hover */
 }
 
+
+/* Default button styles will be applied via .button-error, .button-sm */
 .remove-exercise-btn {
-    padding: 5px 10px;
-    background-color: #ff4d4d;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-}
-
-.remove-exercise-btn:hover {
-    background-color: #cc0000;
+    /* Ensure specificity or rely on global .button-error and .button-sm */
+    /* padding: 5px 10px; font-size: 0.875em; are now part of .button-sm */
 }
 
 #plan-details, #plan-controls {
@@ -203,35 +264,24 @@ section { /* Common styling for all sections */
     margin-top: 0; /* Reset margin-top if not needed */
 }
 
-#plan-details p, #plan-controls button {
-    margin: 10px 0;
+/* #plan-details p style removed as it was too general and margin is handled by other elements or text defaults */
+
+/* Styling for buttons container in plan-controls, not the buttons themselves */
+#plan-controls {
+    /* Add any specific container styling if needed */
 }
 
-#plan-controls button { /* General styling for buttons in plan-controls */
-    padding: 10px 15px;
-    background-color: #333;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    display: block; /* Make buttons take full width of their container if desired */
+/* Keep layout styles for buttons within #plan-controls */
+#plan-controls button {
+    display: block;
     width: 100%;
-    margin-bottom: 8px; /* Add some space between buttons */
+    margin-bottom: 10px; /* Updated for consistent spacing, from 8px */
 }
 
 #plan-controls button:last-child {
-    margin-bottom: 0;
+    margin-bottom: 0; /* Remove margin from last button */
 }
 
-#plan-controls button:hover {
-    background-color: #555;
-}
+/* Specific hover/background/color/border styles are now handled by global button classes (.button-primary, .button-secondary) */
 
-
-footer {
-    text-align: center;
-    padding: 20px;
-    background: #333;
-    color: #fff;
-    margin-top: 20px;
-}
+/* Footer base styles are inherited from style.css */
