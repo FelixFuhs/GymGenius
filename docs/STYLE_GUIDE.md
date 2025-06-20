@@ -170,9 +170,9 @@ button, .button {
 
 Classes: `.success-message`, `.error-message`, `.warning-message` (can also use generic `.message` for success).
 *   **Common Styles**: `padding: 10px 15px; border-radius: 10px; margin-bottom: 1rem; display: none;` (toggled by JS).
-*   **Success (`.success-message`)**: Light green background (`#d4edda`), dark green text (`#155724`), green border (`#c3e6cb`).
-*   **Error (`.error-message`)**: Light red background (`#f8d7da`), dark red text (`#721c24`), red border (`#f5c6cb`).
-*   **Warning (`.warning-message`, e.g., Plateau Notifications, Touch Device Message)**: Light yellow background (`#fff3cd`), dark yellow text (`#856404`), yellow border (`#ffeeba`).
+*   **Success (`.success-message`)**: `background: rgba(48, 209, 88, 0.1)`, `text: #30d158`, `border: rgba(48, 209, 88, 0.2)`.
+*   **Error (`.error-message`)**: `background: rgba(255, 59, 48, 0.1)`, `text: #ff3b30`, `border: rgba(255, 59, 48, 0.2)`.
+*   **Warning (`.warning-message`, e.g., Plateau Notifications, Touch Device Message)**: `background: rgba(255, 149, 0, 0.1)`, `text: #ff9500`, `border: rgba(255, 149, 0, 0.2)`.
 
 ### Cards / Panels
 
