@@ -191,11 +191,11 @@ Used for dashboard sections, plan builder panels, profile sections, workout exec
 ### Navigation
 
 *   **Header/Footer Links (`header nav a`, `footer nav a`)**:
-    *   `color: #007bff;`
+    *   `color: #1d1d1f;`
     *   `text-decoration: none;`
     *   `padding: 0.5em 1em;`
-    *   Hover: `color: #0056b3;`. Dashboard header links may have `text-decoration: underline;` on hover.
-*   **Hamburger Menu (`.hamburger-menu .bar`)**: `background-color: #2c3e50;`.
+    *   Hover: `color: #515154;`. Dashboard header links may have `text-decoration: underline;` on hover.
+*   **Hamburger Menu (`.hamburger-menu .bar`)**: `background-color: #1d1d1f;`.
 
 ### Lists
 
