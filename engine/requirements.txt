@@ -8,4 +8,5 @@ rq
 redis
 psycopg2-binary
 Flask-Limiter==2.8.0
+gunicorn
 Werkzeug<3.0
