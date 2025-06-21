@@ -233,7 +233,9 @@ Used for dashboard sections, plan builder panels, profile sections, workout exec
 *   **`.hidden`**: `display: none !important;`
 *   **`.loader`**: Animated loading spinner.
 *   **`.form-control`**: Explicitly applies standard input styling.
-*   **Button variants**: `.button-primary`, `.button-secondary`, `.button-error`, `.button-danger-outline`, `.button-link`, `.button-sm`.
+*   **Button variants**: `.button-primary` and `.button-secondary`.
+    Older classes like `.button-error`, `.button-danger-outline`, `.button-link`,
+    and `.button-sm` were removed from the design.
 *   **Message variants**: `.success-message`, `.error-message`, `.warning-message`.
 
 ## 9. Responsive Design
