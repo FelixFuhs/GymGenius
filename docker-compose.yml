@@ -1,8 +1,10 @@
+name: gymgenius # <-- THE PERMANENT FIX
 version: '3.8'
 services:
   web:
     build:
       context: ./webapp
+    restart: always
     ports:
       - "8000:80"
     volumes:
@@ -13,6 +15,7 @@ services:
       - engine
   db:
     image: postgres:16-alpine
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
@@ -24,6 +27,7 @@ services:
   engine:
     build:
       context: ./engine
+    restart: always
     command: gunicorn --bind 0.0.0.0:5000 --workers 4 "app:app"
     env_file:
       - .env
@@ -34,6 +38,7 @@ services:
       - redis
   redis:
     image: redis:alpine
+    restart: always
     ports:
       - "6379:6379"
     volumes:
