@@ -44,7 +44,7 @@ Consistent typography enhances readability and user experience.
 
 *   **Body Text (`p`, general text)**: `1em`, `400` weight, `#1d1d1f` color, `line-height: 1.6`.
 *   **Labels (`label`)**: `1em` (or `0.95em` in specific contexts like profile forms), `500` weight, `#1d1d1f` color, `margin-bottom: 8px`.
-*   **Links (`a`)**: Inherit font size, `400` or `500` weight, `#1d1d1f` color. Hover: `#0056b3`. No text decoration by default, underline on hover for some links (e.g., `.form-link`).
+*   **Links (`a`)**: Inherit font size, `400` or `500` weight, `#1d1d1f` color. Hover: `#515154`. No text decoration by default, underline on hover for some links (e.g., `.form-link`).
 *   **Small Text (`small`)**: `0.85em` - `0.9em`.
 
 ## 4. Spacing
@@ -191,10 +191,10 @@ Used for dashboard sections, plan builder panels, profile sections, workout exec
 ### Navigation
 
 *   **Header/Footer Links (`header nav a`, `footer nav a`)**:
-    *   `color: #007bff;`
+    *   `color: #1d1d1f;`
     *   `text-decoration: none;`
     *   `padding: 0.5em 1em;`
-    *   Hover: `color: #0056b3;`. Dashboard header links may have `text-decoration: underline;` on hover.
+    *   Hover: `color: #515154;`. Dashboard header links may have `text-decoration: underline;` on hover.
 *   **Hamburger Menu (`.hamburger-menu .bar`)**: `background-color: #2c3e50;`.
 
 ### Lists

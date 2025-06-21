@@ -203,7 +203,7 @@ function render1RMEvolutionChart(exerciseId, exerciseData) {
                     },
                     ticks: {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                        color: '#6c757d'
+                        color: '#515154'
                     },
                     grid: {
                         borderColor: '#dee2e6',
@@ -220,7 +220,7 @@ function render1RMEvolutionChart(exerciseId, exerciseData) {
                     beginAtZero: false,
                     ticks: {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                        color: '#6c757d',
+                        color: '#515154',
                         padding: 5
                     },
                     grid: {
@@ -560,7 +560,7 @@ function renderVolumeDistributionChart(processedChartData, annotationCfg) {
                     stacked: true, // Enable stacking
                     ticks: {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                        color: '#6c757d'
+                        color: '#515154'
                     },
                     grid: {
                         borderColor: '#dee2e6',
@@ -578,7 +578,7 @@ function renderVolumeDistributionChart(processedChartData, annotationCfg) {
                     stacked: true, // Enable stacking
                     ticks: {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                        color: '#6c757d',
+                        color: '#515154',
                         padding: 5
                     },
                     grid: {
@@ -816,7 +816,7 @@ function renderMTITrendsChart(mtiData) {
                     },
                     ticks: {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                        color: '#6c757d'
+                        color: '#515154'
                     },
                     grid: {
                         borderColor: '#dee2e6',
@@ -833,7 +833,7 @@ function renderMTITrendsChart(mtiData) {
                     beginAtZero: false, // Or true if MTI score starts from 0
                     ticks: {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 },
-                        color: '#6c757d',
+                        color: '#515154',
                         padding: 5
                     },
                     grid: {
@@ -1238,7 +1238,7 @@ function renderRecoveryPatternsHeatmap(exerciseName, processedMatrixData) {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' }, color: '#495057'
                     },
                     ticks: {
-                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#6c757d',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#515154',
                     },
                     grid: { display: false }
                 },
@@ -1251,7 +1251,7 @@ function renderRecoveryPatternsHeatmap(exerciseName, processedMatrixData) {
                         font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 14, weight: '500' }, color: '#495057'
                     },
                     ticks: {
-                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#6c757d',
+                        font: { family: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', size: 12 }, color: '#515154',
                     },
                     grid: { display: false }
                 }

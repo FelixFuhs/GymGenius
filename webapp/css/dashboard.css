@@ -9,8 +9,8 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     text-align: left;
    Global h1 in header: font-size: 1.75em; font-weight: 600; margin: 0;
-   Global nav a: color: #007bff; text-decoration: none; padding: 0.5em 1em; margin: 0 0.5em;
-   Global nav a:hover: color: #0056b3;
+   Global nav a: color: #1d1d1f; text-decoration: none; padding: 0.5em 1em; margin: 0 0.5em;
+   Global nav a:hover: color: #515154;
 */
 
 /* Dashboard header might have its nav items styled slightly differently or additional items */
@@ -23,7 +23,7 @@ header nav {
 
 /* Override for dashboard nav links if global style isn't quite right for this context */
 header nav a {
-  /* color: #007bff; */ /* Inherited */
+  /* color: #1d1d1f; */ /* Inherited */
   /* text-decoration: none; */ /* Inherited */
   margin-right: 20px; /* Specific to dashboard.css, global is margin: 0 0.5em; */
   font-size: 1em; /* Global is based on 0.5em padding, this is explicit font-size */
@@ -32,7 +32,7 @@ header nav a {
 }
 header nav a:hover {
   /* text-decoration: underline; */ /* Global is 'none', dashboard.css adds underline */
-  /* color: #0056b3; */ /* Inherited */
+  /* color: #515154; */ /* Inherited */
   text-decoration: underline; /* Explicitly keep underline for dashboard nav hover */
 }
 
@@ -469,12 +469,12 @@ footer {
 }
 
 .plateau-notification strong {
-  /* color: #555; */ /* Inherits from .plateau-notification color now */
+  /* color: #515154; */ /* Inherits from .plateau-notification color now */
 }
 
 .plateau-notification small {
   font-size: 0.85em;
-  /* color: #777; */ /* Inherits */
+  /* color: #86868b; */ /* Inherits */
 }
 
 /* Removing custom button style, will use .button-secondary or .button-sm */
