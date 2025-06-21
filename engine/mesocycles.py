@@ -2,17 +2,14 @@ import uuid
 from datetime import date, timedelta
 import psycopg2 # For type hinting cursor
 
-# Phase definitions and durations
-PHASE_ACCUMULATION = "accumulation"
-PHASE_INTENSIFICATION = "intensification"
-PHASE_DELOAD = "deload"
-
+PHASE_ACCUMULATION = 'accumulation'
+PHASE_INTENSIFICATION = 'intensification'
+PHASE_DELOAD = 'deload'
 PHASE_DURATIONS = {
-    PHASE_ACCUMULATION: 3,  # weeks
-    PHASE_INTENSIFICATION: 1, # week
-    PHASE_DELOAD: 1,        # week
+    PHASE_ACCUMULATION: 3,
+    PHASE_INTENSIFICATION: 3,
+    PHASE_DELOAD: 1,
 }
-# Order of phases for cycling
 PHASE_ORDER = [PHASE_ACCUMULATION, PHASE_INTENSIFICATION, PHASE_DELOAD]
 
 def _get_next_phase_details(current_phase: str, current_phase_start_date: date) -> tuple[str, date]:

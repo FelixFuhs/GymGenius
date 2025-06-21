@@ -4,18 +4,6 @@ import psycopg2
 import psycopg2.extras # For RealDictCursor if needed, though AVG might not require it.
 from app import get_db_connection, release_db_connection, logger
 
-# Constants for readiness calculation (can be tuned)
-SLEEP_TARGET_HOURS = 8.0
-STRESS_MAX_LEVEL = 10.0
-# Weights for score components
-SLEEP_WEIGHT = 0.4
-STRESS_WEIGHT = 0.3
-HRV_WEIGHT = 0.3
-
-# Multiplier mapping parameters
-MULTIPLIER_BASE = 0.93
-MULTIPLIER_RANGE = 0.14 # total_score of 1.0 results in 0.93 + 0.14 = 1.07
-
 # The functions will be added here in subsequent steps.
 
 def get_personal_hrv_baseline(user_id: uuid.UUID, db_conn) -> float | None:

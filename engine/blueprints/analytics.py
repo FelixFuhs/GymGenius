@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, g # Added g
-from engine.constants import SEX_MULTIPLIERS, PLATEAU_EVENT_NOTIFICATION_COOLDOWN_WEEKS # Import SEX_MULTIPLIERS
+from constants import SEX_MULTIPLIERS, PLATEAU_EVENT_NOTIFICATION_COOLDOWN_WEEKS # Import SEX_MULTIPLIERS
 from app import get_db_connection, release_db_connection, jwt_required, logger
 from datetime import timezone, timedelta # Added timedelta
 # Corrected imports for progression and learning_models

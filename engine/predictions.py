@@ -6,8 +6,13 @@
 # We should handle cases where reps are very low (e.g., 1) or too high for reliable prediction.
 
 import math # For sqrt
-
-DEFAULT_ASSUMED_RIR = 2
+from constants import ( # Adjusted import based on change description
+    DEFAULT_USER_RIR_BIAS,
+    MIN_CONFIDENCE_FOR_BIAS_ADJUSTMENT,
+    PLATE_ROUNDING_LOGIC,
+    AVAILABLE_PLATE_SIZES_KG,
+    BARBELL_WEIGHT_KG
+)
 
 # Helper for manual stddev and mean if numpy not used
 def _calculate_stats(values: list[float]) -> tuple[float | None, float | None]:
@@ -79,9 +84,6 @@ def calculate_confidence_score(
     confidence = max(0.0, 1.0 - cv)
 
     return round(confidence, 2)
-
-DEFAULT_BARBELL_WEIGHT_KG = 20.0
-DEFAULT_AVAILABLE_PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5, 0.25] # Common plates
 
 def generate_possible_side_weights(available_plates_kg: list[float], max_total_weight_one_side: float) -> set[float]:
     """

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
 from flask import g # For accessing g.current_user_id
-from app import get_db_connection, release_db_connection, jwt_required, logger
+from app import get_db_connection, release_db_connection, logger
 import uuid
 from datetime import datetime, timezone, timedelta
 import secrets # For generating unique slugs
