@@ -17,13 +17,12 @@ app = Flask(__name__)
 # Use a dedicated Redis instance or a different DB number if sharing with RQ
 RATELIMIT_STORAGE_URL = os.getenv("RATELIMIT_STORAGE_URL", "redis://localhost:6379/1")
 limiter = Limiter(
-    get_remote_address,
-    default_limits=["200 per day", "50 per hour"], # Sensible global defaults
+    key_func=get_remote_address, # <--- ADD key_func= HERE
+    default_limits=["200 per day", "50 per hour"],
     storage_uri=RATELIMIT_STORAGE_URL,
-    strategy="fixed-window", # or "moving-window"
-    # storage_options={"socket_connect_timeout": 30}, # Example options
+    strategy="fixed-window",
 )
-limiter.init_app(app) # <--- ADD THIS LINE
+limiter.init_app(app)
 
 
 # --- Database Connection Pool Configuration ---
