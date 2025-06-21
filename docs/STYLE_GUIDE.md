@@ -44,7 +44,7 @@ Consistent typography enhances readability and user experience.
 
 *   **Body Text (`p`, general text)**: `1em`, `400` weight, `#1d1d1f` color, `line-height: 1.6`.
 *   **Labels (`label`)**: `1em` (or `0.95em` in specific contexts like profile forms), `500` weight, `#1d1d1f` color, `margin-bottom: 8px`.
-*   **Links (`a`)**: Inherit font size, `400` or `500` weight, `#1d1d1f` color. Hover: `#0056b3`. No text decoration by default, underline on hover for some links (e.g., `.form-link`).
+*   **Links (`a`)**: Inherit font size, `400` or `500` weight, `#1d1d1f` color. Hover: `#515154`. No text decoration by default; underline on hover for some links (e.g., `.form-link`).
 *   **Small Text (`small`)**: `0.85em` - `0.9em`.
 
 ## 4. Spacing
@@ -64,8 +64,8 @@ Consistent spacing creates visual rhythm and balance.
 
 ### Borders
 
-*   **Standard Border**: `1px solid #dee2e6` (for cards, sections, tables).
-*   **Input Border**: `1px solid #ced4da` (default for inputs, can also use `#dee2e6`).
+*   **Standard Border**: `1px solid #e5e5e7` (for cards, sections, tables).
+*   **Input Border**: `1px solid #e5e5e7` (default for inputs, can also use `#e5e5e7`).
 *   **Border Radius**:
     *   Cards, Major Sections: `16px`.
     *   Modals: `20px`.
@@ -84,7 +84,7 @@ Consistent spacing creates visual rhythm and balance.
 ### Glassmorphism Effects
 
 - **Cards:** `background: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.95) 50%), linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 251, 252, 0.95) 100%); backdrop-filter: blur(20px);`
-- **Buttons (Primary):** `background: linear-gradient(135deg, #1d1d1f 0%, #2d2d30 100%);`
+- **Buttons (Primary):** `background: linear-gradient(135deg, #1d1d1f 0%, #515154 100%);`
 - **Buttons (Secondary):** `background: linear-gradient(135deg, rgba(245, 245, 247, 0.95) 0%, rgba(250, 251, 252, 0.98) 100%); backdrop-filter: blur(10px);`
 - **Form Inputs:** `background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 251, 252, 0.98) 100%); backdrop-filter: blur(10px);`
 
@@ -111,7 +111,7 @@ button, .button {
 }
 
 .button-primary {
-    background: linear-gradient(135deg, #1d1d1f 0%, #2d2d30 100%);
+    background: linear-gradient(135deg, #1d1d1f 0%, #515154 100%);
     color: white;
     position: relative; /* Needed for pseudo-elements like sparkle */
     overflow: hidden; /* Helps contain pseudo-elements */
@@ -170,9 +170,9 @@ button, .button {
 
 Classes: `.success-message`, `.error-message`, `.warning-message` (can also use generic `.message` for success).
 *   **Common Styles**: `padding: 10px 15px; border-radius: 10px; margin-bottom: 1rem; display: none;` (toggled by JS).
-*   **Success (`.success-message`)**: Light green background (`#d4edda`), dark green text (`#155724`), green border (`#c3e6cb`).
-*   **Error (`.error-message`)**: Light red background (`#f8d7da`), dark red text (`#721c24`), red border (`#f5c6cb`).
-*   **Warning (`.warning-message`, e.g., Plateau Notifications, Touch Device Message)**: Light yellow background (`#fff3cd`), dark yellow text (`#856404`), yellow border (`#ffeeba`).
+*   **Success (`.success-message`)**: Light green background (`rgba(48, 209, 88, 0.15)`), dark green text (`#30d158`), green border (`rgba(48, 209, 88, 0.4)`).
+*   **Error (`.error-message`)**: Light red background (`rgba(255, 59, 48, 0.15)`), dark red text (`#ff3b30`), red border (`rgba(255, 59, 48, 0.4)`).
+*   **Warning (`.warning-message`, e.g., Plateau Notifications, Touch Device Message)**: Light yellow background (`rgba(255, 149, 0, 0.15)`), dark yellow text (`#ff9500`), yellow border (`rgba(255, 149, 0, 0.4)`).
 
 ### Cards / Panels
 
@@ -191,17 +191,17 @@ Used for dashboard sections, plan builder panels, profile sections, workout exec
 ### Navigation
 
 *   **Header/Footer Links (`header nav a`, `footer nav a`)**:
-    *   `color: #007bff;`
+    *   `color: #1d1d1f;`
     *   `text-decoration: none;`
     *   `padding: 0.5em 1em;`
-    *   Hover: `color: #0056b3;`. Dashboard header links may have `text-decoration: underline;` on hover.
-*   **Hamburger Menu (`.hamburger-menu .bar`)**: `background-color: #2c3e50;`.
+    *   Hover: `color: #515154;`. Dashboard header links may have `text-decoration: underline;` on hover.
+*   **Hamburger Menu (`.hamburger-menu .bar`)**: `background-color: #1d1d1f;`.
 
 ### Lists
 
 *   **Generic Lists (`ul`, `ol`)**: Standard browser defaults unless overridden.
 *   **Item Lists (`ul.item-list li`)**: Styled as cards (see Cards/Panels for base style: white background, border, padding, radius, shadow). `display: flex; justify-content: space-between; align-items: center;`.
-*   **Text Lists (e.g., Plan Details)**: `list-style-position: inside; padding-left: 0;` for `ul`. `li` has `margin-bottom: 5-8px; color: #34495e;`.
+*   **Text Lists (e.g., Plan Details)**: `list-style-position: inside; padding-left: 0;` for `ul`. `li` has `margin-bottom: 5-8px; color: #515154;`.
 
 ### Tables
 
