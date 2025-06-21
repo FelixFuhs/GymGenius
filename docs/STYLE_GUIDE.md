@@ -64,8 +64,8 @@ Consistent spacing creates visual rhythm and balance.
 
 ### Borders
 
-*   **Standard Border**: `1px solid #dee2e6` (for cards, sections, tables).
-*   **Input Border**: `1px solid #ced4da` (default for inputs, can also use `#dee2e6`).
+*   **Standard Border**: `1px solid #e5e5e7` (for cards, sections, tables).
+*   **Input Border**: `1px solid #e5e5e7` (default for inputs, can also use `#dee2e6`).
 *   **Border Radius**:
     *   Cards, Major Sections: `16px`.
     *   Modals: `20px`.
