@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from ..app import get_db_connection, release_db_connection, jwt_required, logger
+from app import get_db_connection, release_db_connection, jwt_required, logger
 import psycopg2
 import psycopg2.extras
 import uuid

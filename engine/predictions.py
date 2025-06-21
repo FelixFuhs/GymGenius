@@ -398,7 +398,7 @@ def calculate_mti(weight: float, reps: int, rir: int) -> tuple[int, int]:
 
 # --- Main Recommendation Function (incorporating readiness) ---
 # This is a simplified placeholder. A full implementation would involve more factors.
-from .readiness import calculate_readiness_multiplier # Import from readiness.py
+from readiness import calculate_readiness_multiplier # Import from readiness.py
 # Assuming app context for logger and db helpers might be tricky if this file is purely computational.
 # For now, let's assume db_conn is passed in, or this function is called from a route that handles DB.
 # from ..app import get_db_connection, release_db_connection, logger # Would need careful handling of app context
@@ -418,7 +418,7 @@ def recommend_next_set_parameters(
     Recommends parameters for the next set, applying readiness multiplier.
     This is a simplified version for integration.
     """
-    from engine.app import logger # Local import to avoid circular dependencies at module level if app imports predictions
+    from app import logger # Local import to avoid circular dependencies at module level if app imports predictions
 
     # 1. Determine target parameters based on goal (from learning_models.calculate_training_params)
     # This function is in learning_models.py, so it needs to be imported or its logic replicated/called.

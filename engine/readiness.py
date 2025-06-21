@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone, timedelta # Ensure all are imported
 import psycopg2
 import psycopg2.extras # For RealDictCursor if needed, though AVG might not require it.
-from .app import get_db_connection, release_db_connection, logger # Assuming app structure
+from app import get_db_connection, release_db_connection, logger
 
 # Constants for readiness calculation (can be tuned)
 SLEEP_TARGET_HOURS = 8.0

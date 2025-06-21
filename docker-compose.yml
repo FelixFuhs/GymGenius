@@ -28,7 +28,7 @@ services:
     build:
       context: ./engine
     restart: always
-    command: gunicorn --bind 0.0.0.0:5000 --workers 4 "engine.app:app" # <-- THE FINAL FIX
+    command: gunicorn --bind 0.0.0.0:5000 --workers 4 "app:app"
     env_file:
       - .env
     ports:

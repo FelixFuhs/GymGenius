@@ -1,14 +1,14 @@
 from flask import Blueprint, request, jsonify, g, abort
-from ..app import get_db_connection, release_db_connection, jwt_required, logger # Assuming limiter is also in app if needed by new endpoint
+from app import get_db_connection, release_db_connection, jwt_required, limiter, logger
 import psycopg2
 import psycopg2.extras
 import uuid
 import math
 from datetime import datetime, timezone, date, timedelta # Added timedelta
-from engine.predictions import calculate_mti, estimate_1rm_with_rir_bias, round_to_available_plates
+from predictions import calculate_mti, estimate_1rm_with_rir_bias, round_to_available_plates
 # Removed: calculate_confidence_score, generate_possible_side_weights, generate_possible_single_weights, extended_epley_1rm as they are not directly used by this new endpoint, but round_to_available_plates is.
 # estimate_1rm_with_rir_bias is used by get_previous_performance, so keep.
-from engine.learning_models import update_user_rir_bias, calculate_training_params, calculate_current_fatigue
+from learning_models import update_user_rir_bias, calculate_training_params, calculate_current_fatigue
 from engine.readiness import calculate_readiness_multiplier
 
 workouts_bp = Blueprint('workouts', __name__)

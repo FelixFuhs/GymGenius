@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import psycopg2
 import psycopg2.extras
-from psycopg2 import pool # <--- FIX 1: ADD THIS IMPORT
+from psycopg2 import pool
 import os
 from urllib.parse import urlparse
 from datetime import timedelta, datetime, timezone
@@ -66,7 +66,6 @@ def init_db_pool():
                  return
 
             app.logger.info(f"Initializing database connection pool for host '{params.get('host')}' db '{params.get('dbname')}'")
-            # --- FIX 2: Use the imported 'pool' object directly ---
             db_pool = pool.SimpleConnectionPool(
                 MIN_DB_CONNECTIONS,
                 MAX_DB_CONNECTIONS,
@@ -213,22 +212,6 @@ def handle_exception(e):
     return jsonify(error="An internal server error occurred"), 500
 
 
-# --- Existing Endpoints ---
-from .blueprints.auth import auth_bp
-from .blueprints.workouts import workouts_bp
-from .blueprints.plans import plans_bp
-from .blueprints.analytics import analytics_bp
-from .blueprints.share import share_bp
-from .blueprints.export import export_bp
-
-app.register_blueprint(auth_bp)
-app.register_blueprint(workouts_bp)
-app.register_blueprint(plans_bp)
-app.register_blueprint(analytics_bp)
-app.register_blueprint(share_bp)
-app.register_blueprint(export_bp)
-
-
 # --- Public Route for Shared Workouts ---
 @app.route('/share/<slug>', methods=['GET'])
 def show_shared_workout(slug):
@@ -292,3 +275,19 @@ def show_shared_workout(slug):
     finally:
         if conn:
             release_db_connection(conn)
+
+
+# --- Register Blueprints (MOVED TO THE BOTTOM TO FIX CIRCULAR IMPORT) ---
+from blueprints.auth import auth_bp
+from blueprints.workouts import workouts_bp
+from blueprints.plans import plans_bp
+from blueprints.analytics import analytics_bp
+from blueprints.share import share_bp
+from blueprints.export import export_bp
+
+app.register_blueprint(auth_bp)
+app.register_blueprint(workouts_bp)
+app.register_blueprint(plans_bp)
+app.register_blueprint(analytics_bp)
+app.register_blueprint(share_bp)
+app.register_blueprint(export_bp)
