@@ -29,8 +29,6 @@ services:
       - .env
     ports:
       - "5000:5000"
-    volumes:
-      - ./engine:/app
     depends_on:
       - db
       - redis
