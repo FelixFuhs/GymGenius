@@ -201,7 +201,7 @@ Used for dashboard sections, plan builder panels, profile sections, workout exec
 
 *   **Generic Lists (`ul`, `ol`)**: Standard browser defaults unless overridden.
 *   **Item Lists (`ul.item-list li`)**: Styled as cards (see Cards/Panels for base style: white background, border, padding, radius, shadow). `display: flex; justify-content: space-between; align-items: center;`.
-*   **Text Lists (e.g., Plan Details)**: `list-style-position: inside; padding-left: 0;` for `ul`. `li` has `margin-bottom: 5-8px; color: #34495e;`.
+*   **Text Lists (e.g., Plan Details)**: `list-style-position: inside; padding-left: 0;` for `ul`. `li` has `margin-bottom: 5-8px; color: #1d1d1f;`.
 
 ### Tables
 
